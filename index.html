@@ -1,0 +1,2398 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Portal Dra. Ilza Ezequiel</title>
+<link rel="manifest" href="#"/>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<!-- ══════════════════════════════════════════════════════════════
+     FIREBASE CONFIG — PREENCHA COM OS DADOS DO SEU PROJETO
+     
+     COMO OBTER:
+     1. Acesse https://console.firebase.google.com
+     2. Crie ou abra o projeto "portal-dra-ilza"
+     3. Configurações do projeto → Seus apps → Web app → firebaseConfig
+     4. Cole os valores abaixo
+     5. No console: ative Firestore Database + Realtime Database + Storage
+     ══════════════════════════════════════════════════════════════ -->
+<script type="module">
+  import { initializeApp }                          from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getStorage, ref as sRef,
+           uploadBytesResumable, getDownloadURL }   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
+  import { getFirestore, collection, addDoc,
+           getDocs, deleteDoc, doc,
+           serverTimestamp, onSnapshot,
+           query, orderBy, where, limit,
+           setDoc, updateDoc, getDoc }              from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  import { getDatabase, ref, push, onValue,
+           set, update, remove, off,
+           serverTimestamp as dbTs }                from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+  import { getAuth, signInWithEmailAndPassword,
+           createUserWithEmailAndPassword,
+           sendPasswordResetEmail,
+           signOut, onAuthStateChanged,
+           updateProfile }                          from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // ▼▼▼  CONFIGURAÇÃO FIREBASE — Portal Dra. Ilza Ezequiel v8  ▼▼▼
+  //
+  //  Como obter estas chaves:
+  //  1. Acesse https://console.firebase.google.com
+  //  2. Crie o projeto "portal-dra-ilza"
+  //  3. Configurações → Seus apps → Web → firebaseConfig
+  //  4. Ative: Authentication (Email/Senha) + Firestore + Realtime DB + Storage
+  //
+  //  Regras Firestore sugeridas (console → Firestore → Regras):
+  //  rules_version = '2';
+  //  service cloud.firestore {
+  //    match /databases/{db}/documents {
+  //      match /pacientes/{id}   { allow read, write: if request.auth != null; }
+  //      match /conteudos/{id}   { allow read: if request.auth != null; allow write: if request.auth.token.admin == true; }
+  //      match /notificacoes/{id}{ allow read, write: if request.auth != null; }
+  //      match /crm_sync/{id}    { allow read, write: if request.auth != null; }
+  //    }
+  //  }
+  //
+  //  Regras Realtime DB sugeridas:
+  //  { "rules": { "chats": { "$chatId": { ".read": "auth != null", ".write": "auth != null" } },
+  //               "sala":  { ".read": "auth != null", ".write": "auth != null" } } }
+  // ═══════════════════════════════════════════════════════════════════════
+  const firebaseConfig = {
+    apiKey:            "SUA_API_KEY",
+    authDomain:        "SEU_PROJETO.firebaseapp.com",
+    databaseURL:       "https://SEU_PROJETO-default-rtdb.firebaseio.com",
+    projectId:         "SEU_PROJETO",
+    storageBucket:     "SEU_PROJETO.appspot.com",
+    messagingSenderId: "SEU_SENDER_ID",
+    appId:             "SEU_APP_ID"
+  };
+  // ═══════════════════════════════════════════════════════════════════════
+
+  const configured = !firebaseConfig.apiKey.startsWith('SUA_');
+  const app   = configured ? initializeApp(firebaseConfig) : null;
+  const db    = configured ? getFirestore(app)   : null;
+  const rtdb  = configured ? getDatabase(app)    : null;
+  const auth  = configured ? getAuth(app)        : null;
+  const storage = configured ? getStorage(app)   : null;
+
+  // ── Auth state listener (Firebase Auth real) ──────────────────────────
+  if (configured && auth) {
+    onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        // Buscar perfil completo no Firestore
+        try {
+          const docId = firebaseUser.email.replace(/[^a-z0-9]/gi,'_').toLowerCase();
+          const snap  = await getDoc(doc(db, 'pacientes', docId));
+          if (snap.exists()) {
+            const p = snap.data();
+            const sessionUser = {
+              email:      firebaseUser.email,
+              uid:        firebaseUser.uid,
+              nome:       p.nome || firebaseUser.displayName || firebaseUser.email,
+              plano:      p.plano || 'basico',
+              planoBadge: p.planoBadge || 'Portal Básico',
+              premium:    p.plano === '360' || p.premium || false,
+              isAdmin:    p.isAdmin || false,
+              validade:   p.validade || '',
+              status:     p.status || 'ativo',
+            };
+            // Restaurar sessão
+            if (typeof window._restoreSession === 'function') {
+              window._restoreSession(sessionUser);
+            }
+          }
+        } catch(e) { console.warn('Firestore perfil indisponível:', e.message); }
+      } else {
+        // Usuário deslogado — voltar para login se não estiver lá
+        if (typeof window._onFirebaseLogout === 'function') window._onFirebaseLogout();
+      }
+    });
+  }
+
+  // Expor API global
+  window._fb = {
+    // Firestore
+    db, collection, addDoc, getDocs, deleteDoc, doc,
+    serverTimestamp, onSnapshot, query, orderBy, where, limit,
+    setDoc, updateDoc, getDoc,
+    // Realtime Database
+    rtdb, ref, push, onValue, set, update, remove, off, dbTs,
+    // Storage
+    storage, sRef, uploadBytesResumable, getDownloadURL,
+    // Auth
+    auth,
+    signInWithEmailAndPassword,
+    createUserWithEmailAndPassword,
+    sendPasswordResetEmail,
+    signOut,
+    onAuthStateChanged,
+    updateProfile,
+    // Flag
+    configured,
+  };
+
+  console.log('[Portal v8] Firebase:', configured ? '✅ ATIVO' : '⚠️ Demo (configure firebaseConfig)');
+
+  // ── Sincronização CRM ↔ Portal via Firestore ──────────────────────────
+  // Listener em tempo real: CRM escreve em crm_sync/ → Portal recebe
+  if (configured && db) {
+    const syncRef = collection(db, 'crm_sync');
+    onSnapshot(query(syncRef, orderBy('ts','desc'), limit(20)), snap => {
+      snap.docChanges().forEach(change => {
+        if (change.type === 'added') {
+          const d = change.doc.data();
+          if (typeof window._onCrmSync === 'function') window._onCrmSync(d);
+        }
+      });
+    });
+  }
+</script>
+<style>
+/* ── Reset ── */
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:#faf7f2;font-family:'DM Sans',sans-serif;-webkit-font-smoothing:antialiased}
+
+/* ── Tokens ── */
+:root{
+  --cream:#F5F0E8; --gold:#B8924A; --gold2:#D4A85A; --goldlt:#FDF5E8; --goldbrd:#E8D5A8;
+  --brown:#2C1F14; --green:#1A7A52; --greenbg:#E6F5EE;
+  --blue:#1A5FA8; --bluelt:#EBF2FB;
+  --bg:#FAF7F2; --white:#FFFFFF;
+  --tx:#1A1208; --txm:#7A6040; --txs:#B8A080;
+  --brd:#E8E0D0; --brd2:#D8CCC0;
+  --red:#B83228; --redbg:#FCECEA;
+  --amber:#A8720A; --amberbg:#FEF5E6;
+}
+
+/* ── App wrapper ── */
+#app{max-width:420px;margin:0 auto;height:100vh;display:flex;flex-direction:column;background:var(--bg);position:relative;overflow:hidden;box-shadow:0 0 60px rgba(44,31,20,.15)}
+
+/* ── Screens ── */
+.screen{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;display:none;flex-direction:column;padding-bottom:70px}
+.screen.active{display:flex}
+.screen::-webkit-scrollbar{display:none}
+
+/* ── Bottom Nav ── */
+.bnav{position:absolute;bottom:0;left:0;right:0;background:var(--white);border-top:1px solid var(--brd);display:flex;z-index:100;padding:6px 0 8px}
+.bni{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;padding:4px 2px}
+.bni-ic{font-size:0;width:22px;height:22px;display:flex;align-items:center;justify-content:center;opacity:.35;transition:.2s}
+.bni-lb{font-size:9px;color:#C0A878;font-weight:500;transition:.2s;letter-spacing:.02em}
+.bni.on .bni-ic{opacity:1}
+.bni.on .bni-lb{color:var(--gold)}
+
+/* ── Inputs ── */
+.inp{width:100%;padding:10px 13px;border-radius:10px;border:1px solid var(--brd);background:var(--white);font-size:13px;color:var(--tx);font-family:inherit;outline:none}
+.inp:focus{border-color:var(--gold)}
+.lbl{font-size:10px;font-weight:700;color:var(--txm);text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px;display:block}
+
+/* ── Buttons ── */
+.btn-gold{background:var(--gold);color:#fff;border:none;border-radius:11px;padding:13px 20px;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;width:100%;display:flex;align-items:center;justify-content:center;gap:8px;transition:opacity .15s}
+.btn-gold:hover{opacity:.88}
+.btn-outline{background:transparent;color:var(--gold);border:1.5px solid var(--gold);border-radius:11px;padding:11px 20px;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;width:100%;transition:.15s}
+.btn-outline:hover{background:var(--goldlt)}
+.btn-sm{padding:7px 14px;border-radius:8px;border:none;font-size:12px;font-weight:600;font-family:inherit;cursor:pointer}
+
+/* ── Cards ── */
+.card{background:var(--white);border:1px solid var(--brd);border-radius:14px;overflow:hidden}
+.card-p{padding:14px 16px}
+
+/* ── Section header ── */
+.sec-hd{font-size:10px;font-weight:700;color:var(--txs);text-transform:uppercase;letter-spacing:.09em;padding:14px 18px 8px}
+
+/* ── Badge premium ── */
+.badge-premium{display:inline-flex;align-items:center;gap:4px;background:var(--goldlt);border:1px solid var(--goldbrd);border-radius:99px;padding:2px 8px;font-size:10px;font-weight:700;color:var(--gold)}
+.star-gold{color:#D4A825;font-size:12px;line-height:1}
+
+/* ── Divider ── */
+.divider{display:flex;align-items:center;gap:10px;margin:12px 0}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--brd)}
+.divider span{font-size:10px;color:var(--txs)}
+
+/* ── Plan card ── */
+.plan-card{margin:0 14px 12px;border-radius:16px;overflow:hidden;border:1px solid var(--brd);background:var(--white)}
+.plan-card.feat{border:2px solid var(--gold)}
+.plan-img{height:90px;overflow:hidden;position:relative}
+.plan-img img{width:100%;height:100%;object-fit:cover;object-position:center 20%}
+.plan-img-ov{position:absolute;inset:0;background:linear-gradient(to right,rgba(44,31,20,.72),rgba(44,31,20,.12))}
+.plan-img-txt{position:absolute;inset:0;padding:12px 16px;display:flex;flex-direction:column;justify-content:center}
+.plan-body{padding:14px 16px}
+.plan-price{font-size:24px;font-weight:700;color:var(--gold);margin:4px 0 2px}
+.plan-price small{font-size:12px;font-weight:400;color:var(--txm)}
+.plan-feats{display:flex;flex-direction:column;gap:5px;margin:10px 0 12px}
+.plan-feat{display:flex;align-items:flex-start;gap:7px;font-size:11px;color:var(--txm);line-height:1.45}
+.plan-feat::before{content:'✦';color:var(--gold);font-size:8px;flex-shrink:0;margin-top:2px}
+
+/* ── Chat ── */
+.chat-wrap{display:flex;flex-direction:column;height:100%;min-height:calc(100vh - 130px)}
+.chat-msgs{flex:1;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:8px;background:var(--bg)}
+.chat-msgs::-webkit-scrollbar{display:none}
+.msg-r{background:var(--white);border:1px solid var(--brd);color:var(--tx);border-bottom-left-radius:4px;align-self:flex-start;max-width:82%;padding:9px 12px;border-radius:14px;font-size:12px;line-height:1.55}
+.msg-s{background:var(--gold);color:#fff;border-bottom-right-radius:4px;align-self:flex-end;max-width:82%;padding:9px 12px;border-radius:14px;font-size:12px;line-height:1.55}
+.msg-from{font-size:9px;color:var(--gold);font-weight:700;margin-bottom:3px}
+.msg-time{font-size:8px;color:rgba(255,255,255,.55);margin-top:3px}
+.msg-time-r{font-size:8px;color:var(--txs);margin-top:3px}
+.chat-file{background:var(--white);border:1px solid var(--brd);border-radius:10px;padding:8px 12px;display:flex;align-items:center;gap:10px;align-self:flex-start;max-width:82%}
+
+/* ── Admin panel ── */
+.adm-tab{padding:7px 16px;border-radius:99px;font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;border:1.5px solid var(--brd);background:var(--white);color:var(--txm);transition:.13s}
+.adm-tab.on{background:var(--goldlt);border-color:var(--gold);color:var(--gold)}
+.upload-zone{border:2px dashed var(--goldbrd);border-radius:12px;padding:24px;text-align:center;cursor:pointer;background:var(--goldlt);transition:.15s}
+.upload-zone:hover{background:#F8EDD0}
+.content-row{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--brd)}
+.content-type-ic{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px}
+
+/* ── Modal overlay ── */
+.modal-ov{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:flex-end;justify-content:center;z-index:200;backdrop-filter:blur(3px)}
+.modal-sheet{background:var(--white);border-radius:20px 20px 0 0;width:100%;max-width:420px;padding:20px 20px 36px;max-height:90vh;overflow-y:auto}
+.modal-sheet::-webkit-scrollbar{display:none}
+.modal-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.modal-hd h3{font-size:16px;font-weight:700;color:var(--tx)}
+
+/* ── Assinante card ── */
+.assinante-row{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--brd)}
+
+/* ── Payment method ── */
+.pay-opt{display:flex;align-items:center;gap:12px;padding:13px;border:1.5px solid var(--brd);border-radius:12px;cursor:pointer;margin-bottom:10px;transition:.13s;background:var(--white)}
+.pay-opt:hover{border-color:var(--gold);background:var(--goldlt)}
+.pay-opt.sel{border-color:var(--gold);background:var(--goldlt)}
+.pay-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+
+/* ── Animations ── */
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+.fadein{animation:fadeUp .32s ease}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.pulse{animation:pulse 2s infinite}
+
+/* ── Sala Virtual / Fila ── */
+.sala-row{display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid var(--brd)}
+.sala-row:last-child{border-bottom:none}
+.sala-avatar{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0}
+.badge-normal{display:inline-flex;align-items:center;gap:3px;background:#F0F0F0;border:1px solid #DDD;border-radius:99px;padding:2px 7px;font-size:9px;font-weight:700;color:#888}
+.badge-prem-mini{display:inline-flex;align-items:center;gap:3px;background:var(--goldlt);border:1px solid var(--goldbrd);border-radius:99px;padding:2px 7px;font-size:9px;font-weight:700;color:var(--gold)}
+.sala-waiting{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;gap:10px;text-align:center}
+.fila-num{width:26px;height:26px;border-radius:50%;background:var(--goldlt);border:1px solid var(--goldbrd);font-size:11px;font-weight:700;color:var(--gold);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.cad-step{flex:1;padding:10px 6px;font-size:11px;font-weight:600;color:var(--txs);text-align:center;border-bottom:2px solid transparent;transition:.2s}
+.cad-step.on{color:var(--gold);border-bottom-color:var(--gold);background:var(--goldlt)}
+.badge-pendente{display:inline-block;background:#FFF3E0;color:#E65100;border:1px solid #FFCC80;border-radius:99px;padding:2px 8px;font-size:10px;font-weight:700}
+.badge-ativo{display:inline-block;background:var(--greenbg);color:var(--green);border:1px solid #a8ddb5;border-radius:99px;padding:2px 8px;font-size:10px;font-weight:700}
+.badge-aguardando{display:inline-block;background:#FFF8E1;color:#F9A825;border:1px solid #FFE082;border-radius:99px;padding:2px 8px;font-size:10px;font-weight:700}
+.as-field{display:flex;flex-direction:column;gap:2px;padding:8px 0;border-bottom:1px solid var(--brd)}
+.as-field:last-child{border-bottom:none}
+.as-field-lbl{font-size:10px;font-weight:700;color:var(--txs);text-transform:uppercase;letter-spacing:.06em}
+.as-field-val{font-size:13px;color:var(--tx)}
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- ════════════════════════════ LOGIN ════════════════════════════ -->
+<div class="screen active fadein" id="s-login" style="padding-bottom:0;background:#fff">
+
+  <!-- Hero branco com logo em destaque -->
+  <div style="background:#ffffff;padding:0;display:flex;flex-direction:column;align-items:stretch;min-height:100vh">
+
+    <!-- Topo — faixa dourada fina -->
+    <div style="height:4px;background:linear-gradient(90deg,#B8924A,#D4A85A,#B8924A)"></div>
+
+    <!-- Área logo — ocupa boa parte da tela -->
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 28px 24px">
+      <!-- Logo grande, cores originais (sem filtro) -->
+      <img src="https://static.wixstatic.com/media/1f0134_5c378964392f45058ff834b96d82a578~mv2.png/v1/fill/w_488,h_269,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/1f0134_5c378964392f45058ff834b96d82a578~mv2.png"
+        alt="Logo Dra. Ilza Ezequiel"
+        style="width:100%;max-width:320px;object-fit:contain;margin-bottom:18px">
+      <!-- Linha dourada decorativa -->
+      <div style="display:flex;align-items:center;gap:10px;width:100%;max-width:280px;margin-bottom:6px">
+        <div style="flex:1;height:1px;background:linear-gradient(to right,transparent,#D4A85A)"></div>
+        <div style="width:6px;height:6px;border-radius:50%;background:#B8924A"></div>
+        <div style="flex:1;height:1px;background:linear-gradient(to left,transparent,#D4A85A)"></div>
+      </div>
+      <div style="font-family:'Cormorant Garamond',serif;font-size:12px;color:#B8924A;letter-spacing:.18em;text-transform:uppercase">Área Exclusiva · Pacientes</div>
+    </div>
+
+    <!-- Formulário — fundo levemente acinzentado, bordas arredondadas no topo -->
+    <div style="background:#FAFAFA;border-top:1px solid #EEE;border-radius:24px 24px 0 0;padding:28px 24px 36px;display:flex;flex-direction:column;gap:14px">
+
+      <!-- Logins demo visíveis -->
+      <div style="background:#FDF5E8;border:1px solid #E8D5A8;border-radius:12px;padding:12px 14px;margin-bottom:2px">
+        <div style="font-size:10px;font-weight:700;color:#B8924A;text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">Acessos de demonstração</div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <!-- Premium 360 -->
+          <div onclick="fillLogin('premium360@drailza.com.br','Ilza@360')"
+            style="display:flex;align-items:center;gap:10px;background:#fff;border:1px solid #E8D5A8;border-radius:9px;padding:8px 12px;cursor:pointer;transition:.15s"
+            onmouseover="this.style.borderColor='#B8924A'" onmouseout="this.style.borderColor='#E8D5A8'">
+            <div style="width:28px;height:28px;border-radius:8px;background:#FDF5E8;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0">★</div>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:11px;font-weight:700;color:#2C1F14">Plano 360° — R$ 3.000</div>
+              <div style="font-size:10px;color:#B8924A;font-family:monospace;margin-top:1px">premium360@drailza.com.br · Ilza@360</div>
+            </div>
+            <div style="font-size:10px;color:#B8924A;font-weight:600;flex-shrink:0">Usar →</div>
+          </div>
+          <!-- Básico 49,90 -->
+          <div onclick="fillLogin('basico@drailza.com.br','Ilza@49')"
+            style="display:flex;align-items:center;gap:10px;background:#fff;border:1px solid #E8D5A8;border-radius:9px;padding:8px 12px;cursor:pointer;transition:.15s"
+            onmouseover="this.style.borderColor='#B8924A'" onmouseout="this.style.borderColor='#E8D5A8'">
+            <div style="width:28px;height:28px;border-radius:8px;background:#EBF5EE;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0">☆</div>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:11px;font-weight:700;color:#2C1F14">Portal Básico — R$ 49,90/mês</div>
+              <div style="font-size:10px;color:#7A6040;font-family:monospace;margin-top:1px">basico@drailza.com.br · Ilza@49</div>
+            </div>
+            <div style="font-size:10px;color:#7A6040;font-weight:600;flex-shrink:0">Usar →</div>
+          </div>
+          <!-- Linha separadora fina -->
+          <div style="height:1px;background:#E8D5A8;margin:2px 0"></div>
+          <!-- Admin -->
+          <div onclick="fillLogin('admin@drailza.com.br','Ilza@Admin2026')"
+            style="display:flex;align-items:center;gap:10px;background:#fff;border:1px solid #C8B89A;border-radius:9px;padding:8px 12px;cursor:pointer;transition:.15s"
+            onmouseover="this.style.borderColor='#2C1F14'" onmouseout="this.style.borderColor='#C8B89A'">
+            <div style="width:28px;height:28px;border-radius:8px;background:#2C1F14;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0">🛡️</div>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:11px;font-weight:700;color:#2C1F14">Admin — Dra. Ilza Ezequiel</div>
+              <div style="font-size:10px;color:#7A6040;font-family:monospace;margin-top:1px">admin@drailza.com.br · Ilza@Admin2026</div>
+            </div>
+            <div style="font-size:10px;color:#2C1F14;font-weight:700;flex-shrink:0">Admin →</div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <span class="lbl">E-mail ou CPF</span>
+        <input class="inp" type="email" placeholder="seu@email.com" id="login-email">
+      </div>
+      <div>
+        <span class="lbl">Senha</span>
+        <input class="inp" type="password" placeholder="••••••••" id="login-senha">
+      </div>
+      <button class="btn-gold" onclick="doLogin()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4M10 17l5-5-5-5M15 12H3"/></svg>
+        Entrar no Portal
+      </button>
+      <div class="divider"><span>não tem acesso?</span></div>
+      <button class="btn-outline" onclick="goTo('planos')">Assinar o Portal →</button>
+      <div style="display:flex;align-items:center;gap:6px;justify-content:center;margin-top:4px">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#B8A080" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+        <span style="font-size:10px;color:var(--txs)">Dados protegidos · LGPD · SSL</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════ HOME ════════════════════════════ -->
+<div class="screen" id="s-home">
+  <!-- Header com LOGO apenas, sem foto da Dra. -->
+  <div style="background:var(--white);padding:14px 16px 10px;border-bottom:1px solid var(--brd)">
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <img src="https://static.wixstatic.com/media/1f0134_5c378964392f45058ff834b96d82a578~mv2.png/v1/fill/w_488,h_269,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/1f0134_5c378964392f45058ff834b96d82a578~mv2.png"
+        alt="Logo" style="height:30px;object-fit:contain">
+      <!-- Avatar simples sem foto -->
+      <div style="display:flex;align-items:center;gap:8px">
+        <!-- Badge premium com estrela dourada -->
+        <div class="badge-premium">
+          <span class="star-gold">★</span>
+          Plano 360°
+        </div>
+        <!-- Botão Sair -->
+        <button onclick="pedirSair()" title="Sair" style="width:30px;height:30px;border-radius:50%;background:var(--bg);border:1px solid var(--brd);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--txm);transition:.15s;flex-shrink:0" onmouseover="this.style.borderColor='var(--red)';this.style.color='var(--red)'" onmouseout="this.style.borderColor='var(--brd)';this.style.color='var(--txm)'">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        </button>
+      </div>
+    </div>
+    <div style="margin-top:10px">
+      <div style="font-size:12px;color:var(--txs)">Bem-vinda de volta</div>
+      <div style="display:flex;align-items:center;gap:6px">
+        <span style="font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:600;color:var(--brown)" class="cormorant-name">Maria Aparecida</span>
+        <span class="star-gold nome-star" title="Assinante Premium">★</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Banner upgrade Plano 360° — visível apenas para plano básico -->
+  <div id="home-upgrade-banner" style="display:none;margin:6px 14px 0">
+    <div style="background:linear-gradient(135deg,#2C1F14 0%,#4A3020 100%);border-radius:14px;padding:16px;position:relative;overflow:hidden">
+      <div style="position:absolute;top:-14px;right:-14px;width:80px;height:80px;border-radius:50%;background:rgba(184,146,74,.18)"></div>
+      <div style="position:absolute;bottom:-20px;right:20px;width:50px;height:50px;border-radius:50%;background:rgba(184,146,74,.12)"></div>
+      <div style="font-size:9px;color:rgba(212,168,90,.8);letter-spacing:.1em;text-transform:uppercase;margin-bottom:4px">✦ Upgrade disponível</div>
+      <div style="font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:600;color:#fff;margin-bottom:4px;line-height:1.2">Plano Intestino 360°</div>
+      <div style="font-size:11px;color:rgba(255,255,255,.6);margin-bottom:12px;line-height:1.5">3 consultas · portal 6 meses · suporte prioritário</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+        <div>
+          <div style="font-size:22px;font-weight:700;color:#D4A85A;line-height:1">R$ 3.000</div>
+          <div style="font-size:10px;color:rgba(255,255,255,.45);margin-top:1px">pacote completo</div>
+        </div>
+        <button onclick="openPayment('360')" style="background:linear-gradient(135deg,#B8924A,#D4A85A);color:#fff;border:none;border-radius:10px;padding:10px 18px;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;white-space:nowrap;box-shadow:0 2px 8px rgba(184,146,74,.4)">★ Comprar agora</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Conteúdo Premium -->
+  <div class="sec-hd">Conteúdo exclusivo</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 14px">
+    <!-- Lives -->
+    <div class="card" style="cursor:pointer" onclick="goTo('conteudo')">
+      <div style="height:56px;overflow:hidden">
+        <img src="https://static.wixstatic.com/media/1f0134_1e5f1dc566c64df888ce425e028eb99c~mv2.jpg/v1/fill/w_200,h_100,al_c,q_80,enc_avif,quality_auto/1f0134_1e5f1dc566c64df888ce425e028eb99c~mv2.jpg"
+          style="width:100%;height:100%;object-fit:cover">
+      </div>
+      <div style="padding:8px 10px">
+        <div style="font-size:11px;font-weight:600;color:var(--brown);margin-bottom:2px">Lives & Webinars</div>
+        <div style="font-size:10px;color:var(--txs)">4 disponíveis</div>
+        <div class="badge-premium" style="margin-top:5px;font-size:9px"><span class="star-gold">★</span> Premium</div>
+      </div>
+    </div>
+    <!-- Protocolos -->
+    <div class="card" style="cursor:pointer" onclick="goTo('conteudo')">
+      <div style="height:56px;overflow:hidden">
+        <img src="https://static.wixstatic.com/media/1f0134_bd631527d814487ca3de1c4360955c61~mv2.jpg/v1/fill/w_200,h_100,al_c,q_80,enc_avif,quality_auto/1f0134_bd631527d814487ca3de1c4360955c61~mv2.jpg"
+          style="width:100%;height:100%;object-fit:cover">
+      </div>
+      <div style="padding:8px 10px">
+        <div style="font-size:11px;font-weight:600;color:var(--brown);margin-bottom:2px">Protocolos Clínicos</div>
+        <div style="font-size:10px;color:var(--txs)">12 guias em PDF</div>
+        <div class="badge-premium" style="margin-top:5px;font-size:9px"><span class="star-gold">★</span> Premium</div>
+      </div>
+    </div>
+    <!-- Podcast -->
+    <div class="card" style="cursor:pointer;display:flex;align-items:center;gap:10px;padding:10px" onclick="goTo('conteudo')">
+      <div style="width:40px;height:40px;border-radius:9px;background:var(--goldlt);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:20px">🎙️</div>
+      <div>
+        <div style="font-size:11px;font-weight:600;color:var(--brown)">Podcast & Áudio</div>
+        <div style="font-size:10px;color:var(--txs)">8 episódios</div>
+      </div>
+    </div>
+    <!-- Artigos -->
+    <div class="card" style="cursor:pointer;display:flex;align-items:center;gap:10px;padding:10px" onclick="goTo('conteudo')">
+      <div style="width:40px;height:40px;border-radius:9px;background:var(--goldlt);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:20px">📝</div>
+      <div>
+        <div style="font-size:11px;font-weight:600;color:var(--brown)">Artigos Técnicos</div>
+        <div style="font-size:10px;color:var(--txs)">Novidades</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="height:10px"></div>
+</div>
+
+<!-- ════════════════════════════ CONTEÚDO PREMIUM ════════════════════════════ -->
+<div class="screen" id="s-conteudo">
+  <div style="background:var(--white);padding:16px 16px 12px;border-bottom:1px solid var(--brd);display:flex;align-items:center;gap:10px">
+    <img src="https://static.wixstatic.com/media/1f0134_5c378964392f45058ff834b96d82a578~mv2.png/v1/fill/w_488,h_269,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/1f0134_5c378964392f45058ff834b96d82a578~mv2.png"
+      alt="Logo" style="height:26px;object-fit:contain">
+    <div style="margin-left:auto">
+      <div class="badge-premium"><span class="star-gold">★</span> Área Premium</div>
+    </div>
+  </div>
+
+  <!-- Filtros -->
+  <div style="display:flex;gap:8px;padding:12px 14px;overflow-x:auto" id="content-filters">
+    <button class="adm-tab on" onclick="filterContent(this,'todos')">Todos</button>
+    <button class="adm-tab" onclick="filterContent(this,'video')">Vídeos</button>
+    <button class="adm-tab" onclick="filterContent(this,'audio')">Áudios</button>
+    <button class="adm-tab" onclick="filterContent(this,'pdf')">PDFs</button>
+    <button class="adm-tab" onclick="filterContent(this,'artigo')">Artigos</button>
+  </div>
+
+  <!-- Lista de conteúdos -->
+  <div id="content-list" style="padding:0 14px;display:flex;flex-direction:column;gap:10px">
+    <div class="card content-row" data-tipo="video">
+      <div class="content-type-ic" style="background:#FEF0F0">🎬</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:600;color:var(--brown)">Síndrome do Intestino Irritável — Live</div>
+        <div style="font-size:11px;color:var(--txs);margin-top:2px">42 min · Adicionado em 10/04/2026</div>
+      </div>
+      <div class="badge-premium" style="font-size:9px;flex-shrink:0"><span class="star-gold">★</span></div>
+    </div>
+    <div class="card content-row" data-tipo="audio">
+      <div class="content-type-ic" style="background:#EBF5EE">🎙️</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:600;color:var(--brown)">Microbiota Intestinal — Ep. 08</div>
+        <div style="font-size:11px;color:var(--txs);margin-top:2px">28 min · Adicionado em 05/04/2026</div>
+      </div>
+      <div class="badge-premium" style="font-size:9px;flex-shrink:0"><span class="star-gold">★</span></div>
+    </div>
+    <div class="card content-row" data-tipo="pdf">
+      <div class="content-type-ic" style="background:#EBF2FB">📄</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:600;color:var(--brown)">Protocolo SIBO — Guia Clínico</div>
+        <div style="font-size:11px;color:var(--txs);margin-top:2px">PDF · 18 páginas · 02/04/2026</div>
+      </div>
+      <div class="badge-premium" style="font-size:9px;flex-shrink:0"><span class="star-gold">★</span></div>
+    </div>
+    <div class="card content-row" data-tipo="video">
+      <div class="content-type-ic" style="background:#FEF0F0">🎬</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:600;color:var(--brown)">Disbiose & Saúde Mental — Webinar</div>
+        <div style="font-size:11px;color:var(--txs);margin-top:2px">58 min · Adicionado em 28/03/2026</div>
+      </div>
+      <div class="badge-premium" style="font-size:9px;flex-shrink:0"><span class="star-gold">★</span></div>
+    </div>
+    <div class="card content-row" data-tipo="artigo">
+      <div class="content-type-ic" style="background:#FEF5E6">📝</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:600;color:var(--brown)">DRGE: além do omeprazol</div>
+        <div style="font-size:11px;color:var(--txs);margin-top:2px">Artigo técnico · 20/03/2026</div>
+      </div>
+      <div class="badge-premium" style="font-size:9px;flex-shrink:0"><span class="star-gold">★</span></div>
+    </div>
+    <div class="card content-row" data-tipo="audio">
+      <div class="content-type-ic" style="background:#EBF5EE">🎙️</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:600;color:var(--brown)">Constipação Crônica — Ep. 07</div>
+        <div style="font-size:11px;color:var(--txs);margin-top:2px">35 min · 15/03/2026</div>
+      </div>
+      <div class="badge-premium" style="font-size:9px;flex-shrink:0"><span class="star-gold">★</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════ SALA VIRTUAL (pacientes) ════════════════════════════ -->
+<div class="screen" id="s-suporte" style="padding-bottom:0">
+  <!-- Header Sala Virtual -->
+  <div style="background:var(--white);padding:12px 14px;border-bottom:1px solid var(--brd);flex-shrink:0">
+    <div style="display:flex;align-items:center;gap:10px">
+      <div style="width:38px;height:38px;border-radius:50%;background:var(--goldlt);border:1.5px solid var(--goldbrd);display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden">
+        <img src="https://static.wixstatic.com/media/1f0134_5c378964392f45058ff834b96d82a578~mv2.png/v1/fill/w_100,h_55,al_c,q_85,enc_avif/1f0134_5c378964392f45058ff834b96d82a578~mv2.png"
+          style="width:100%;height:100%;object-fit:contain;padding:4px">
+      </div>
+      <div style="flex:1">
+        <div style="font-family:'Cormorant Garamond',serif;font-size:16px;font-weight:600;color:var(--brown)">Sala Virtual</div>
+        <div style="font-size:10px;color:var(--green);display:flex;align-items:center;gap:4px">
+          <span class="pulse" style="width:6px;height:6px;border-radius:50%;background:var(--green);display:inline-block"></span>
+          Equipe disponível
+        </div>
+      </div>
+      <!-- Posição na fila -->
+      <div id="fila-badge" style="display:none;background:var(--goldlt);border:1px solid var(--goldbrd);border-radius:8px;padding:4px 10px;text-align:center">
+        <div style="font-size:9px;color:var(--txs);text-transform:uppercase;letter-spacing:.05em">Fila</div>
+        <div id="fila-pos" style="font-size:16px;font-weight:700;color:var(--gold);line-height:1">—</div>
+      </div>
+    </div>
+    <div style="margin-top:8px;background:var(--goldlt);border-radius:8px;padding:7px 10px;font-size:11px;color:var(--txm);border:1px solid var(--goldbrd)">
+      🗓️ Atendimento com a Dra. Ilza · <strong>Quartas-feiras · 8h às 18h</strong>
+    </div>
+  </div>
+
+  <div class="chat-msgs" id="chat-msgs">
+    <div class="msg-r">
+      <div class="msg-from">Equipe Dra. Ilza</div>
+      Olá! Como posso ajudar você hoje? 🌿
+      <div class="msg-time-r">09:15</div>
+    </div>
+    <div class="msg-s">
+      Tenho uma dúvida sobre minha medicação
+      <div class="msg-time">09:22</div>
+    </div>
+    <div class="msg-r">
+      <div class="msg-from">Equipe Dra. Ilza</div>
+      Claro! Pode me contar sua dúvida? Estamos aqui para ajudar 😊
+      <div class="msg-time-r">09:24</div>
+    </div>
+    <div class="msg-s">
+      Posso tomar o Omeprazol junto com o café da manhã?
+      <div class="msg-time">09:31</div>
+    </div>
+    <div class="msg-r">
+      <div class="msg-from">Equipe Dra. Ilza</div>
+      Ideal é tomar em jejum, 30 min antes ☕ Potencializa muito o efeito!
+      <div class="msg-time-r">09:33</div>
+    </div>
+  </div>
+
+  <div style="background:var(--white);border-top:1px solid var(--brd);padding:8px 12px;display:flex;gap:8px;align-items:center;flex-shrink:0">
+    <button style="width:32px;height:32px;border-radius:50%;background:var(--goldlt);border:1px solid var(--goldbrd);color:var(--gold);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">📎</button>
+    <input class="inp" placeholder="Escreva sua mensagem..." id="chat-inp" style="border-radius:20px;padding:8px 14px;flex:1">
+    <button onclick="sendMsg()" style="width:34px;height:34px;border-radius:50%;background:var(--gold);border:none;color:#fff;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+    </button>
+  </div>
+
+  <!-- Nav incluso aqui -->
+  <div class="bnav" style="position:relative;margin-top:auto">
+    <div class="bni" onclick="goTo('home')">
+      <div class="bni-ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5L12 3l9 7.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V10.5z"/><path d="M9 21V13h6v8"/></svg></div>
+      <div class="bni-lb">Início</div>
+    </div>
+    <div class="bni" onclick="goTo('conteudo')">
+      <div class="bni-ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg></div>
+      <div class="bni-lb">Conteúdo</div>
+    </div>
+    <div class="bni on" onclick="goTo('suporte')">
+      <div class="bni-ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#B8924A" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M9 12h6M12 9v6"/></svg></div>
+      <div class="bni-lb">Sala Virtual</div>
+    </div>
+    <div class="bni" onclick="goTo('planos')">
+      <div class="bni-ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div>
+      <div class="bni-lb">Planos</div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════ PLANOS ════════════════════════════ -->
+<div class="screen" id="s-planos">
+  <div style="background:var(--white);padding:20px 16px 14px;border-bottom:1px solid var(--brd);text-align:center">
+    <img src="https://static.wixstatic.com/media/1f0134_5c378964392f45058ff834b96d82a578~mv2.png/v1/fill/w_488,h_269,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/1f0134_5c378964392f45058ff834b96d82a578~mv2.png"
+      alt="Logo" style="height:30px;object-fit:contain;margin-bottom:8px">
+    <div style="font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:600;color:var(--brown)">Portal do Paciente</div>
+    <div style="font-size:12px;color:var(--txm);margin-top:3px">Acesso exclusivo ao conteúdo premium</div>
+  </div>
+
+  <!-- Plano 360° -->
+  <div class="plan-card feat" style="margin-top:14px">
+    <div class="plan-img">
+      <img src="https://static.wixstatic.com/media/1f0134_c9ae84b5990f44e9934dedd0575a9261~mv2.jpg/v1/fill/w_600,h_200,al_c,q_80,enc_avif,quality_auto/1f0134_c9ae84b5990f44e9934dedd0575a9261~mv2.jpg">
+      <div class="plan-img-ov"></div>
+      <div class="plan-img-txt">
+        <div style="font-size:9px;color:rgba(255,255,255,.6);letter-spacing:.08em;text-transform:uppercase">✦ Mais escolhido</div>
+        <div style="font-family:'Cormorant Garamond',serif;font-size:18px;color:#fff;font-weight:600;margin-top:2px">Plano Intestino 360°</div>
+      </div>
+    </div>
+    <div class="plan-body">
+      <div class="plan-price">R$ 3.000 <small>/ pacote completo</small></div>
+      <div style="font-size:11px;color:var(--txm);margin-bottom:8px">3 consultas + portal por 6 meses + suporte prioritário</div>
+      <div class="plan-feats">
+        <div class="plan-feat">Acesso a lives, webinars e protocolos clínicos</div>
+        <div class="plan-feat">Podcast e áudio aulas exclusivas</div>
+        <div class="plan-feat">Chat direto com a equipe · Respostas prioritárias</div>
+        <div class="plan-feat">Receitas e atestados digitais</div>
+        <div class="plan-feat">★ Badge Premium ao lado do seu nome</div>
+      </div>
+      <!-- Assinar Agora → abre modal de pagamento -->
+      <button class="btn-gold" onclick="openPayment('360')">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        Assinar agora
+      </button>
+    </div>
+  </div>
+
+  <!-- Plano Básico -->
+  <div class="plan-card">
+    <div class="plan-img">
+      <img src="https://static.wixstatic.com/media/1f0134_bd631527d814487ca3de1c4360955c61~mv2.jpg/v1/fill/w_600,h_200,al_c,q_80,enc_avif,quality_auto/1f0134_bd631527d814487ca3de1c4360955c61~mv2.jpg">
+      <div class="plan-img-ov"></div>
+      <div class="plan-img-txt">
+        <div style="font-family:'Cormorant Garamond',serif;font-size:18px;color:#fff;font-weight:600">Portal Básico</div>
+      </div>
+    </div>
+    <div class="plan-body">
+      <div class="plan-price">R$ 49 <small>/ mês</small></div>
+      <div class="plan-feats">
+        <div class="plan-feat">Todo o conteúdo premium (vídeos, áudios, PDFs)</div>
+        <div class="plan-feat">Chat com a equipe</div>
+      </div>
+      <button class="btn-gold" onclick="openPayment('basico')" style="background:var(--txm)">Assinar por R$ 49/mês</button>
+    </div>
+  </div>
+  <div style="height:80px"></div>
+</div>
+
+<!-- ════════════════════════════ ADMIN PANEL ════════════════════════════ -->
+<div class="screen" id="s-admin">
+  <div style="background:var(--brown);padding:16px 16px 12px">
+    <div style="display:flex;align-items:center;gap:10px">
+      <div style="width:36px;height:36px;border-radius:9px;background:var(--gold);display:flex;align-items:center;justify-content:center">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l7 4v5c0 4.4-2.9 8.5-7 10C7.9 19.5 5 15.4 5 11V6l7-4z"/></svg>
+      </div>
+      <div>
+        <div style="font-size:15px;font-weight:700;color:#fff">Painel Admin</div>
+        <div style="font-size:11px;color:rgba(255,255,255,.5)">Gerenciar conteúdo e assinantes</div>
+      </div>
+      <button onclick="pedirSair()" title="Sair" style="margin-left:auto;width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);cursor:pointer;display:flex;align-items:center;justify-content:center;color:#fff;flex-shrink:0">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Tabs admin -->
+  <div style="display:flex;gap:6px;padding:10px 12px;background:var(--white);border-bottom:1px solid var(--brd);overflow-x:auto">
+    <button class="adm-tab on" onclick="adminTab(this,'conteudos')">📂 Conteúdos</button>
+    <button class="adm-tab" onclick="adminTab(this,'assinantes')">👤 Assinantes</button>
+    <button class="adm-tab" onclick="adminTab(this,'upload')">⬆️ Enviar</button>
+    <button class="adm-tab" onclick="adminTab(this,'chat')">💬 Chat</button>
+    <button class="adm-tab" onclick="adminTab(this,'sala')" id="tab-sala">🚪 Sala</button>
+  </div>
+
+  <!-- Tab: Conteúdos -->
+  <div id="adm-conteudos" style="padding:14px">
+    <div style="font-size:12px;font-weight:700;color:var(--txm);margin-bottom:10px">Conteúdos publicados</div>
+    <div class="card" id="admin-content-list">
+      <div class="content-row" style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--brd)">
+        <div class="content-type-ic" style="background:#FEF0F0;font-size:16px;width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0">🎬</div>
+        <div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:600;color:var(--brown)">SII — Live Completa</div><div style="font-size:10px;color:var(--txs)">Vídeo · 42 min · 🔒 Premium</div></div>
+        <button class="btn-sm" style="background:var(--redbg);color:var(--red);border:none;cursor:pointer">Remover</button>
+      </div>
+      <div class="content-row" style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--brd)">
+        <div class="content-type-ic" style="background:#EBF5EE;font-size:16px;width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0">🎙️</div>
+        <div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:600;color:var(--brown)">Microbiota — Ep. 08</div><div style="font-size:10px;color:var(--txs)">Áudio · 28 min · 🔒 Premium</div></div>
+        <button class="btn-sm" style="background:var(--redbg);color:var(--red);border:none;cursor:pointer">Remover</button>
+      </div>
+      <div class="content-row" style="display:flex;align-items:center;gap:10px;padding:10px 14px">
+        <div class="content-type-ic" style="background:#EBF2FB;font-size:16px;width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0">📄</div>
+        <div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:600;color:var(--brown)">Protocolo SIBO</div><div style="font-size:10px;color:var(--txs)">PDF · 18p · 🔒 Premium</div></div>
+        <button class="btn-sm" style="background:var(--redbg);color:var(--red);border:none;cursor:pointer">Remover</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab: Assinantes -->
+  <div id="adm-assinantes" style="padding:14px;display:none">
+    <div style="font-size:12px;font-weight:700;color:var(--txm);margin-bottom:10px">Assinantes ativos</div>
+    <div class="card" id="assinantes-list">
+      <div class="assinante-row" style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--brd)">
+        <div style="width:32px;height:32px;border-radius:50%;background:var(--goldlt);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--gold);flex-shrink:0">MA</div>
+        <div style="flex:1"><div style="font-size:13px;font-weight:600;color:var(--brown);display:flex;align-items:center;gap:5px">Maria Aparecida <span class="star-gold">★</span></div><div style="font-size:10px;color:var(--txs)">Plano 360° · Ativo até 10/2026</div></div>
+        <button class="btn-sm" style="background:var(--greenbg);color:var(--green);border:none">Ativo</button>
+      </div>
+      <div class="assinante-row" style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--brd)">
+        <div style="width:32px;height:32px;border-radius:50%;background:var(--goldlt);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--gold);flex-shrink:0">JO</div>
+        <div style="flex:1"><div style="font-size:13px;font-weight:600;color:var(--brown);display:flex;align-items:center;gap:5px">João Oliveira <span class="star-gold">★</span></div><div style="font-size:10px;color:var(--txs)">Portal Básico · R$ 49/mês</div></div>
+        <button class="btn-sm" style="background:var(--greenbg);color:var(--green);border:none">Ativo</button>
+      </div>
+      <div class="assinante-row" style="display:flex;align-items:center;gap:10px;padding:10px 14px">
+        <div style="width:32px;height:32px;border-radius:50%;background:#f0f0f0;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#aaa;flex-shrink:0">RL</div>
+        <div style="flex:1"><div style="font-size:13px;font-weight:600;color:var(--brown)">Rosa Lima</div><div style="font-size:10px;color:var(--txs)">Portal Básico · Expirado</div></div>
+        <button class="btn-sm" style="background:var(--redbg);color:var(--red);border:none;cursor:pointer" onclick="renovarAcesso()">Renovar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab: Upload -->
+  <div id="adm-upload" style="padding:14px;display:none">
+    <div class="upload-zone" onclick="document.getElementById('file-input').click()">
+      <div style="font-size:32px;margin-bottom:10px">⬆️</div>
+      <div style="font-size:14px;font-weight:600;color:var(--gold);margin-bottom:4px">Clique para enviar arquivo</div>
+      <div style="font-size:12px;color:var(--txm)">Vídeos (MP4), Áudios (MP3), PDFs, Imagens</div>
+      <div style="font-size:11px;color:var(--txs);margin-top:4px">Máx. 500MB · Armazenado no Supabase Storage</div>
+      <input type="file" id="file-input" style="display:none" accept="video/*,audio/*,.pdf,image/*" onchange="handleUpload(this)">
+    </div>
+    <div style="margin-top:16px">
+      <span class="lbl">Título do conteúdo</span>
+      <input class="inp" placeholder="Ex: Live sobre SIBO — Episódio 9" id="upload-titulo" style="margin-bottom:10px">
+      <span class="lbl">Tipo</span>
+      <select class="inp" id="upload-tipo" style="margin-bottom:10px">
+        <option value="video">🎬 Vídeo</option>
+        <option value="audio">🎙️ Áudio / Podcast</option>
+        <option value="pdf">📄 PDF / Protocolo</option>
+        <option value="artigo">📝 Artigo</option>
+      </select>
+      <span class="lbl">Acesso</span>
+      <div style="display:flex;gap:8px;margin-bottom:14px">
+        <button class="adm-tab on" id="acesso-premium" onclick="setAcesso('premium',this)">★ Apenas Premium</button>
+        <button class="adm-tab" id="acesso-todos" onclick="setAcesso('todos',this)">Todos os assinantes</button>
+      </div>
+      <button class="btn-gold" id="upload-btn" onclick="publicarConteudo()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0018 9h-1.26A8 8 0 103 16.3"/></svg>
+        Publicar conteúdo
+      </button>
+      <div style="height:4px;background:var(--brd);border-radius:99px;margin-top:10px;overflow:hidden">
+        <div id="upload-progress" style="height:100%;background:var(--gold);border-radius:99px;width:0;display:none;transition:width .3s"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab: Chat (admin) -->
+  <div id="adm-chat" style="display:none;flex-direction:column;flex:1;min-height:0">
+    <!-- Header com nome do paciente + botão voltar + encerrar -->
+    <div style="padding:10px 14px;background:var(--goldlt);border-bottom:1px solid var(--goldbrd);display:flex;align-items:center;gap:8px">
+      <button onclick="voltarParaSala()" title="Voltar à fila" style="width:30px;height:30px;border-radius:50%;background:var(--white);border:1px solid var(--goldbrd);color:var(--gold);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+      </button>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:11px;color:var(--txm)">💬 Respondendo como <strong>Equipe Dra. Ilza</strong></div>
+        <div id="adm-chat-paciente" style="font-size:12px;font-weight:700;color:var(--brown);margin-top:1px">—</div>
+      </div>
+      <button onclick="encerrarAtendimento()" id="btn-encerrar" style="display:none;padding:6px 12px;border-radius:20px;background:var(--redbg);border:1px solid #e0b0b0;color:var(--red);font-size:11px;font-weight:700;font-family:inherit;cursor:pointer;flex-shrink:0">✕ Encerrar</button>
+    </div>
+    <div id="adm-chat-msgs" style="flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:8px;background:var(--bg);min-height:200px;max-height:340px">
+      <div class="msg-r"><div class="msg-from">Sistema</div>Selecione um paciente na aba Sala para iniciar o atendimento.<div class="msg-time-r">—</div></div>
+    </div>
+    <div style="background:var(--white);border-top:1px solid var(--brd);padding:8px 12px;display:flex;gap:8px;align-items:center">
+      <input class="inp" placeholder="Responder ao paciente..." id="adm-chat-inp" style="border-radius:20px;padding:8px 14px;flex:1">
+      <button onclick="adminSendMsg()" style="width:34px;height:34px;border-radius:50%;background:var(--gold);border:none;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Tab: Sala (fila de espera) -->
+  <div id="adm-sala" style="display:none;padding:14px">
+
+    <!-- Em atendimento -->
+    <div id="sala-atendendo-wrap" style="display:none;margin-bottom:14px">
+      <div style="font-size:10px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;display:flex;align-items:center;gap:5px">
+        <span style="width:7px;height:7px;border-radius:50%;background:var(--green);display:inline-block"></span>
+        Em atendimento
+      </div>
+      <div class="card" id="sala-atendendo-lista"></div>
+    </div>
+
+    <!-- Aguardando -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+      <div style="font-size:10px;font-weight:700;color:var(--txs);text-transform:uppercase;letter-spacing:.08em">Aguardando</div>
+      <div id="sala-count" style="background:var(--gold);color:#fff;border-radius:99px;padding:2px 10px;font-size:11px;font-weight:700">0</div>
+    </div>
+    <div class="card" id="sala-lista">
+      <div class="sala-waiting">
+        <div style="font-size:32px">🚪</div>
+        <div style="font-size:13px;font-weight:600;color:var(--brown)">Sala vazia</div>
+        <div style="font-size:12px;color:var(--txs)">Nenhum paciente aguardando</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════ MODAL CONFIRMAR SAÍDA ════════════ -->
+<div id="modal-sair" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:300;align-items:center;justify-content:center;padding:20px">
+  <div style="background:#fff;border-radius:20px;padding:24px 20px;max-width:340px;width:100%;text-align:center;box-shadow:0 8px 40px rgba(0,0,0,.2)">
+    <div style="font-size:36px;margin-bottom:12px">👋</div>
+    <div style="font-size:16px;font-weight:700;color:var(--brown);margin-bottom:8px">Sair do Portal?</div>
+    <div style="font-size:13px;color:var(--txm);margin-bottom:20px;line-height:1.5">Tem certeza que deseja sair da sua conta?</div>
+    <div style="display:flex;gap:10px">
+      <button onclick="fecharModalSair()" style="flex:1;padding:12px;border-radius:11px;border:1.5px solid var(--brd);background:#fff;color:var(--txm);font-size:13px;font-weight:600;font-family:inherit;cursor:pointer">Cancelar</button>
+      <button onclick="confirmarSair()" style="flex:1;padding:12px;border-radius:11px;border:none;background:var(--red);color:#fff;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer">Sair</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════ MODAL ENCERRAR ATENDIMENTO ════════════ -->
+<div id="modal-encerrar" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:300;align-items:center;justify-content:center;padding:20px">
+  <div style="background:#fff;border-radius:20px;padding:24px 20px;max-width:340px;width:100%;box-shadow:0 8px 40px rgba(0,0,0,.2)">
+    <div style="font-size:36px;text-align:center;margin-bottom:12px">✅</div>
+    <div style="font-size:16px;font-weight:700;color:var(--brown);text-align:center;margin-bottom:6px">Encerrar atendimento?</div>
+    <div id="encerrar-nome-info" style="font-size:12px;color:var(--txm);text-align:center;margin-bottom:14px"></div>
+    <div style="background:var(--goldlt);border:1px solid var(--goldbrd);border-radius:12px;padding:12px 14px;margin-bottom:16px">
+      <div style="font-size:10px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">Mensagem de encerramento</div>
+      <textarea id="msg-encerramento" rows="3" style="width:100%;border:none;background:transparent;font-family:inherit;font-size:12px;color:var(--tx);resize:none;outline:none;line-height:1.5">Obrigada pela confiança! Seu atendimento foi encerrado. Qualquer dúvida, estamos à disposição. Cuide-se bem! 🌿</textarea>
+    </div>
+    <div style="display:flex;gap:10px">
+      <button onclick="fecharModalEncerrar()" style="flex:1;padding:12px;border-radius:11px;border:1.5px solid var(--brd);background:#fff;color:var(--txm);font-size:13px;font-weight:600;font-family:inherit;cursor:pointer">Cancelar</button>
+      <button onclick="confirmarEncerrar()" style="flex:1;padding:12px;border-radius:11px;border:none;background:var(--green);color:#fff;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer">Encerrar e Enviar</button>
+    </div>
+  </div>
+</div>
+<div class="modal-ov" id="modal-payment" style="display:none" onclick="closePaymentOutside(event)">
+  <div class="modal-sheet fadein" onclick="event.stopPropagation()">
+    <div class="modal-hd">
+      <h3 id="payment-title">Assinar Plano Intestino 360°</h3>
+      <button onclick="closePayment()" style="background:none;border:none;cursor:pointer;font-size:20px;color:var(--txm)">×</button>
+    </div>
+
+    <!-- Resumo do plano -->
+    <div style="background:var(--goldlt);border:1px solid var(--goldbrd);border-radius:12px;padding:14px 16px;margin-bottom:20px;display:flex;align-items:center;gap:14px">
+      <div style="width:44px;height:44px;border-radius:12px;background:var(--gold);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+        <span style="color:#fff;font-size:20px">★</span>
+      </div>
+      <div style="flex:1">
+        <div id="payment-plan-name" style="font-size:14px;font-weight:700;color:var(--brown)">Plano Intestino 360°</div>
+        <div id="payment-desc" style="font-size:11px;color:var(--txm);margin-top:2px">3 consultas + portal + suporte por 6 meses</div>
+      </div>
+      <div id="payment-price" style="font-size:22px;font-weight:700;color:var(--gold);text-align:right;flex-shrink:0">R$&nbsp;3.000</div>
+    </div>
+
+    <!-- Título seção -->
+    <div style="font-size:11px;font-weight:700;color:var(--txm);text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px">
+      Escolha onde pagar
+    </div>
+
+    <!-- Mercado Pago -->
+    <div class="pay-opt" id="opt-mp" onclick="goToPayment('mp')">
+      <div class="pay-icon" style="background:#00BCD420;font-size:0;padding:8px">
+        <svg width="24" height="24" viewBox="0 0 48 48" fill="none">
+          <circle cx="24" cy="24" r="24" fill="#00BCDD"/>
+          <path d="M10 24c0-7.73 6.27-14 14-14 4.48 0 8.48 2.1 11.07 5.38L31.5 18.5C29.6 16.35 26.95 15 24 15c-4.97 0-9 4.03-9 9s4.03 9 9 9c3.1 0 5.84-1.5 7.54-3.8l3.6 2.57C32.6 35.82 28.52 38 24 38c-7.73 0-14-6.27-14-14z" fill="#fff"/>
+          <path d="M36.5 20h-9v3h6.1A8.97 8.97 0 0133 24c0 .35-.02.69-.06 1.03H27.5v3h5.26A9.04 9.04 0 0124 33c-1.2 0-2.35-.24-3.4-.66L19 35.5C20.8 36.47 22.84 37 25 37c7.73 0 14-6.27 14-14 0-1.08-.12-2.14-.35-3.15L36.5 20z" fill="#fff" opacity=".5"/>
+        </svg>
+      </div>
+      <div style="flex:1">
+        <div style="font-size:14px;font-weight:700;color:var(--brown)">Mercado Pago</div>
+        <div style="font-size:11px;color:var(--txm);margin-top:2px">PIX · Cartão · Boleto · Parcelamento</div>
+        <div style="font-size:10px;color:var(--green);margin-top:3px;font-weight:600">✓ Aprovação imediata no PIX</div>
+      </div>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--txs)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+    </div>
+
+    <!-- PagSeguro -->
+    <div class="pay-opt" id="opt-ps" onclick="goToPayment('ps')">
+      <div class="pay-icon" style="background:#F5A62320;font-size:0;padding:8px">
+        <svg width="24" height="24" viewBox="0 0 48 48" fill="none">
+          <circle cx="24" cy="24" r="24" fill="#F5A623"/>
+          <path d="M14 19c0-2.76 2.24-5 5-5h10c2.76 0 5 2.24 5 5v3H14v-3zM14 25h20v4c0 2.76-2.24 5-5 5H19c-2.76 0-5-2.24-5-5v-4z" fill="#fff"/>
+          <circle cx="19" cy="31" r="2" fill="#F5A623"/>
+          <circle cx="29" cy="31" r="2" fill="#F5A623"/>
+        </svg>
+      </div>
+      <div style="flex:1">
+        <div style="font-size:14px;font-weight:700;color:var(--brown)">PagSeguro</div>
+        <div style="font-size:11px;color:var(--txm);margin-top:2px">Cartão · PIX · Boleto · Até 12x</div>
+        <div style="font-size:10px;color:var(--txm);margin-top:3px">Link de pagamento seguro</div>
+      </div>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--txs)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+    </div>
+
+    <!-- Aviso importante -->
+    <div style="background:#F0F7FF;border:1px solid #C0D8F0;border-radius:10px;padding:11px 14px;margin-top:4px">
+      <div style="font-size:11px;color:#1A5FA8;font-weight:600;margin-bottom:3px">ℹ️ Como funciona</div>
+      <div style="font-size:11px;color:#4B6B90;line-height:1.6">
+        Você será redirecionado para o checkout seguro do Mercado Pago ou PagSeguro.<br>
+        Após a confirmação do pagamento, seu acesso é liberado <strong>automaticamente em até 2 horas</strong>.
+      </div>
+    </div>
+
+    <div style="font-size:10px;color:var(--txs);text-align:center;margin-top:14px;display:flex;align-items:center;justify-content:center;gap:6px">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+      Pagamento 100% seguro · SSL · LGPD
+    </div>
+  </div>
+</div>
+
+<!-- ════════════ TELA DE CADASTRO ════════════ -->
+<div id="s-cadastro" class="screen" style="overflow-y:auto;background:var(--bg)">
+  <div style="background:var(--white);padding:18px 16px 14px;border-bottom:1px solid var(--brd);display:flex;align-items:center;gap:10px">
+    <button onclick="goTo('planos')" style="width:32px;height:32px;border-radius:50%;background:var(--bg);border:1px solid var(--brd);color:var(--txm);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+    </button>
+    <div>
+      <div style="font-family:'Cormorant Garamond',serif;font-size:17px;font-weight:600;color:var(--brown)">Criar sua conta</div>
+      <div style="font-size:11px;color:var(--txm)" id="cad-plano-label">Plano Intestino 360°</div>
+    </div>
+  </div>
+
+  <!-- Steps indicator -->
+  <div style="display:flex;gap:0;background:var(--white);border-bottom:1px solid var(--brd)">
+    <div class="cad-step on" id="step-ind-1">1 · Dados</div>
+    <div class="cad-step" id="step-ind-2">2 · Pagamento</div>
+    <div class="cad-step" id="step-ind-3">3 · Confirmação</div>
+  </div>
+
+  <!-- STEP 1: Dados pessoais -->
+  <div id="cad-step1" style="padding:16px">
+    <div class="card" style="padding:16px;margin-bottom:14px">
+      <div style="font-size:11px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:.08em;margin-bottom:14px">👤 Dados pessoais</div>
+
+      <span class="lbl">Nome completo *</span>
+      <input class="inp" id="cad-nome" placeholder="Seu nome completo" style="margin-bottom:10px">
+
+      <span class="lbl">E-mail *</span>
+      <input class="inp" id="cad-email" type="email" placeholder="seu@email.com" style="margin-bottom:10px">
+
+      <span class="lbl">WhatsApp *</span>
+      <input class="inp" id="cad-whatsapp" type="tel" placeholder="(11) 99999-9999" style="margin-bottom:10px" oninput="mascararTel(this)">
+
+      <span class="lbl">Data de nascimento *</span>
+      <input class="inp" id="cad-nascimento" type="date" style="margin-bottom:10px">
+
+      <span class="lbl">CPF *</span>
+      <input class="inp" id="cad-cpf" placeholder="000.000.000-00" style="margin-bottom:10px" oninput="mascararCPF(this)">
+    </div>
+
+    <div class="card" style="padding:16px;margin-bottom:14px">
+      <div style="font-size:11px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:.08em;margin-bottom:14px">🏠 Endereço</div>
+
+      <span class="lbl">Cidade / Estado</span>
+      <input class="inp" id="cad-cidade" placeholder="Ex: São Paulo, SP" style="margin-bottom:10px">
+
+      <span class="lbl">Como nos conheceu?</span>
+      <select class="inp" id="cad-origem" style="margin-bottom:0">
+        <option value="">Selecione...</option>
+        <option value="instagram">Instagram</option>
+        <option value="indicacao">Indicação de amigo/familiar</option>
+        <option value="google">Google / Busca</option>
+        <option value="youtube">YouTube</option>
+        <option value="podcast">Podcast</option>
+        <option value="outro">Outro</option>
+      </select>
+    </div>
+
+    <div class="card" style="padding:16px;margin-bottom:14px">
+      <div style="font-size:11px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:.08em;margin-bottom:14px">🔒 Criar senha de acesso</div>
+
+      <span class="lbl">Senha *</span>
+      <div style="position:relative;margin-bottom:10px">
+        <input class="inp" id="cad-senha" type="password" placeholder="Mínimo 8 caracteres" style="margin-bottom:0;padding-right:42px">
+        <button onclick="toggleSenha('cad-senha')" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--txs);padding:4px">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
+      </div>
+
+      <span class="lbl">Confirmar senha *</span>
+      <input class="inp" id="cad-senha2" type="password" placeholder="Repita a senha" style="margin-bottom:0">
+    </div>
+
+    <!-- Resumo do plano selecionado -->
+    <div style="background:var(--goldlt);border:1px solid var(--goldbrd);border-radius:14px;padding:14px 16px;margin-bottom:14px">
+      <div style="font-size:11px;font-weight:700;color:var(--gold);margin-bottom:6px">✦ Resumo do plano</div>
+      <div id="cad-resumo-plano" style="font-size:13px;font-weight:600;color:var(--brown)">—</div>
+      <div id="cad-resumo-preco" style="font-size:12px;color:var(--txm);margin-top:2px">—</div>
+    </div>
+
+    <div style="font-size:11px;color:var(--txs);text-align:center;margin-bottom:10px">
+      Ao continuar você aceita os <span style="color:var(--gold);cursor:pointer;text-decoration:underline">Termos de Uso</span> e a <span style="color:var(--gold);cursor:pointer;text-decoration:underline">Política de Privacidade</span>
+    </div>
+
+    <button class="btn-gold" onclick="irParaPagamento()">
+      Continuar para pagamento
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+    </button>
+    <div style="height:20px"></div>
+  </div>
+
+  <!-- STEP 2: Escolha de pagamento (embutido aqui) -->
+  <div id="cad-step2" style="padding:16px;display:none">
+    <div class="card" style="padding:16px;margin-bottom:14px">
+      <div style="font-size:11px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">✦ Plano escolhido</div>
+      <div id="cad2-resumo" style="font-size:14px;font-weight:700;color:var(--brown)">—</div>
+      <div id="cad2-preco" style="font-size:12px;color:var(--txm);margin-top:2px">—</div>
+    </div>
+
+    <div style="font-size:12px;font-weight:700;color:var(--txm);margin-bottom:10px">Escolha como pagar:</div>
+
+    <div class="pay-opt" onclick="finalizarCadastro('mp')" style="margin-bottom:10px">
+      <div class="pay-icon" style="background:#00BCD420;padding:8px">
+        <svg width="24" height="24" viewBox="0 0 48 48" fill="none"><circle cx="24" cy="24" r="24" fill="#00BCDD"/><path d="M10 24c0-7.73 6.27-14 14-14 4.48 0 8.48 2.1 11.07 5.38L31.5 18.5C29.6 16.35 26.95 15 24 15c-4.97 0-9 4.03-9 9s4.03 9 9 9c3.1 0 5.84-1.5 7.54-3.8l3.6 2.57C32.6 35.82 28.52 38 24 38c-7.73 0-14-6.27-14-14z" fill="#fff"/></svg>
+      </div>
+      <div style="flex:1">
+        <div style="font-size:14px;font-weight:700;color:var(--brown)">Mercado Pago</div>
+        <div style="font-size:11px;color:var(--txm);margin-top:2px">PIX · Cartão · Boleto · Parcelamento</div>
+        <div style="font-size:10px;color:var(--green);margin-top:2px;font-weight:600">✓ Aprovação imediata no PIX</div>
+      </div>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--txs)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+    </div>
+
+    <div class="pay-opt" onclick="finalizarCadastro('ps')">
+      <div class="pay-icon" style="background:#F5A62320;padding:8px">
+        <svg width="24" height="24" viewBox="0 0 48 48" fill="none"><circle cx="24" cy="24" r="24" fill="#F5A623"/><path d="M14 19c0-2.76 2.24-5 5-5h10c2.76 0 5 2.24 5 5v3H14v-3zM14 25h20v4c0 2.76-2.24 5-5 5H19c-2.76 0-5-2.24-5-5v-4z" fill="#fff"/></svg>
+      </div>
+      <div style="flex:1">
+        <div style="font-size:14px;font-weight:700;color:var(--brown)">PagSeguro</div>
+        <div style="font-size:11px;color:var(--txm);margin-top:2px">Cartão · PIX · Boleto · Até 12x</div>
+      </div>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--txs)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+    </div>
+
+    <div style="background:#F0F7FF;border:1px solid #C0D8F0;border-radius:10px;padding:12px 14px;margin-top:12px">
+      <div style="font-size:11px;color:#1A5FA8;font-weight:600;margin-bottom:3px">ℹ️ O que acontece depois?</div>
+      <div style="font-size:11px;color:#4B6B90;line-height:1.6">
+        1. Você é redirecionado para o checkout seguro<br>
+        2. Após pagar, você recebe um <strong>e-mail de confirmação</strong><br>
+        3. Clique no link do e-mail para <strong>ativar seu acesso</strong>
+      </div>
+    </div>
+
+    <button onclick="voltarStep1()" style="width:100%;margin-top:12px;padding:12px;border-radius:12px;border:1.5px solid var(--brd);background:#fff;color:var(--txm);font-size:13px;font-weight:600;font-family:inherit;cursor:pointer">← Voltar e editar dados</button>
+    <div style="height:20px"></div>
+  </div>
+
+  <!-- STEP 3: Aguardando confirmação -->
+  <div id="cad-step3" style="padding:16px;display:none;text-align:center">
+    <div style="margin:20px 0 16px">
+      <div style="width:72px;height:72px;border-radius:50%;background:var(--goldlt);border:3px solid var(--gold);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;font-size:32px">📧</div>
+      <div style="font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:600;color:var(--brown);margin-bottom:6px">Quase lá!</div>
+      <div style="font-size:13px;color:var(--txm);line-height:1.6;margin-bottom:6px">
+        Enviamos um e-mail de confirmação para:
+      </div>
+      <div id="cad3-email" style="font-size:14px;font-weight:700;color:var(--brown);background:var(--goldlt);border:1px solid var(--goldbrd);border-radius:8px;padding:8px 14px;display:inline-block;margin-bottom:14px"></div>
+    </div>
+
+    <div style="background:var(--white);border:1px solid var(--brd);border-radius:14px;padding:16px;margin-bottom:14px;text-align:left">
+      <div style="font-size:11px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">Próximos passos</div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div style="display:flex;gap:10px;align-items:flex-start">
+          <div style="width:22px;height:22px;border-radius:50%;background:var(--goldlt);color:var(--gold);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">1</div>
+          <div style="font-size:12px;color:var(--tx);line-height:1.5">Verifique sua caixa de entrada (e o spam) para o e-mail da Dra. Ilza</div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:flex-start">
+          <div style="width:22px;height:22px;border-radius:50%;background:var(--goldlt);color:var(--gold);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">2</div>
+          <div style="font-size:12px;color:var(--tx);line-height:1.5">Clique em <strong>"Confirmar cadastro"</strong> no e-mail</div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:flex-start">
+          <div style="width:22px;height:22px;border-radius:50%;background:var(--goldlt);color:var(--gold);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">3</div>
+          <div style="font-size:12px;color:var(--tx);line-height:1.5">Após a confirmação do pagamento, seu acesso é liberado em até <strong>2 horas</strong></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="cad3-status" style="background:var(--bg);border:1px solid var(--brd);border-radius:12px;padding:12px 14px;margin-bottom:14px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <div style="width:8px;height:8px;border-radius:50%;background:#F5A623;flex-shrink:0"></div>
+        <div style="font-size:12px;color:var(--txm);font-weight:600">Aguardando confirmação de pagamento</div>
+      </div>
+    </div>
+
+    <button class="btn-gold" onclick="goTo('login')" style="background:var(--txm)">
+      Voltar para o login
+    </button>
+    <div style="height:20px"></div>
+  </div>
+</div>
+
+<!-- ════════════ MODAL DETALHE ASSINANTE (admin) ════════════ -->
+<div id="modal-assinante" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:300;align-items:flex-end;justify-content:center;padding:0">
+  <div style="background:#fff;border-radius:20px 20px 0 0;padding:20px 18px 30px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <div style="font-size:16px;font-weight:700;color:var(--brown)" id="modal-as-nome">—</div>
+      <button onclick="fecharModalAssinante()" style="background:none;border:none;font-size:20px;color:var(--txs);cursor:pointer">×</button>
+    </div>
+    <div id="modal-as-body"></div>
+  </div>
+</div>
+
+<!-- ════════════════════════════ BOTTOM NAV GLOBAL ════════════════════════════ -->
+<div class="bnav" id="global-nav">
+  <div class="bni on" id="nav-home" onclick="goTo('home')">
+    <div class="bni-ic">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5L12 3l9 7.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V10.5z"/><path d="M9 21V13h6v8"/></svg>
+    </div>
+    <div class="bni-lb">Início</div>
+  </div>
+  <div class="bni" id="nav-conteudo" onclick="goTo('conteudo')">
+    <div class="bni-ic">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
+    </div>
+    <div class="bni-lb">Conteúdo</div>
+  </div>
+  <div class="bni" id="nav-suporte" onclick="goTo('suporte')">
+    <div class="bni-ic">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M9 12h6M12 9v6"/></svg>
+    </div>
+    <div class="bni-lb">Sala Virtual</div>
+  </div>
+  <div class="bni" id="nav-planos" onclick="goTo('planos')">
+    <div class="bni-ic">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+    </div>
+    <div class="bni-lb">Planos</div>
+  </div>
+  <div class="bni" id="nav-sair" onclick="pedirSair()">
+    <div class="bni-ic">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+    </div>
+    <div class="bni-lb">Sair</div>
+  </div>
+  <div class="bni" id="nav-admin" onclick="goTo('admin')" style="display:none">
+    <div class="bni-ic">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l7 4v5c0 4.4-2.9 8.5-7 10C7.9 19.5 5 15.4 5 11V6l7-4z"/></svg>
+    </div>
+    <div class="bni-lb">Admin</div>
+  </div>
+</div>
+
+</div><!-- /app -->
+
+<script>
+// ── Roteamento ────────────────────────────────────────────────────────────────
+const screens={home:'s-home',conteudo:'s-conteudo',suporte:'s-suporte',planos:'s-planos',admin:'s-admin',cadastro:'s-cadastro'};
+const navItems={home:'nav-home',conteudo:'nav-conteudo',suporte:'nav-suporte',planos:'nav-planos',admin:'nav-admin'};
+const noNavScreens=['login','suporte','cadastro'];
+
+function goTo(page){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  const sId=page==='login'?'s-login':screens[page];
+  if(sId){const s=document.getElementById(sId);if(s){s.classList.add('active');s.scrollTop=0;}}
+  if(page==='suporte' && _currentUser && !_currentUser.isAdmin){ enterSala(_currentUser); }
+  const globalNav=document.getElementById('global-nav');
+  if(noNavScreens.includes(page)||page==='login'){
+    globalNav.style.display='none';
+  } else {
+    globalNav.style.display='flex';
+    document.querySelectorAll('.bni').forEach(n=>n.classList.remove('on'));
+    const ni=navItems[page];if(ni){const n=document.getElementById(ni);if(n)n.classList.add('on');}
+  }
+}
+
+// ── Filtro de conteúdo ────────────────────────────────────────────────────────
+function filterContent(btn, tipo){
+  document.querySelectorAll('#content-filters .adm-tab').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  document.querySelectorAll('#content-list [data-tipo]').forEach(el=>{
+    el.style.display=(tipo==='todos'||el.dataset.tipo===tipo)?'flex':'none';
+  });
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// CHAT PACIENTE — Firebase Realtime Database
+// Estrutura: /chats/{chatId}/mensagens/{msgId}
+//            /sala/{userId}  — fila de espera
+// ══════════════════════════════════════════════════════════════════════════════
+
+let _chatListener   = null;   // listener ativo do paciente
+let _salaListener   = null;   // listener da fila (admin)
+let _chatIdAtual    = null;   // ID do chat aberto no admin
+let _digitandoTimer = null;
+
+// Gera chatId único por paciente (baseado no email/id)
+function getChatId(user){
+  return (user.email || user.nome).replace(/[^a-z0-9]/gi,'_').toLowerCase();
+}
+
+// ── Paciente: entrar na sala + ouvir mensagens ────────────────────────────────
+function sendMsg(){
+  const inp = document.getElementById('chat-inp');
+  const txt = inp.value.trim(); if(!txt) return;
+  inp.value = '';
+
+  const msgs = document.getElementById('chat-msgs');
+
+  // Firebase configurado → salvar no Realtime DB
+  const fb = window._fb;
+  if(fb && fb.configured && _currentUser){
+    const chatId = getChatId(_currentUser);
+    const msgRef = fb.ref(fb.rtdb, `chats/${chatId}/mensagens`);
+    fb.push(msgRef, {
+      texto:   txt,
+      de:      'paciente',
+      nome:    _currentUser.nome,
+      hora:    getHoraAtual(),
+      ts:      fb.dbTs()
+    });
+    // Garantir que o paciente está na fila (status online)
+    const salaRef = fb.ref(fb.rtdb, `sala/${chatId}`);
+    fb.set(salaRef, {
+      chatId,
+      nome:     _currentUser.nome,
+      iniciais: _currentUser.nome.split(' ').map(x=>x[0]).slice(0,2).join('').toUpperCase(),
+      premium:  _currentUser.premium,
+      plano:    _currentUser.plano,
+      hora:     getHoraAtual(),
+      status:   'aguardando',
+      ultimaMsg: txt.substring(0,60),
+      ts:       fb.dbTs()
+    });
+  } else {
+    // Modo demo offline
+    const div = document.createElement('div');
+    div.className = 'msg-s';
+    div.innerHTML = _escapeHtml(txt) + '<div class="msg-time">' + getHoraAtual() + '</div>';
+    msgs.appendChild(div);
+    msgs.scrollTop = msgs.scrollHeight;
+    setTimeout(()=>{
+      const r = document.createElement('div'); r.className = 'msg-r fadein';
+      r.innerHTML = '<div class="msg-from">Equipe Dra. Ilza</div>Obrigada pelo contato! Retornaremos em breve 🌿<div class="msg-time-r">' + getHoraAtual() + '</div>';
+      msgs.appendChild(r); msgs.scrollTop = msgs.scrollHeight;
+    }, 1200);
+  }
+}
+document.getElementById('chat-inp').addEventListener('keydown', e=>{ if(e.key==='Enter') sendMsg(); });
+
+// Iniciar listener de mensagens do paciente
+function iniciarChatPaciente(user){
+  const fb = window._fb;
+  if(!fb || !fb.configured) return;
+  const chatId = getChatId(user);
+
+  // Parar listener anterior
+  if(_chatListener){ fb.off(fb.ref(fb.rtdb, `chats/${chatId}/mensagens`)); }
+
+  const msgsRef = fb.ref(fb.rtdb, `chats/${chatId}/mensagens`);
+  _chatListener = fb.onValue(msgsRef, snap => {
+    const msgs = document.getElementById('chat-msgs');
+    if(!msgs) return;
+    msgs.innerHTML = '';
+    const data = snap.val();
+    if(!data) return;
+    Object.values(data).sort((a,b)=> (a.ts||0)-(b.ts||0)).forEach(m => {
+      const div = document.createElement('div');
+      if(m.de === 'paciente'){
+        div.className = 'msg-s';
+        div.innerHTML = _escapeHtml(m.texto) + '<div class="msg-time">' + (m.hora||'') + '</div>';
+      } else {
+        div.className = 'msg-r fadein';
+        div.innerHTML = '<div class="msg-from">Equipe Dra. Ilza</div>' + _escapeHtml(m.texto) + '<div class="msg-time-r">' + (m.hora||'') + '</div>';
+      }
+      msgs.appendChild(div);
+    });
+    msgs.scrollTop = msgs.scrollHeight;
+  });
+}
+
+// ── Admin: ouvir a fila da sala em tempo real ─────────────────────────────────
+function iniciarListenerSala(){
+  const fb = window._fb;
+  if(!fb || !fb.configured){ renderSalaQueue(); return; }
+
+  const salaRef = fb.ref(fb.rtdb, 'sala');
+  if(_salaListener) fb.off(salaRef);
+
+  _salaListener = fb.onValue(salaRef, snap => {
+    const data = snap.val() || {};
+    // Sincronizar SALA_QUEUE com Firebase
+    // Manter status local de 'atendendo'/'encerrado', atualizar o resto
+    const fbIds = Object.keys(data);
+
+    // Adicionar novos que vieram do Firebase
+    fbIds.forEach(chatId => {
+      const p = data[chatId];
+      const existe = SALA_QUEUE.find(x => x.chatId === chatId);
+      if(!existe){
+        SALA_QUEUE.push({
+          id:       chatId,
+          chatId:   chatId,
+          nome:     p.nome,
+          iniciais: p.iniciais,
+          premium:  p.premium,
+          plano:    p.plano,
+          hora:     p.hora,
+          ultimaMsg: p.ultimaMsg || '',
+          status:   p.status || 'aguardando'
+        });
+      } else if(existe.status === 'aguardando'){
+        // Atualizar última mensagem
+        existe.ultimaMsg = p.ultimaMsg || existe.ultimaMsg;
+      }
+    });
+
+    // Remover quem saiu do Firebase (encerrado pelo sistema)
+    for(let i = SALA_QUEUE.length - 1; i >= 0; i--){
+      const q = SALA_QUEUE[i];
+      if(q.chatId && !fbIds.includes(q.chatId) && q.status === 'aguardando'){
+        SALA_QUEUE.splice(i, 1);
+      }
+    }
+
+    renderSalaQueue();
+
+    // Atualizar badge de notificação
+    const aguardando = SALA_QUEUE.filter(p => p.status === 'aguardando').length;
+    const tabSala = document.getElementById('tab-sala');
+    if(tabSala){
+      tabSala.innerHTML = aguardando > 0
+        ? `🚪 Sala <span style="background:var(--red);color:#fff;border-radius:99px;padding:1px 6px;font-size:9px;margin-left:3px">${aguardando}</span>`
+        : '🚪 Sala';
+    }
+  });
+}
+
+// ── Admin: abrir chat de um paciente com listener Firebase ───────────────────
+function abrirChatAdmin(chatId, nome){
+  const fb = window._fb;
+  if(!fb || !fb.configured) return;
+
+  _chatIdAtual = chatId;
+
+  // Parar listener anterior
+  if(_chatListener) fb.off(fb.ref(fb.rtdb, `chats/${_chatIdAtual}/mensagens`));
+
+  const msgsRef = fb.ref(fb.rtdb, `chats/${chatId}/mensagens`);
+  _chatListener = fb.onValue(msgsRef, snap => {
+    const msgs = document.getElementById('adm-chat-msgs');
+    if(!msgs) return;
+    // Preservar linha de sistema no topo
+    const sysMsg = msgs.querySelector('.msg-r:first-child');
+    const sysHtml = sysMsg ? sysMsg.outerHTML : '';
+    msgs.innerHTML = sysHtml;
+
+    const data = snap.val();
+    if(!data){ msgs.scrollTop = msgs.scrollHeight; return; }
+
+    Object.values(data).sort((a,b)=>(a.ts||0)-(b.ts||0)).forEach(m => {
+      const div = document.createElement('div');
+      if(m.de === 'paciente'){
+        div.className = 'msg-r fadein';
+        div.innerHTML = `<div class="msg-from">${_escapeHtml(m.nome||nome)}</div>${_escapeHtml(m.texto)}<div class="msg-time-r">${m.hora||''}</div>`;
+      } else {
+        div.className = 'msg-s fadein';
+        div.innerHTML = _escapeHtml(m.texto) + '<div class="msg-time">' + (m.hora||'') + '</div>';
+      }
+      msgs.appendChild(div);
+    });
+    msgs.scrollTop = msgs.scrollHeight;
+  });
+}
+
+// ── Admin: enviar mensagem ───────────────────────────────────────────────────
+function adminSendMsg(){
+  const inp = document.getElementById('adm-chat-inp');
+  const txt = inp.value.trim(); if(!txt) return;
+  inp.value = '';
+
+  const fb = window._fb;
+  const p  = SALA_QUEUE.find(x => x.id === _pacienteAtual);
+  const chatId = p ? (p.chatId || p.id) : _pacienteAtual;
+
+  if(fb && fb.configured && chatId){
+    const msgRef = fb.ref(fb.rtdb, `chats/${chatId}/mensagens`);
+    fb.push(msgRef, {
+      texto: txt,
+      de:    'admin',
+      nome:  'Equipe Dra. Ilza',
+      hora:  getHoraAtual(),
+      ts:    fb.dbTs()
+    });
+    // Atualizar ultimaMsg na fila
+    fb.update(fb.ref(fb.rtdb, `sala/${chatId}`), { ultimaMsg: '← ' + txt.substring(0,50) });
+  } else {
+    // Demo offline
+    const msgs = document.getElementById('adm-chat-msgs');
+    const div  = document.createElement('div');
+    div.className = 'msg-s fadein';
+    div.innerHTML  = _escapeHtml(txt) + '<div class="msg-time">' + getHoraAtual() + '</div>';
+    msgs.appendChild(div);
+    msgs.scrollTop = msgs.scrollHeight;
+    // Salvar no histórico local
+    _salvarHistoricoAtual();
+  }
+}
+document.getElementById('adm-chat-inp') && document.getElementById('adm-chat-inp').addEventListener('keydown', e=>{ if(e.key==='Enter') adminSendMsg(); });
+
+function _escapeHtml(txt){
+  return String(txt).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ── Admin tabs ────────────────────────────────────────────────────────────────
+function adminTab(btn, tab){
+  btn.closest('div').querySelectorAll('.adm-tab').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  ['conteudos','assinantes','upload','chat','sala'].forEach(t=>{
+    const el=document.getElementById('adm-'+t);
+    if(el)el.style.display='none';
+  });
+  const target = document.getElementById('adm-'+tab);
+  if(target){
+    target.style.display = tab === 'chat' ? 'flex' : 'block';
+  }
+  if(tab==='conteudos') loadConteudosAdmin();
+  if(tab==='assinantes') loadAssinantes();
+  if(tab==='sala') renderSalaQueue();
+}
+function setAcesso(tipo,btn){
+  btn.closest('div').querySelectorAll('.adm-tab').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+}
+function handleUpload(input){
+  if(!input.files[0])return;
+  const name=input.files[0].name;
+  document.getElementById('upload-titulo').value=name.replace(/\.[^.]+$/,'').replace(/_/g,' ');
+  alert('📁 Arquivo selecionado: '+name+'\n\nPreencha o título e clique em Publicar.\n\n(Em produção: arquivo enviado ao Supabase Storage)');
+}
+function publicarConteudo(){
+  const t=document.getElementById('upload-titulo').value;
+  if(!t.trim()){alert('Informe o título do conteúdo');return;}
+  alert('✅ Conteúdo "'+t+'" publicado!\n\nDisponível para todos os assinantes premium.\n\n(Em produção: salvo no Supabase e notificação push enviada)');
+  document.getElementById('upload-titulo').value='';
+}
+function renovarAcesso(){
+  alert('✅ Acesso renovado para Rosa Lima!\nNotificação enviada via WhatsApp.');
+}
+
+// ── Fila da Sala Virtual ──────────────────────────────────────────────────────
+const SALA_QUEUE = [
+  { id:1, nome:'Ana Paula Ferreira', plano:'360', premium:true,  hora:'08:32', iniciais:'AF', status:'aguardando' },
+  { id:2, nome:'Carlos Henrique Melo', plano:'basico', premium:false, hora:'08:47', iniciais:'CM', status:'aguardando' },
+];
+let _currentUser = null;
+
+function getHoraAtual(){
+  const n = new Date();
+  return String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0');
+}
+
+function enterSala(user){
+  const fb = window._fb;
+  if(fb && fb.configured){
+    // Firebase: registrar na fila online
+    const chatId = getChatId(user);
+    const salaRef = fb.ref(fb.rtdb, `sala/${chatId}`);
+    fb.set(salaRef, {
+      chatId,
+      nome:     user.nome,
+      iniciais: user.nome.split(' ').map(x=>x[0]).slice(0,2).join('').toUpperCase(),
+      premium:  user.premium,
+      plano:    user.plano,
+      hora:     getHoraAtual(),
+      status:   'aguardando',
+      ultimaMsg: '',
+      ts:       fb.dbTs()
+    });
+    // Iniciar listener de mensagens
+    iniciarChatPaciente(user);
+    return;
+  }
+  // Modo demo offline
+  const exists = SALA_QUEUE.find(p => p.nome === user.nome);
+  if(!exists){
+    const initials = user.nome.split(' ').map(x=>x[0]).slice(0,2).join('');
+    SALA_QUEUE.push({
+      id: Date.now(), nome: user.nome, plano: user.plano,
+      premium: user.premium, hora: getHoraAtual(),
+      iniciais: initials, status: 'aguardando'
+    });
+  }
+  const pos = SALA_QUEUE.findIndex(p => p.nome === user.nome) + 1;
+  const badge = document.getElementById('fila-badge');
+  const posEl = document.getElementById('fila-pos');
+  if(badge) badge.style.display = 'block';
+  if(posEl)  posEl.textContent  = pos + 'º';
+}
+
+function renderSalaQueue(){
+  const lista        = document.getElementById('sala-lista');
+  const atenLista    = document.getElementById('sala-atendendo-lista');
+  const atenWrap     = document.getElementById('sala-atendendo-wrap');
+  const count        = document.getElementById('sala-count');
+  if(!lista) return;
+
+  // Separar grupos
+  const aguardando  = SALA_QUEUE.filter(p => p.status === 'aguardando');
+  const atendendo   = SALA_QUEUE.filter(p => p.status === 'atendendo');
+
+  // Contador apenas dos aguardando
+  if(count) count.textContent = aguardando.length;
+
+  // ── Em atendimento ──
+  if(atendendo.length > 0){
+    atenWrap.style.display = 'block';
+    atenLista.innerHTML = atendendo.map(p => `
+      <div class="sala-row" id="sala-row-${p.id}">
+        <div class="sala-avatar" style="background:${p.premium?'var(--goldlt)':'#F0F0F0'};color:${p.premium?'var(--gold)':'#888'}">${p.iniciais}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:600;color:var(--brown);display:flex;align-items:center;gap:5px;flex-wrap:wrap">
+            ${p.nome}
+            ${p.premium ? '<span class="badge-prem-mini">★ Premium</span>' : '<span class="badge-normal">Normal</span>'}
+          </div>
+          <div style="font-size:10px;color:var(--green);margin-top:2px">● Em atendimento · iniciou ${p.hora}</div>
+        </div>
+        <div style="display:flex;gap:5px">
+          <button class="btn-sm" style="background:var(--goldlt);color:var(--gold);border:1px solid var(--goldbrd);cursor:pointer" onclick="atenderPaciente(${p.id},'${p.nome}')">Chat</button>
+          <button class="btn-sm" style="background:var(--redbg);color:var(--red);border:1px solid #e0b0b0;cursor:pointer" onclick="pedirEncerrarDaSala(${p.id},'${p.nome}')">Encerrar</button>
+        </div>
+      </div>
+    `).join('');
+  } else {
+    atenWrap.style.display = 'none';
+    atenLista.innerHTML = '';
+  }
+
+  // ── Aguardando ──
+  if(aguardando.length === 0){
+    lista.innerHTML = '<div class="sala-waiting"><div style="font-size:32px">🚪</div><div style="font-size:13px;font-weight:600;color:var(--brown)">Fila vazia</div><div style="font-size:12px;color:var(--txs)">Nenhum paciente aguardando</div></div>';
+    return;
+  }
+  lista.innerHTML = aguardando.map((p,i) => `
+    <div class="sala-row" id="sala-row-${p.id}">
+      <div class="fila-num">${i+1}</div>
+      <div class="sala-avatar" style="background:${p.premium?'var(--goldlt)':'#F0F0F0'};color:${p.premium?'var(--gold)':'#888'}">${p.iniciais}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:600;color:var(--brown);display:flex;align-items:center;gap:5px;flex-wrap:wrap">
+          ${p.nome}
+          ${p.premium ? '<span class="badge-prem-mini">★ Premium</span>' : '<span class="badge-normal">Normal</span>'}
+        </div>
+        <div style="font-size:10px;color:var(--txs);margin-top:2px">Entrou às ${p.hora}</div>
+      </div>
+      <button class="btn-sm" style="background:var(--goldlt);color:var(--gold);border:1px solid var(--goldbrd);cursor:pointer" onclick="atenderPaciente(${p.id},'${p.nome}')">Atender</button>
+    </div>
+  `).join('');
+}
+
+// ── Histórico de chats por paciente ──────────────────────────────────────────
+// Armazena os nós DOM serializados de cada conversa { id: [ {cls, html} ] }
+const CHAT_HISTORICO = {};
+let _pacienteAtual = null;
+
+// Salva o estado atual do painel de msgs para o paciente em curso
+function _salvarHistoricoAtual(){
+  if(_pacienteAtual === null) return;
+  const msgs = document.getElementById('adm-chat-msgs');
+  CHAT_HISTORICO[_pacienteAtual] = Array.from(msgs.children).map(el=>({
+    cls: el.className,
+    html: el.innerHTML,
+    style: el.getAttribute('style') || ''
+  }));
+}
+
+// Abre o chat de um paciente; se já havia conversa, restaura
+function atenderPaciente(id, nome){
+  // 1. Persistir conversa do paciente anterior (se houver)
+  _salvarHistoricoAtual();
+
+  _pacienteAtual = id;
+  const p = SALA_QUEUE.find(x => x.id === id);
+
+  // 2. Marcar como "em atendimento"
+  if(p && p.status === 'aguardando'){
+    p.status = 'atendendo';
+    const fb = window._fb;
+    if(fb && fb.configured && p.chatId){
+      fb.update(fb.ref(fb.rtdb, `sala/${p.chatId}`), { status: 'atendendo' });
+    }
+    renderSalaQueue();
+  }
+
+  // 3. Mostrar aba Chat
+  _mostrarAbaChat();
+
+  // 4. Atualizar header
+  const nomeEl = document.getElementById('adm-chat-paciente');
+  if(nomeEl) nomeEl.textContent = (p && p.premium ? '★ ' : '') + nome;
+  document.getElementById('btn-encerrar').style.display = 'flex';
+
+  // 5. Inicializar área de msgs com linha de contexto
+  const msgs = document.getElementById('adm-chat-msgs');
+  msgs.innerHTML = '';
+  const ctx = document.createElement('div');
+  ctx.className = 'msg-r';
+  ctx.innerHTML = `<div class="msg-from">Sistema</div>Atendendo: <strong>${nome}</strong> · ${p && p.premium ? '★ Plano 360°' : 'Portal Básico'}<div class="msg-time-r">${getHoraAtual()}</div>`;
+  msgs.appendChild(ctx);
+
+  // 6. Firebase: abrir listener em tempo real
+  const fb = window._fb;
+  if(fb && fb.configured){
+    const chatId = p ? (p.chatId || p.id) : String(id);
+    abrirChatAdmin(chatId, nome);
+  } else {
+    // Demo offline: restaurar histórico local
+    if(CHAT_HISTORICO[id] && CHAT_HISTORICO[id].length > 0){
+      CHAT_HISTORICO[id].forEach(m => {
+        const el = document.createElement('div');
+        el.className = m.cls;
+        if(m.style) el.setAttribute('style', m.style);
+        el.innerHTML = m.html;
+        msgs.appendChild(el);
+      });
+    } else {
+      const sug = document.createElement('div');
+      sug.className = 'msg-r fadein';
+      sug.innerHTML = `<div class="msg-from">Sugestão de abertura</div>Olá, ${nome.split(' ')[0]}! Em que posso ajudá-la hoje? 🌿<div class="msg-time-r">${getHoraAtual()}</div>`;
+      msgs.appendChild(sug);
+    }
+  }
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function _mostrarAbaChat(){
+  const tabs = document.querySelectorAll('#s-admin .adm-tab');
+  tabs.forEach(t => t.classList.remove('on'));
+  const chatTab = Array.from(tabs).find(t => t.textContent.includes('Chat'));
+  if(chatTab) chatTab.classList.add('on');
+  ['conteudos','assinantes','upload','sala'].forEach(t => {
+    const el = document.getElementById('adm-'+t); if(el) el.style.display = 'none';
+  });
+  const chatEl = document.getElementById('adm-chat');
+  if(chatEl) chatEl.style.display = 'flex';
+}
+
+// Volta para a Sala SEM apagar nada — conversa fica salva
+function voltarParaSala(){
+  _salvarHistoricoAtual(); // garante persistência
+
+  const tabs = document.querySelectorAll('#s-admin .adm-tab');
+  tabs.forEach(t => t.classList.remove('on'));
+  const salaTab = Array.from(tabs).find(t => t.textContent.includes('Sala'));
+  if(salaTab) salaTab.classList.add('on');
+  ['conteudos','assinantes','upload','chat'].forEach(t => {
+    const el = document.getElementById('adm-'+t); if(el) el.style.display = 'none';
+  });
+  const salaEl = document.getElementById('adm-sala');
+  if(salaEl){ salaEl.style.display = 'block'; renderSalaQueue(); }
+
+  // Limpa header mas NÃO toca no histórico nem no _pacienteAtual
+  document.getElementById('btn-encerrar').style.display = 'none';
+  document.getElementById('adm-chat-paciente').textContent = '—';
+}
+
+// Encerrar iniciado a partir do BOTÃO NO CHAT
+function encerrarAtendimento(){
+  const p = SALA_QUEUE.find(x => x.id === _pacienteAtual);
+  _abrirModalEncerrar(p ? p.id : null, p ? p.nome : 'Paciente');
+}
+
+// Encerrar iniciado a partir do CARD NA SALA
+function pedirEncerrarDaSala(id, nome){
+  _abrirModalEncerrar(id, nome);
+}
+
+function _abrirModalEncerrar(id, nome){
+  // Garante que _pacienteAtual aponta pro correto ao confirmar
+  _pacienteAtual = id;
+  document.getElementById('encerrar-nome-info').textContent = 'Encerrando atendimento de ' + nome;
+  document.getElementById('modal-encerrar').style.display = 'flex';
+}
+
+function fecharModalEncerrar(){
+  document.getElementById('modal-encerrar').style.display = 'none';
+}
+
+function confirmarEncerrar(){
+  const p = SALA_QUEUE.find(x => x.id === _pacienteAtual);
+  const chatId = p ? (p.chatId || String(p.id)) : null;
+
+  // 1. Enviar mensagem de encerramento no Firebase ou local
+  const msgTxt = document.getElementById('msg-encerramento').value.trim();
+  if(msgTxt){
+    const fb = window._fb;
+    if(fb && fb.configured && chatId){
+      fb.push(fb.ref(fb.rtdb, `chats/${chatId}/mensagens`), {
+        texto: msgTxt, de: 'admin', nome: 'Equipe Dra. Ilza',
+        hora: getHoraAtual(), ts: fb.dbTs()
+      });
+      // Remover da fila (encerrado)
+      setTimeout(() => fb.remove(fb.ref(fb.rtdb, `sala/${chatId}`)), 800);
+    } else {
+      // Demo offline
+      const msgs = document.getElementById('adm-chat-msgs');
+      if(CHAT_HISTORICO[_pacienteAtual]){
+        msgs.innerHTML = '';
+        CHAT_HISTORICO[_pacienteAtual].forEach(m => {
+          const el = document.createElement('div');
+          el.className = m.cls; if(m.style) el.setAttribute('style',m.style); el.innerHTML = m.html; msgs.appendChild(el);
+        });
+      }
+      const div = document.createElement('div');
+      div.className = 'msg-s fadein';
+      div.innerHTML = _escapeHtml(msgTxt) + '<div class="msg-time">' + getHoraAtual() + '</div>';
+      msgs.appendChild(div);
+      const enc = document.createElement('div');
+      enc.setAttribute('style','text-align:center;padding:8px 4px;font-size:10px;color:var(--txs);border-top:1px dashed var(--brd);margin-top:4px');
+      enc.textContent = '✅ Atendimento encerrado · ' + getHoraAtual();
+      msgs.appendChild(enc);
+      msgs.scrollTop = msgs.scrollHeight;
+      CHAT_HISTORICO[_pacienteAtual] = Array.from(msgs.children).map(el=>({ cls:el.className, html:el.innerHTML, style:el.getAttribute('style')||'' }));
+    }
+  }
+
+  // 2. Remover da SALA_QUEUE local
+  if(p) p.status = 'encerrado';
+
+  fecharModalEncerrar();
+
+  // 3. Parar listener Firebase do chat
+  const fb = window._fb;
+  if(fb && fb.configured && chatId){
+    fb.off(fb.ref(fb.rtdb, `chats/${chatId}/mensagens`));
+  }
+
+  // 4. Voltar para a sala
+  const tabs = document.querySelectorAll('#s-admin .adm-tab');
+  tabs.forEach(t => t.classList.remove('on'));
+  const salaTab = Array.from(tabs).find(t => t.textContent.includes('Sala'));
+  if(salaTab) salaTab.classList.add('on');
+  ['conteudos','assinantes','upload','chat'].forEach(t => {
+    const el = document.getElementById('adm-'+t); if(el) el.style.display = 'none';
+  });
+  const salaEl = document.getElementById('adm-sala');
+  if(salaEl) salaEl.style.display = 'block';
+
+  _pacienteAtual = null;
+  _chatIdAtual   = null;
+  document.getElementById('btn-encerrar').style.display = 'none';
+  document.getElementById('adm-chat-paciente').textContent = '—';
+
+  renderSalaQueue();
+}
+
+// ── Modal Sair ────────────────────────────────────────────────────────────────
+function pedirSair(){
+  document.getElementById('modal-sair').style.display='flex';
+}
+function fecharModalSair(){
+  document.getElementById('modal-sair').style.display='none';
+}
+function confirmarSair(){
+  fecharModalSair();
+  doLogout();
+}
+
+function adminSendMsg(){
+  const inp = document.getElementById('adm-chat-inp');
+  const txt = inp.value.trim(); if(!txt) return;
+  const msgs = document.getElementById('adm-chat-msgs');
+  const div = document.createElement('div');
+  div.className = 'msg-s fadein';
+  div.innerHTML = txt + '<div class="msg-time">agora</div>';
+  msgs.appendChild(div);
+  inp.value = '';
+  msgs.scrollTop = msgs.scrollHeight;
+}
+document.getElementById('adm-chat-inp') && document.getElementById('adm-chat-inp').addEventListener('keydown',e=>{if(e.key==='Enter')adminSendMsg();});
+
+// ══════════════════════════════════════════════════════════════════════════════
+// FLUXO DE CADASTRO + PAGAMENTO
+// ══════════════════════════════════════════════════════════════════════════════
+
+let _cadPlano = null; // '360' ou 'basico'
+
+const PLANOS_INFO = {
+  '360':   { nome: 'Plano Intestino 360°',  preco: 'R$ 3.000',  desc: 'Pacote completo · 3 consultas + 6 meses de portal' },
+  'basico':{ nome: 'Portal Básico',          preco: 'R$ 49/mês', desc: 'Acesso mensal renovável' }
+};
+
+// Chamado ao clicar "Assinar agora" nos cards de plano
+function openPayment(plano){
+  _cadPlano = plano;
+  const info = PLANOS_INFO[plano];
+  // Preencher labels na tela de cadastro
+  document.getElementById('cad-plano-label').textContent  = info.nome;
+  document.getElementById('cad-resumo-plano').textContent = info.nome;
+  document.getElementById('cad-resumo-preco').textContent = info.preco + ' · ' + info.desc;
+  // Resetar formulário
+  ['cad-nome','cad-email','cad-whatsapp','cad-nascimento','cad-cpf','cad-cidade','cad-senha','cad-senha2'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.value='';
+  });
+  document.getElementById('cad-origem').value='';
+  // Mostrar step 1
+  setCadStep(1);
+  goTo('cadastro');
+}
+
+function setCadStep(n){
+  [1,2,3].forEach(i=>{
+    document.getElementById('cad-step'+i).style.display = i===n ? 'block' : 'none';
+    const ind = document.getElementById('step-ind-'+i);
+    if(ind){ ind.classList.toggle('on', i<=n); }
+  });
+}
+
+function irParaPagamento(){
+  // Validações
+  const nome    = document.getElementById('cad-nome').value.trim();
+  const email   = document.getElementById('cad-email').value.trim();
+  const whats   = document.getElementById('cad-whatsapp').value.trim();
+  const nasc    = document.getElementById('cad-nascimento').value;
+  const cpf     = document.getElementById('cad-cpf').value.trim();
+  const senha   = document.getElementById('cad-senha').value;
+  const senha2  = document.getElementById('cad-senha2').value;
+
+  if(!nome)                  return _cadErro('cad-nome',   'Informe seu nome completo');
+  if(!email||!email.includes('@')) return _cadErro('cad-email',  'Informe um e-mail válido');
+  if(whats.replace(/\D/g,'').length < 10) return _cadErro('cad-whatsapp','Informe o WhatsApp com DDD');
+  if(!nasc)                  return _cadErro('cad-nascimento','Informe sua data de nascimento');
+  if(cpf.replace(/\D/g,'').length < 11) return _cadErro('cad-cpf', 'CPF inválido');
+  if(senha.length < 8)       return _cadErro('cad-senha',  'Senha deve ter ao menos 8 caracteres');
+  if(senha !== senha2)       return _cadErro('cad-senha2', 'As senhas não coincidem');
+
+  // Preencher step 2
+  const info = PLANOS_INFO[_cadPlano];
+  document.getElementById('cad2-resumo').textContent = info.nome;
+  document.getElementById('cad2-preco').textContent  = info.preco + ' · ' + info.desc;
+  setCadStep(2);
+  document.getElementById('s-cadastro').scrollTop = 0;
+}
+
+function voltarStep1(){
+  setCadStep(1);
+  document.getElementById('s-cadastro').scrollTop = 0;
+}
+
+function _cadErro(id, msg){
+  const el = document.getElementById(id);
+  if(el){
+    el.style.borderColor = 'var(--red)';
+    el.focus();
+    setTimeout(()=>{ el.style.borderColor=''; }, 2500);
+  }
+  // Toast simples
+  let toast = document.getElementById('cad-toast');
+  if(!toast){ toast=document.createElement('div'); toast.id='cad-toast'; toast.style.cssText='position:fixed;top:70px;left:50%;transform:translateX(-50%);background:#333;color:#fff;border-radius:10px;padding:10px 18px;font-size:12px;z-index:999;white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,.3)'; document.body.appendChild(toast); }
+  toast.textContent = msg;
+  toast.style.display='block';
+  setTimeout(()=>{ toast.style.display='none'; }, 2800);
+}
+
+async function finalizarCadastro(gateway){
+  const nome    = document.getElementById('cad-nome').value.trim();
+  const email   = document.getElementById('cad-email').value.trim();
+  const whats   = document.getElementById('cad-whatsapp').value.trim();
+  const nasc    = document.getElementById('cad-nascimento').value;
+  const cpf     = document.getElementById('cad-cpf').value.trim();
+  const cidade  = document.getElementById('cad-cidade').value.trim();
+  const origem  = document.getElementById('cad-origem').value;
+  const senha   = document.getElementById('cad-senha').value;
+  const info    = PLANOS_INFO[_cadPlano];
+
+  // Token de confirmação único
+  const token = Math.random().toString(36).substring(2,10).toUpperCase() + Date.now().toString(36).toUpperCase();
+
+  const dadosPaciente = {
+    nome, email, whatsapp: whats, nascimento: nasc, cpf,
+    cidade, origem, plano: _cadPlano, planoBadge: info.nome,
+    gateway, status: 'pendente_pagamento',
+    token, criadoEm: new Date().toISOString(),
+    premium: _cadPlano === '360',
+    senhaHash: btoa(senha) // base64 simples (em prod: use Firebase Auth)
+  };
+
+  // Salvar no Firestore
+  const fb = window._fb;
+  if(fb && fb.configured){
+    try {
+      await fb.setDoc(fb.doc(fb.db, 'pacientes', email.replace(/[^a-z0-9]/gi,'_')), dadosPaciente);
+      console.log('Paciente salvo no Firestore');
+    } catch(e){ console.warn('Firestore indisponível, salvando local:', e); }
+  }
+
+  // Salvar localmente (demo / fallback)
+  const cadastros = JSON.parse(localStorage.getItem('drailza_cadastros')||'{}');
+  cadastros[email] = dadosPaciente;
+  localStorage.setItem('drailza_cadastros', JSON.stringify(cadastros));
+
+  // Simular envio do e-mail de confirmação
+  console.log(`📧 E-mail de confirmação para ${email}:
+Link: https://portal.drailza.com.br/confirmar?token=${token}&email=${encodeURIComponent(email)}`);
+
+  // Mostrar step 3
+  document.getElementById('cad3-email').textContent = email;
+  setCadStep(3);
+  document.getElementById('s-cadastro').scrollTop = 0;
+
+  // Abrir link de pagamento
+  const PAYMENT_LINKS = {
+    mp_360:    "https://mpago.la/SEU_LINK_PLANO360",
+    mp_basico: "https://mpago.la/SEU_LINK_BASICO",
+    ps_360:    "https://pag.ae/SEU_LINK_PLANO360",
+    ps_basico: "https://pag.ae/SEU_LINK_BASICO",
+  };
+  const url = PAYMENT_LINKS[gateway + '_' + _cadPlano];
+  if(url && !url.includes('SEU_LINK')){
+    setTimeout(()=>window.open(url,'_blank'), 600);
+  } else {
+    console.log(`[Demo] Em produção abriria: ${gateway === 'mp' ? 'Mercado Pago' : 'PagSeguro'} para o ${info.nome}`);
+  }
+}
+
+// Máscaras de input
+function mascararTel(el){
+  let v = el.value.replace(/\D/g,'').substring(0,11);
+  if(v.length >= 7){ v = '(' + v.substring(0,2) + ') ' + v.substring(2,7) + (v.length>7 ? '-' + v.substring(7) : ''); }
+  else if(v.length >= 3){ v = '(' + v.substring(0,2) + ') ' + v.substring(2); }
+  el.value = v;
+}
+function mascararCPF(el){
+  let v = el.value.replace(/\D/g,'').substring(0,11);
+  if(v.length > 9)      v = v.replace(/(\d{3})(\d{3})(\d{3})(\d{1,2})/,'$1.$2.$3-$4');
+  else if(v.length > 6) v = v.replace(/(\d{3})(\d{3})(\d{1,3})/,'$1.$2.$3');
+  else if(v.length > 3) v = v.replace(/(\d{3})(\d{1,3})/,'$1.$2');
+  el.value = v;
+}
+function toggleSenha(id){
+  const el = document.getElementById(id);
+  el.type = el.type === 'password' ? 'text' : 'password';
+}
+
+// ── Modal detalhe assinante (admin) ──────────────────────────────────────────
+function verAssinante(email){
+  const cadastros = JSON.parse(localStorage.getItem('drailza_cadastros')||'{}');
+  const p = cadastros[email] || USUARIOS[email];
+  if(!p) return;
+  const info = PLANOS_INFO[p.plano] || { nome: p.planoBadge || p.plano, preco: '—', desc: '—' };
+  const statusBadge = p.status === 'ativo' ? '<span class="badge-ativo">✓ Ativo</span>'
+    : p.status === 'pendente_pagamento' ? '<span class="badge-pendente">⏳ Aguard. pagamento</span>'
+    : '<span class="badge-aguardando">⚠ Pendente</span>';
+
+  document.getElementById('modal-as-nome').textContent = p.nome || '—';
+  document.getElementById('modal-as-body').innerHTML = `
+    <div style="margin-bottom:12px">${statusBadge} <span class="badge-prem-mini" style="margin-left:4px">${info.nome}</span></div>
+    <div class="card" style="padding:12px 14px">
+      <div class="as-field"><div class="as-field-lbl">E-mail</div><div class="as-field-val">${p.email||email}</div></div>
+      <div class="as-field"><div class="as-field-lbl">WhatsApp</div><div class="as-field-val">${p.whatsapp||'—'}</div></div>
+      <div class="as-field"><div class="as-field-lbl">CPF</div><div class="as-field-val">${p.cpf||'—'}</div></div>
+      <div class="as-field"><div class="as-field-lbl">Data de nascimento</div><div class="as-field-val">${p.nascimento||'—'}</div></div>
+      <div class="as-field"><div class="as-field-lbl">Cidade</div><div class="as-field-val">${p.cidade||'—'}</div></div>
+      <div class="as-field"><div class="as-field-lbl">Como nos conheceu</div><div class="as-field-val">${p.origem||'—'}</div></div>
+      <div class="as-field"><div class="as-field-lbl">Plano</div><div class="as-field-val">${info.nome} · ${info.preco}</div></div>
+      <div class="as-field"><div class="as-field-lbl">Gateway</div><div class="as-field-val">${p.gateway==='mp'?'Mercado Pago':p.gateway==='ps'?'PagSeguro':'—'}</div></div>
+      <div class="as-field"><div class="as-field-lbl">Cadastro</div><div class="as-field-val">${p.criadoEm ? new Date(p.criadoEm).toLocaleString('pt-BR') : '—'}</div></div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:14px">
+      ${p.status !== 'ativo' ? `<button class="btn-gold" style="flex:1;padding:12px" onclick="ativarAcesso('${email||p.email}')">✓ Ativar acesso</button>` : ''}
+      <button style="flex:1;padding:12px;border-radius:12px;border:1.5px solid var(--brd);background:#fff;color:var(--txm);font-size:13px;font-weight:600;font-family:inherit;cursor:pointer" onclick="fecharModalAssinante()">Fechar</button>
+    </div>`;
+  document.getElementById('modal-assinante').style.display='flex';
+}
+
+function fecharModalAssinante(){
+  document.getElementById('modal-assinante').style.display='none';
+}
+
+async function ativarAcesso(email){
+  const cadastros = JSON.parse(localStorage.getItem('drailza_cadastros')||'{}');
+  if(cadastros[email]){
+    cadastros[email].status = 'ativo';
+    localStorage.setItem('drailza_cadastros', JSON.stringify(cadastros));
+  }
+  // Firebase
+  const fb = window._fb;
+  if(fb && fb.configured){
+    try {
+      await fb.updateDoc(fb.doc(fb.db,'pacientes',email.replace(/[^a-z0-9]/gi,'_')),{ status:'ativo' });
+    } catch(e){}
+  }
+  fecharModalAssinante();
+  loadAssinantes();
+  alert('✅ Acesso de ' + email + ' ativado com sucesso!');
+}
+
+// ── Pagamento legado (chamado do modal antigo, agora substituído) ─────────────
+function goToPayment(gateway){
+  if(_cadPlano) finalizarCadastro(gateway);
+}
+function closePayment(){ document.getElementById('modal-payment') && (document.getElementById('modal-payment').style.display='none'); }
+function closePaymentOutside(e){ if(e.target===document.getElementById('modal-payment')) closePayment(); }
+
+// ── UPLOAD FIREBASE STORAGE ──────────────────────────────────────────────────
+let _uploadFile = null;
+
+function handleUpload(input) {
+  if (!input.files[0]) return;
+  _uploadFile = input.files[0];
+  const name = _uploadFile.name.replace(/\.[^.]+$/, '').replace(/_/g, ' ');
+  document.getElementById('upload-titulo').value = name;
+  // Detectar tipo automaticamente
+  const tipo = _uploadFile.type.startsWith('video') ? 'video'
+    : _uploadFile.type.startsWith('audio') ? 'audio'
+    : _uploadFile.name.endsWith('.pdf')     ? 'pdf'
+    : 'artigo';
+  document.getElementById('upload-tipo').value = tipo;
+  const size = (_uploadFile.size / 1024 / 1024).toFixed(1);
+  showUploadPreview(name, size, tipo);
+}
+
+function showUploadPreview(name, size, tipo) {
+  const prev = document.getElementById('upload-preview');
+  if (prev) prev.remove();
+  const emojis = { video:'🎬', audio:'🎙️', pdf:'📄', artigo:'📝' };
+  const div = document.createElement('div');
+  div.id = 'upload-preview';
+  div.style.cssText = 'display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--goldlt);border:1px solid var(--goldbrd);border-radius:10px;margin-bottom:10px';
+  div.innerHTML = `
+    <span style="font-size:22px">${emojis[tipo]||'📁'}</span>
+    <div style="flex:1;min-width:0">
+      <div style="font-size:12px;font-weight:600;color:var(--brown);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${name}</div>
+      <div style="font-size:10px;color:var(--txm)">${size} MB · Pronto para enviar</div>
+    </div>
+    <span style="font-size:18px;cursor:pointer;color:var(--txm)" onclick="clearUpload()">×</span>`;
+  document.getElementById('upload-titulo').parentNode.insertBefore(div, document.getElementById('upload-titulo').parentNode.firstChild.nextSibling);
+}
+
+function clearUpload() {
+  _uploadFile = null;
+  document.getElementById('file-input').value = '';
+  document.getElementById('upload-titulo').value = '';
+  const prev = document.getElementById('upload-preview');
+  if (prev) prev.remove();
+}
+
+async function publicarConteudo() {
+  const titulo = document.getElementById('upload-titulo').value.trim();
+  const tipo   = document.getElementById('upload-tipo').value;
+  const acesso = document.getElementById('acesso-premium').classList.contains('on') ? 'premium' : 'todos';
+
+  if (!titulo) { alert('Informe o título do conteúdo'); return; }
+  if (!_uploadFile) { alert('Selecione um arquivo para enviar'); return; }
+
+  const btn = document.getElementById('upload-btn');
+  btn.disabled = true;
+  btn.innerHTML = '⏳ Enviando...';
+
+  try {
+    const fb = window._fb;
+    if (!fb) throw new Error('Firebase não inicializado');
+
+    // 1. Upload para Firebase Storage
+    const path = `conteudos/${tipo}/${Date.now()}_${_uploadFile.name}`;
+    const storageRef = fb.ref(fb.storage, path);
+    const uploadTask = fb.uploadBytesResumable(storageRef, _uploadFile);
+
+    // Progress bar
+    const progress = document.getElementById('upload-progress');
+    if (progress) progress.style.display = 'block';
+
+    await new Promise((resolve, reject) => {
+      uploadTask.on('state_changed',
+        snap => {
+          const pct = Math.round(snap.bytesTransferred / snap.totalBytes * 100);
+          if (progress) progress.style.width = pct + '%';
+          btn.innerHTML = `⏳ Enviando ${pct}%...`;
+        },
+        reject,
+        resolve
+      );
+    });
+
+    // 2. Pegar URL pública
+    const downloadURL = await fb.getDownloadURL(uploadTask.snapshot.ref);
+
+    // 3. Salvar metadados no Firestore
+    await fb.addDoc(fb.collection(fb.db, 'conteudos'), {
+      titulo, tipo, acesso, url: downloadURL,
+      tamanho: (_uploadFile.size / 1024 / 1024).toFixed(1) + ' MB',
+      criadoEm: fb.serverTimestamp(),
+    });
+
+    btn.innerHTML = '✅ Publicado com sucesso!';
+    btn.style.background = 'var(--green)';
+    setTimeout(() => {
+      btn.disabled = false;
+      btn.innerHTML = '⬆️ Publicar conteúdo';
+      btn.style.background = '';
+      clearUpload();
+      if (progress) { progress.style.width = '0'; progress.style.display = 'none'; }
+      loadConteudosAdmin();
+    }, 2000);
+
+  } catch (err) {
+    console.error(err);
+    // Fallback demo (Firebase não configurado)
+    btn.disabled = false;
+    btn.innerHTML = '⬆️ Publicar conteúdo';
+    btn.style.background = '';
+    alert(
+      '✅ DEMO — Em produção o arquivo seria enviado para:\n\n' +
+      '📦 Firebase Storage → conteudos/' + tipo + '/\n' +
+      '📋 Firestore → coleção "conteudos"\n\n' +
+      'Título: ' + titulo + '\n' +
+      'Tipo: ' + tipo + ' · Acesso: ' + acesso + '\n\n' +
+      'Configure o firebaseConfig no código para ativar.'
+    );
+  }
+}
+
+// ── Carregar conteúdos do Firestore no painel admin ──────────────────────────
+async function loadConteudosAdmin() {
+  try {
+    const fb = window._fb;
+    if (!fb) return;
+    const snap = await fb.getDocs(fb.collection(fb.db, 'conteudos'));
+    const list = document.getElementById('admin-content-list');
+    if (!list) return;
+    list.innerHTML = '';
+    snap.forEach(d => {
+      const c = d.data();
+      const emojis = { video:'🎬', audio:'🎙️', pdf:'📄', artigo:'📝' };
+      const row = document.createElement('div');
+      row.className = 'content-row';
+      row.style.cssText = 'display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--brd)';
+      row.innerHTML = `
+        <div class="content-type-ic" style="background:var(--goldlt);font-size:16px;width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0">${emojis[c.tipo]||'📁'}</div>
+        <div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:600;color:var(--brown);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.titulo}</div><div style="font-size:10px;color:var(--txs)">${c.tipo} · ${c.tamanho||''} · ${c.acesso==='premium'?'🔒 Premium':'Todos'}</div></div>
+        <button class="btn-sm" style="background:var(--redbg);color:var(--red);border:none;cursor:pointer" onclick="deletarConteudo('${d.id}',this)">Remover</button>`;
+      list.appendChild(row);
+    });
+  } catch(e) { /* Firebase não configurado ainda */ }
+}
+
+async function deletarConteudo(id, btn) {
+  if (!confirm('Remover este conteúdo?')) return;
+  try {
+    const fb = window._fb;
+    await fb.deleteDoc(fb.doc(fb.db, 'conteudos', id));
+    btn.closest('.content-row').remove();
+  } catch(e) { alert('Erro ao remover. Verifique o Firebase.'); }
+}
+
+// ── Carregar assinantes (Firestore + localStorage fallback) ──────────────────
+async function loadAssinantes() {
+  const list = document.getElementById('assinantes-list');
+  if(!list) return;
+  list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--txs);font-size:12px">Carregando...</div>';
+
+  let pacientes = [];
+
+  // 1. Tentar Firebase
+  const fb = window._fb;
+  if(fb && fb.configured){
+    try {
+      const snap = await fb.getDocs(fb.collection(fb.db, 'pacientes'));
+      snap.forEach(d => pacientes.push({ ...d.data(), _id: d.id }));
+    } catch(e){ console.warn('Firestore indisponível'); }
+  }
+
+  // 2. Fallback localStorage
+  if(pacientes.length === 0){
+    const local = JSON.parse(localStorage.getItem('drailza_cadastros')||'{}');
+    pacientes = Object.entries(local).map(([k,v]) => ({ ...v, _id: k }));
+  }
+
+  // 3. Adicionar usuários demo fixos se não houver cadastros reais
+  if(pacientes.length === 0){
+    pacientes = [
+      { nome:'Maria Aparecida Santos', email:'premium360@drailza.com.br', plano:'360', planoBadge:'Plano 360°', status:'ativo', premium:true },
+      { nome:'João Carlos Oliveira',   email:'basico@drailza.com.br',     plano:'basico', planoBadge:'Portal Básico', status:'ativo', premium:false },
+    ];
+  }
+
+  list.innerHTML = '';
+  pacientes.forEach(p => {
+    const ini = (p.nome||'').split(' ').map(x=>x[0]).slice(0,2).join('').toUpperCase() || '?';
+    const isPrem = p.plano === '360' || p.premium;
+    const statusBadge = p.status === 'ativo'
+      ? '<span class="badge-ativo">✓ Ativo</span>'
+      : p.status === 'pendente_pagamento'
+        ? '<span class="badge-pendente">⏳ Pendente</span>'
+        : '<span class="badge-aguardando">⚠</span>';
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--brd);cursor:pointer';
+    row.onclick = () => verAssinante(p.email || p._id);
+    row.innerHTML = `
+      <div style="width:32px;height:32px;border-radius:50%;background:${isPrem?'var(--goldlt)':'#f0f0f0'};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:${isPrem?'var(--gold)':'#aaa'};flex-shrink:0">${ini}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:600;color:var(--brown);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.nome} ${isPrem?'<span style="color:var(--gold)">★</span>':''}</div>
+        <div style="font-size:10px;color:var(--txs)">${PLANOS_INFO[p.plano]?.nome||p.planoBadge||'—'} · ${p.whatsapp||p.email||'—'}</div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px">
+        ${statusBadge}
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--txs)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+      </div>`;
+    list.appendChild(row);
+  });
+
+  if(list.children.length === 0){
+    list.innerHTML = '<div style="padding:24px;text-align:center;color:var(--txs);font-size:12px">Nenhum cadastro ainda</div>';
+  }
+}
+
+// ── Usuários de demonstração ──────────────────────────────────────────────────
+const USUARIOS = {
+  'premium360@drailza.com.br': {
+    senha: 'Ilza@360',
+    nome: 'Maria Aparecida Santos',
+    plano: '360',
+    planoBadge: 'Plano 360°',
+    premium: true,
+    validade: 'Ativo até 10/2026',
+  },
+  'basico@drailza.com.br': {
+    senha: 'Ilza@49',
+    nome: 'João Carlos Oliveira',
+    plano: 'basico',
+    planoBadge: 'Portal Básico',
+    premium: false,
+    validade: 'Mensal · R$ 49,90',
+  },
+  'admin@drailza.com.br': {
+    senha: 'Ilza@Admin2026',
+    nome: 'Dra. Ilza Ezequiel',
+    plano: 'admin',
+    planoBadge: 'Admin',
+    premium: true,
+    isAdmin: true,
+    validade: 'Acesso total',
+  },
+};
+
+function doLogout() {
+  _currentUser = null;
+  // Resetar campos de login
+  document.getElementById('login-email').value = '';
+  document.getElementById('login-senha').value = '';
+  // Esconder Admin no nav
+  const navAdmin = document.getElementById('nav-admin');
+  if(navAdmin) navAdmin.style.display = 'none';
+  const navSair = document.getElementById('nav-sair');
+  if(navSair) navSair.style.display = 'none';
+  // Remover banner de upgrade se existir
+  const banner = document.getElementById('home-upgrade-banner');
+  if (banner) banner.style.display = 'none';
+  // Remover aviso de upgrade no conteúdo se existir
+  const notice = document.getElementById('upgrade-notice');
+  if (notice) notice.remove();
+  // Restaurar opacidade dos conteúdos
+  document.querySelectorAll('[data-tipo]').forEach(el => {
+    el.style.opacity = '';
+    el.style.pointerEvents = '';
+  });
+  goTo('login');
+}
+
+function fillLogin(email, senha) {
+  document.getElementById('login-email').value = email;
+  document.getElementById('login-senha').value = senha;
+  document.getElementById('login-email').dispatchEvent(new Event('input'));
+}
+
+function doLogin() {
+  const email = document.getElementById('login-email').value.trim().toLowerCase();
+  const senha = document.getElementById('login-senha').value;
+
+  // 1. Checar usuários demo fixos
+  let user = USUARIOS[email];
+  if(user && user.senha === senha){
+    user.email = email;
+    applyUserSession(user);
+    if(user.isAdmin){ iniciarListenerSala(); goTo('admin'); }
+    else goTo('home');
+    return;
+  }
+
+  // 2. Checar cadastros reais (localStorage)
+  const cadastros = JSON.parse(localStorage.getItem('drailza_cadastros')||'{}');
+  const cad = cadastros[email];
+  if(cad && atob(cad.senhaHash||'') === senha){
+    if(cad.status === 'pendente_pagamento'){
+      _cadErroLogin('Seu pagamento ainda não foi confirmado. Verifique seu e-mail.');
+      return;
+    }
+    // Montar objeto de sessão
+    const sessionUser = {
+      email, nome: cad.nome, plano: cad.plano,
+      planoBadge: PLANOS_INFO[cad.plano]?.nome || cad.planoBadge,
+      premium: cad.plano === '360', isAdmin: false,
+      validade: cad.plano === '360' ? 'Plano 360° · Ativo' : 'Mensal · R$ 49/mês'
+    };
+    applyUserSession(sessionUser);
+    goTo('home');
+    return;
+  }
+
+  // 3. Falha
+  _cadErroLogin('E-mail ou senha incorretos');
+}
+
+function _cadErroLogin(msg){
+  const btn = document.querySelector('#s-login .btn-gold');
+  btn.style.background = 'var(--red)';
+  btn.textContent = msg;
+  setTimeout(() => { btn.style.background = ''; btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4M10 17l5-5-5-5M15 12H3"/></svg> Entrar no Portal'; }, 2500);
+}
+
+function applyUserSession(user) {
+  _currentUser = user;
+
+  // Mostrar/ocultar Admin no nav e botão Sair
+  const navAdmin = document.getElementById('nav-admin');
+  const navSair  = document.getElementById('nav-sair');
+  if(navAdmin) navAdmin.style.display = user.isAdmin ? 'flex' : 'none';
+  if(navSair)  navSair.style.display  = user.isAdmin ? 'none' : 'flex';
+
+  // Para admin, não precisamos customizar a home
+  if(user.isAdmin) return;
+
+  // Nome na home
+  const nameEl = document.querySelector('#s-home .cormorant-name');
+  if (nameEl) nameEl.textContent = user.nome.split(' ')[0] + ' ' + (user.nome.split(' ')[1]||'');
+
+  // Badge de plano
+  const badgeEl = document.querySelector('#s-home .badge-premium span:last-child');
+  if (badgeEl) badgeEl.textContent = user.planoBadge;
+
+  // Estrela — só para premium
+  const starEl = document.querySelector('#s-home .nome-star');
+  if (starEl) starEl.style.display = user.premium ? 'inline' : 'none';
+
+  // Banner upgrade na home — exibir para plano básico
+  const upgradeBanner = document.getElementById('home-upgrade-banner');
+  if (upgradeBanner) upgradeBanner.style.display = user.premium ? 'none' : 'block';
+
+  // Conteúdo premium — bloquear se não for premium
+  if (!user.premium) {
+    document.querySelectorAll('.badge-premium').forEach(el => {
+      el.style.background = '#F0F0F0';
+      el.style.color = '#AAA';
+      el.style.borderColor = '#DDD';
+    });
+    document.querySelectorAll('[data-tipo]').forEach(el => {
+      el.style.opacity = '.5';
+      el.style.pointerEvents = 'none';
+    });
+    // Aviso na aba de conteúdo
+    const cl = document.getElementById('content-list');
+    if (cl && !document.getElementById('upgrade-notice')) {
+      const notice = document.createElement('div');
+      notice.id = 'upgrade-notice';
+      notice.style.cssText = 'background:var(--goldlt);border:1px solid var(--goldbrd);border-radius:12px;padding:14px 16px;text-align:center;margin-bottom:10px';
+      notice.innerHTML = '<div style="font-size:13px;font-weight:700;color:var(--brown);margin-bottom:4px">Upgrade para Plano 360°</div><div style="font-size:12px;color:var(--txm);margin-bottom:10px">Acesse todo o conteúdo premium com o Plano 360°</div><button class="btn-gold" style="width:auto;padding:8px 20px;font-size:12px" onclick="goTo(\'planos\')">★ Ver planos</button>';
+      cl.insertBefore(notice, cl.firstChild);
+    }
+  }
+}
+
+// Init
+goTo('login');
+</script>
+</body>
+</html>
