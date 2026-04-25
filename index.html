@@ -23,9 +23,6 @@
   import { getStorage, ref as sRef,
            uploadBytesResumable, getDownloadURL }   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
 
-  // ═══════════════════════════════════════════════════════
-  // Firebase CRM Dra. Ilza — mesmo projeto do CRM
-  // ═══════════════════════════════════════════════════════
   const firebaseConfig = {
     apiKey:            "AIzaSyAGIzv6jlXIRwlDkhr9FXgmzYYSvs1HEW4",
     authDomain:        "crm-dra-ilza.firebaseapp.com",
@@ -52,7 +49,6 @@
     sendPasswordResetEmail, signOut, onAuthStateChanged, updateProfile,
     configured: true,
   };
-
   console.log('[Portal] Firebase conectado: crm-dra-ilza ✅');
 </script>
 <style>
@@ -92,7 +88,6 @@ html,body{height:100%;background:#faf7f2;font-family:'DM Sans',sans-serif;-webki
 .divider{display:flex;align-items:center;gap:10px;margin:12px 0}
 .divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--brd)}
 .divider span{font-size:10px;color:var(--txs)}
-/* Chat */
 .chat-wrap{display:flex;flex-direction:column;height:100%;min-height:calc(100vh - 130px)}
 .chat-msgs{flex:1;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:8px;background:var(--bg)}
 .chat-msgs::-webkit-scrollbar{display:none}
@@ -101,25 +96,16 @@ html,body{height:100%;background:#faf7f2;font-family:'DM Sans',sans-serif;-webki
 .msg-from{font-size:9px;color:var(--gold);font-weight:700;margin-bottom:3px}
 .msg-time{font-size:8px;color:rgba(255,255,255,.55);margin-top:3px}
 .msg-time-r{font-size:8px;color:var(--txs);margin-top:3px}
-/* Admin */
 .adm-tab{padding:7px 16px;border-radius:99px;font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;border:1.5px solid var(--brd);background:var(--white);color:var(--txm);transition:.13s}
 .adm-tab.on{background:var(--goldlt);border-color:var(--gold);color:var(--gold)}
-.upload-zone{border:2px dashed var(--goldbrd);border-radius:12px;padding:24px;text-align:center;cursor:pointer;background:var(--goldlt);transition:.15s}
 .modal-ov{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:flex-end;justify-content:center;z-index:200;backdrop-filter:blur(3px)}
 .modal-sheet{background:var(--white);border-radius:20px 20px 0 0;width:100%;max-width:420px;padding:20px 20px 36px;max-height:90vh;overflow-y:auto}
-/* Sala */
 .sala-row{display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid var(--brd)}
 .sala-row:last-child{border-bottom:none}
 .sala-avatar{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0}
-.badge-normal{display:inline-flex;align-items:center;gap:3px;background:#F0F0F0;border:1px solid #DDD;border-radius:99px;padding:2px 7px;font-size:9px;font-weight:700;color:#888}
 .badge-prem-mini{display:inline-flex;align-items:center;gap:3px;background:var(--goldlt);border:1px solid var(--goldbrd);border-radius:99px;padding:2px 7px;font-size:9px;font-weight:700;color:var(--gold)}
 .fila-num{width:26px;height:26px;border-radius:50%;background:var(--goldlt);border:1px solid var(--goldbrd);font-size:11px;font-weight:700;color:var(--gold);display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .badge-ativo{display:inline-block;background:var(--greenbg);color:var(--green);border:1px solid #a8ddb5;border-radius:99px;padding:2px 8px;font-size:10px;font-weight:700}
-.badge-pendente{display:inline-block;background:#FFF3E0;color:#E65100;border:1px solid #FFCC80;border-radius:99px;padding:2px 8px;font-size:10px;font-weight:700}
-.as-field{display:flex;flex-direction:column;gap:2px;padding:8px 0;border-bottom:1px solid var(--brd)}
-.as-field:last-child{border-bottom:none}
-.as-field-lbl{font-size:10px;font-weight:700;color:var(--txs);text-transform:uppercase;letter-spacing:.06em}
-.as-field-val{font-size:13px;color:var(--tx)}
 @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
 .fadein{animation:fadeUp .32s ease}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
@@ -165,7 +151,7 @@ html,body{height:100%;background:#faf7f2;font-family:'DM Sans',sans-serif;-webki
           </div>
         </div>
       </div>
-      <div><span class="lbl">E-mail ou CPF</span><input class="inp" type="email" placeholder="seu@email.com" id="login-email"></div>
+      <div><span class="lbl">E-mail</span><input class="inp" type="email" placeholder="seu@email.com" id="login-email"></div>
       <div><span class="lbl">Senha</span><input class="inp" type="password" placeholder="••••••••" id="login-senha"></div>
       <button class="btn-gold" onclick="doLogin()">→ Entrar no Portal</button>
       <div class="divider"><span>não tem acesso?</span></div>
@@ -202,7 +188,7 @@ html,body{height:100%;background:#faf7f2;font-family:'DM Sans',sans-serif;-webki
     </div>
     <div class="card" style="cursor:pointer;display:flex;align-items:center;gap:10px;padding:10px" onclick="goTo('suporte')">
       <div style="width:40px;height:40px;border-radius:9px;background:var(--goldlt);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:20px">💬</div>
-      <div><div style="font-size:11px;font-weight:600;color:var(--brown)">Sala Virtual</div><div style="font-size:10px;color:var(--txs)" id="home-chat-badge">Chat com equipe</div></div>
+      <div><div style="font-size:11px;font-weight:600;color:var(--brown)">Sala Virtual</div><div style="font-size:10px;color:var(--txs)">Chat com equipe</div></div>
     </div>
     <div class="card" style="cursor:pointer;display:flex;align-items:center;gap:10px;padding:10px" onclick="goTo('conteudo')">
       <div style="width:40px;height:40px;border-radius:9px;background:var(--goldlt);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:20px">📝</div>
@@ -251,10 +237,6 @@ html,body{height:100%;background:#faf7f2;font-family:'DM Sans',sans-serif;-webki
           Equipe disponível
         </div>
       </div>
-      <div id="fila-badge" style="display:none;background:var(--goldlt);border:1px solid var(--goldbrd);border-radius:8px;padding:4px 10px;text-align:center">
-        <div style="font-size:9px;color:var(--txs)">Fila</div>
-        <div id="fila-pos" style="font-size:16px;font-weight:700;color:var(--gold)">—</div>
-      </div>
     </div>
     <div style="margin-top:8px;background:var(--goldlt);border-radius:8px;padding:7px 10px;font-size:11px;color:var(--txm);border:1px solid var(--goldbrd)">
       🗓️ Atendimento · <strong>Quartas-feiras · 8h às 18h</strong>
@@ -282,13 +264,8 @@ html,body{height:100%;background:#faf7f2;font-family:'DM Sans',sans-serif;-webki
     <div style="font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:600;color:var(--brown)">Portal do Paciente</div>
   </div>
   <div style="margin:14px 14px 12px;border-radius:16px;overflow:hidden;border:2px solid var(--gold)">
-    <div style="height:80px;overflow:hidden;position:relative">
-      <img src="https://static.wixstatic.com/media/1f0134_c9ae84b5990f44e9934dedd0575a9261~mv2.jpg/v1/fill/w_600,h_200,al_c,q_80,enc_avif,quality_auto/1f0134_c9ae84b5990f44e9934dedd0575a9261~mv2.jpg" style="width:100%;height:100%;object-fit:cover">
-      <div style="position:absolute;inset:0;background:linear-gradient(to right,rgba(44,31,20,.72),rgba(44,31,20,.12));display:flex;flex-direction:column;justify-content:center;padding:12px 16px">
-        <div style="font-family:'Cormorant Garamond',serif;font-size:18px;color:#fff;font-weight:600">Plano Intestino 360°</div>
-      </div>
-    </div>
     <div style="padding:14px 16px;background:var(--white)">
+      <div style="font-size:18px;font-weight:700;color:var(--brown)">Plano Intestino 360°</div>
       <div style="font-size:24px;font-weight:700;color:var(--gold)">R$ 3.000 <small style="font-size:12px;font-weight:400;color:var(--txm)">/ pacote completo</small></div>
       <div style="font-size:11px;color:var(--txm);margin-bottom:10px">3 consultas + portal 6 meses + suporte prioritário</div>
       <button class="btn-gold">★ Assinar agora</button>
@@ -310,7 +287,7 @@ html,body{height:100%;background:#faf7f2;font-family:'DM Sans',sans-serif;-webki
       <div style="width:36px;height:36px;border-radius:9px;background:var(--gold);display:flex;align-items:center;justify-content:center;font-size:18px">🛡️</div>
       <div>
         <div style="font-size:15px;font-weight:700;color:#fff">Painel Admin</div>
-        <div style="font-size:11px;color:rgba(255,255,255,.5)">Gerenciar conteúdo e assinantes</div>
+        <div style="font-size:11px;color:rgba(255,255,255,.5)">Portal · Sala Virtual</div>
       </div>
       <button onclick="pedirSair()" style="margin-left:auto;width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);cursor:pointer;color:#fff;font-size:16px">✕</button>
     </div>
@@ -322,13 +299,11 @@ html,body{height:100%;background:#faf7f2;font-family:'DM Sans',sans-serif;-webki
     <button class="adm-tab" onclick="adminTab(this,'enviar')">📤 Enviar</button>
   </div>
 
-  <!-- Assinantes -->
   <div id="adm-assinantes" style="padding:14px">
     <div style="font-size:12px;font-weight:700;color:var(--txm);margin-bottom:10px">Assinantes</div>
     <div class="card" id="assinantes-list"><div style="padding:20px;text-align:center;color:var(--txs);font-size:12px">Carregando...</div></div>
   </div>
 
-  <!-- Chat admin -->
   <div id="adm-chat" style="display:none;flex-direction:column;height:calc(100vh - 170px)">
     <div style="padding:10px 14px;background:var(--goldlt);border-bottom:1px solid var(--goldbrd);display:flex;align-items:center;gap:8px;flex-shrink:0">
       <button onclick="voltarParaSala()" style="width:30px;height:30px;border-radius:50%;background:var(--white);border:1px solid var(--goldbrd);color:var(--gold);cursor:pointer;font-size:16px">←</button>
@@ -338,16 +313,13 @@ html,body{height:100%;background:#faf7f2;font-family:'DM Sans',sans-serif;-webki
       </div>
       <button onclick="pedirEncerrar()" id="btn-encerrar" style="display:none;padding:6px 12px;border-radius:20px;background:var(--redbg);border:1px solid #e0b0b0;color:var(--red);font-size:11px;font-weight:700;font-family:inherit;cursor:pointer">✕ Encerrar</button>
     </div>
-    <div id="adm-chat-msgs" style="flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:8px;background:var(--bg)">
-      <div class="msg-r"><div class="msg-from">Sistema</div>Selecione um paciente na Sala para iniciar.<div class="msg-time-r">—</div></div>
-    </div>
+    <div id="adm-chat-msgs" style="flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:8px;background:var(--bg)"></div>
     <div style="background:var(--white);border-top:1px solid var(--brd);padding:8px 12px;display:flex;gap:8px;align-items:center;flex-shrink:0">
       <input class="inp" placeholder="Responder ao paciente..." id="adm-chat-inp" style="border-radius:20px;padding:8px 14px;flex:1">
       <button onclick="adminSendMsg()" style="width:34px;height:34px;border-radius:50%;background:var(--gold);border:none;color:#fff;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center">➤</button>
     </div>
   </div>
 
-  <!-- Sala (fila) -->
   <div id="adm-sala" style="display:none;padding:14px">
     <div id="sala-atendendo-wrap" style="display:none;margin-bottom:14px">
       <div style="font-size:10px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">● Em atendimento</div>
@@ -366,7 +338,6 @@ html,body{height:100%;background:#faf7f2;font-family:'DM Sans',sans-serif;-webki
     </div>
   </div>
 
-  <!-- Enviar mensagem em massa -->
   <div id="adm-enviar" style="display:none;padding:14px">
     <div style="font-size:12px;font-weight:700;color:var(--txm);margin-bottom:10px">Enviar mensagem para assinantes</div>
     <div style="display:flex;flex-direction:column;gap:10px">
@@ -433,16 +404,13 @@ function goTo(page) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   const sId = page === 'login' ? 's-login' : SCREENS[page];
   if (sId) { const s = document.getElementById(sId); if(s){ s.classList.add('active'); s.scrollTop = 0; } }
-
   const gNav = document.getElementById('global-nav');
-  if (page === 'login' || page === 'suporte') {
-    gNav.style.display = 'none';
-  } else {
+  if (page === 'login' || page === 'suporte') { gNav.style.display = 'none'; }
+  else {
     gNav.style.display = 'flex';
     document.querySelectorAll('.bni').forEach(n => n.classList.remove('on'));
     const ni = NAV_IDS[page]; if(ni){ const n = document.getElementById(ni); if(n) n.classList.add('on'); }
   }
-
   if (page === 'suporte' && _currentUser && !_currentUser.isAdmin) enterSala(_currentUser);
   if (page === 'admin') { loadAssinantes(); iniciarListenerSala(); }
 }
@@ -501,20 +469,19 @@ function confirmarSair() {
   _currentUser = null;
   document.getElementById('login-email').value = '';
   document.getElementById('login-senha').value = '';
-  // Parar listeners
   const fb = window._fb;
-  if (fb && _salaRef) { fb.off(_salaRef); _salaRef = null; }
-  if (fb && _chatRef) { fb.off(_chatRef); _chatRef = null; }
+  if (fb && _chatRef)    { fb.off(_chatRef);    _chatRef = null; }
+  if (fb && _admChatRef) { fb.off(_admChatRef); _admChatRef = null; }
+  if (fb && _salaListener) { fb.off(fb.ref(fb.rtdb,'salas_index')); _salaListener = null; }
   goTo('login');
 }
 
 // ════════════════════════════════════
-// CHAT PACIENTE — Firebase RTDB
-// Estrutura: /portal_sala/{chatId}/msgs/{msgId}
-//            /portal_fila/{chatId}
+// CHAT PACIENTE
+// Caminhos: /salas/{chatId}/msgs  e  /salas_index/{chatId}
+// Campo de texto: "txt"  (igual ao CRM)
 // ════════════════════════════════════
 let _chatRef  = null;
-let _salaRef  = null;
 let _chatId   = null;
 
 function getChatId(user) {
@@ -535,40 +502,43 @@ function appendMsg(container, texto, tipo, nome, hora) {
   if (tipo === 'pac') {
     div.className = 'msg-s';
     div.innerHTML = _esc(texto) + '<div class="msg-time">' + hora + '</div>';
-  } else if (tipo === 'adm') {
+  } else if (tipo === 'adm' || tipo === 'dra') {
     div.className = 'msg-r fadein';
     div.innerHTML = '<div class="msg-from">Equipe Dra. Ilza</div>' + _esc(texto) + '<div class="msg-time-r">' + hora + '</div>';
+  } else if (tipo === 'pac_adm') {
+    div.className = 'msg-r fadein';
+    div.innerHTML = '<div class="msg-from">' + _esc(nome||'Paciente') + '</div>' + _esc(texto) + '<div class="msg-time-r">' + hora + '</div>';
   } else {
     div.className = 'msg-r fadein';
-    div.style.cssText = 'background:var(--goldlt);border-color:var(--goldbrd);font-size:10px;color:var(--txm)';
-    div.textContent = texto;
+    div.style.cssText = 'background:var(--goldlt);border-color:var(--goldbrd);font-size:10px;color:var(--txm);align-self:center;max-width:90%';
+    div.innerHTML = '<div class="msg-from">Sistema</div>' + _esc(texto);
   }
   container.appendChild(div);
   container.scrollTop = container.scrollHeight;
 }
 
-// Paciente entra na sala e escuta mensagens
+// Paciente entra → registra em /salas_index/ e escuta /salas/{chatId}/msgs
 function enterSala(user) {
   _chatId = getChatId(user);
   const fb = window._fb;
   if (!fb) return;
 
-  // Registrar na fila
-  fb.set(fb.ref(fb.rtdb, 'portal_fila/' + _chatId), {
-    chatId:   _chatId,
-    nome:     user.nome,
-    iniciais: user.nome.split(' ').map(x=>x[0]).slice(0,2).join('').toUpperCase(),
-    premium:  user.premium,
-    plano:    user.plano,
-    hora:     getHora(),
-    status:   'aguardando',
-    ultimaMsg: '',
-    ts:       Date.now()
+  // Registra na fila (salas_index)
+  fb.set(fb.ref(fb.rtdb, 'salas_index/' + _chatId), {
+    id:        _chatId,
+    nm:        user.nome,
+    plano:     user.planoBadge || user.plano,
+    premium:   user.premium,
+    iniciais:  user.nome.split(' ').map(x=>x[0]).slice(0,2).join('').toUpperCase(),
+    ultimaTxt: '',
+    ultimaTs:  getHora(),
+    tsNum:     Date.now(),
+    status:    'aguardando',
   });
 
-  // Escutar mensagens em tempo real
+  // Escuta mensagens em tempo real
   if (_chatRef) fb.off(_chatRef);
-  _chatRef = fb.ref(fb.rtdb, 'portal_sala/' + _chatId + '/msgs');
+  _chatRef = fb.ref(fb.rtdb, 'salas/' + _chatId + '/msgs');
   const msgs = document.getElementById('chat-msgs');
   msgs.innerHTML = '';
 
@@ -579,31 +549,31 @@ function enterSala(user) {
       appendMsg(msgs, 'Olá! Como posso ajudar você hoje? 🌿', 'adm', 'Equipe', '—');
       return;
     }
-    Object.values(data).sort((a,b) => (a.ts||0)-(b.ts||0)).forEach(m => {
-      appendMsg(msgs, m.texto, m.de, m.nome, m.hora);
-    });
+    Object.values(data)
+      .sort((a,b) => (a.tsNum||0)-(b.tsNum||0))
+      .forEach(m => { appendMsg(msgs, m.txt, m.de, m.nome, m.ts); });
   });
 }
 
+// Paciente envia → /salas/{chatId}/msgs (campo: "txt")
 function sendMsg() {
   const inp = document.getElementById('chat-inp');
   const txt = inp.value.trim(); if (!txt) return;
   inp.value = '';
   const fb = window._fb;
   if (!fb || !_chatId) return;
-
-  // Salvar mensagem
-  fb.push(fb.ref(fb.rtdb, 'portal_sala/' + _chatId + '/msgs'), {
-    texto: txt, de: 'pac', nome: _currentUser.nome, hora: getHora(), ts: Date.now()
+  const ts = getHora();
+  fb.push(fb.ref(fb.rtdb, 'salas/' + _chatId + '/msgs'), {
+    txt, de: 'pac', nome: _currentUser.nome, ts, tsNum: Date.now(), lida: false
   });
-
-  // Atualizar última msg na fila
-  fb.update(fb.ref(fb.rtdb, 'portal_fila/' + _chatId), { ultimaMsg: txt.substring(0,60), ts: Date.now() });
+  fb.update(fb.ref(fb.rtdb, 'salas_index/' + _chatId), {
+    ultimaTxt: txt.substring(0,60), ultimaTs: ts, tsNum: Date.now()
+  });
 }
 document.getElementById('chat-inp').addEventListener('keydown', e => { if(e.key==='Enter') sendMsg(); });
 
 // ════════════════════════════════════
-// ADMIN — SALA (FILA) em tempo real
+// ADMIN — SALA em tempo real via /salas_index/
 // ════════════════════════════════════
 const SALA_LOCAL = [];
 let _salaListener = null;
@@ -613,52 +583,46 @@ let _admChatRef = null;
 function iniciarListenerSala() {
   const fb = window._fb;
   if (!fb) return;
-  if (_salaListener) { fb.off(fb.ref(fb.rtdb, 'portal_fila')); }
+  if (_salaListener) { fb.off(fb.ref(fb.rtdb,'salas_index')); }
 
-  _salaListener = fb.onValue(fb.ref(fb.rtdb, 'portal_fila'), snap => {
+  _salaListener = fb.onValue(fb.ref(fb.rtdb, 'salas_index'), snap => {
     const data = snap.val() || {};
-    // Atualiza SALA_LOCAL
     SALA_LOCAL.length = 0;
     Object.values(data).forEach(p => SALA_LOCAL.push(p));
-    SALA_LOCAL.sort((a,b) => (a.ts||0)-(b.ts||0));
+    SALA_LOCAL.sort((a,b) => (a.tsNum||0)-(b.tsNum||0));
     renderSala();
-    // Badge na tab
-    const aguardando = SALA_LOCAL.filter(p => p.status === 'aguardando').length;
+    const n = SALA_LOCAL.filter(p => p.status !== 'encerrado').length;
     const tabSala = document.getElementById('tab-sala');
-    if (tabSala) tabSala.innerHTML = aguardando > 0
-      ? `🚪 Sala <span style="background:var(--red);color:#fff;border-radius:99px;padding:1px 6px;font-size:9px;margin-left:3px">${aguardando}</span>`
+    if (tabSala) tabSala.innerHTML = n > 0
+      ? '🚪 Sala <span style="background:var(--red);color:#fff;border-radius:99px;padding:1px 6px;font-size:9px;margin-left:3px">' + n + '</span>'
       : '🚪 Sala';
   });
 }
 
 function renderSala() {
-  const lista     = document.getElementById('sala-lista');
-  const atenLista = document.getElementById('sala-atendendo-lista');
-  const atenWrap  = document.getElementById('sala-atendendo-wrap');
-  const count     = document.getElementById('sala-count');
+  const lista    = document.getElementById('sala-lista');
+  const atenLista= document.getElementById('sala-atendendo-lista');
+  const atenWrap = document.getElementById('sala-atendendo-wrap');
+  const count    = document.getElementById('sala-count');
   if (!lista) return;
 
   const aguardando = SALA_LOCAL.filter(p => p.status === 'aguardando');
   const atendendo  = SALA_LOCAL.filter(p => p.status === 'atendendo');
   if (count) count.textContent = aguardando.length;
 
-  // Em atendimento
   if (atendendo.length > 0) {
     atenWrap.style.display = 'block';
     atenLista.innerHTML = atendendo.map(p => `
       <div class="sala-row">
-        <div class="sala-avatar" style="background:${p.premium?'var(--goldlt)':'#F0F0F0'};color:${p.premium?'var(--gold)':'#888'}">${p.iniciais}</div>
-        <div style="flex:1"><div style="font-size:13px;font-weight:600;color:var(--brown)">${_esc(p.nome)} ${p.premium?'<span class="badge-prem-mini">★</span>':''}</div><div style="font-size:10px;color:var(--green)">● Em atendimento</div></div>
+        <div class="sala-avatar" style="background:${p.premium?'var(--goldlt)':'#F0F0F0'};color:${p.premium?'var(--gold)':'#888'}">${p.iniciais||'?'}</div>
+        <div style="flex:1"><div style="font-size:13px;font-weight:600;color:var(--brown)">${_esc(p.nm)} ${p.premium?'<span class="badge-prem-mini">★</span>':''}</div><div style="font-size:10px;color:var(--green)">● Em atendimento</div></div>
         <div style="display:flex;gap:5px">
-          <button class="btn-sm" style="background:var(--goldlt);color:var(--gold);border:1px solid var(--goldbrd)" onclick="abrirChatAdmin('${p.chatId}','${_esc(p.nome)}',${p.premium})">Chat</button>
-          <button class="btn-sm" style="background:var(--redbg);color:var(--red);border:1px solid #e0b0b0" onclick="_pacAtual='${p.chatId}';document.getElementById('modal-encerrar').style.display='flex'">Encerrar</button>
+          <button class="btn-sm" style="background:var(--goldlt);color:var(--gold);border:1px solid var(--goldbrd)" onclick="abrirChatAdmin('${p.id}','${_esc(p.nm)}',${!!p.premium})">Chat</button>
+          <button class="btn-sm" style="background:var(--redbg);color:var(--red);border:1px solid #e0b0b0" onclick="_pacAtual='${p.id}';document.getElementById('modal-encerrar').style.display='flex'">Encerrar</button>
         </div>
       </div>`).join('');
-  } else {
-    atenWrap.style.display = 'none';
-  }
+  } else { atenWrap.style.display = 'none'; }
 
-  // Aguardando
   if (aguardando.length === 0) {
     lista.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;gap:10px;text-align:center"><div style="font-size:32px">🚪</div><div style="font-size:13px;font-weight:600;color:var(--brown)">Fila vazia</div><div style="font-size:12px;color:var(--txs)">Nenhum paciente aguardando</div></div>';
     return;
@@ -666,90 +630,65 @@ function renderSala() {
   lista.innerHTML = aguardando.map((p, i) => `
     <div class="sala-row">
       <div class="fila-num">${i+1}</div>
-      <div class="sala-avatar" style="background:${p.premium?'var(--goldlt)':'#F0F0F0'};color:${p.premium?'var(--gold)':'#888'}">${p.iniciais}</div>
+      <div class="sala-avatar" style="background:${p.premium?'var(--goldlt)':'#F0F0F0'};color:${p.premium?'var(--gold)':'#888'}">${p.iniciais||'?'}</div>
       <div style="flex:1">
-        <div style="font-size:13px;font-weight:600;color:var(--brown)">${_esc(p.nome)} ${p.premium?'<span class="badge-prem-mini">★</span>':''}</div>
-        <div style="font-size:10px;color:var(--txs)">Entrou às ${p.hora}</div>
+        <div style="font-size:13px;font-weight:600;color:var(--brown)">${_esc(p.nm)} ${p.premium?'<span class="badge-prem-mini">★</span>':''}</div>
+        <div style="font-size:10px;color:var(--txs)">${p.ultimaTxt?'"'+_esc(p.ultimaTxt.substring(0,40))+'"':'Aguardando...'} · ${p.ultimaTs||''}</div>
       </div>
-      <button class="btn-sm" style="background:var(--goldlt);color:var(--gold);border:1px solid var(--goldbrd)" onclick="atenderPaciente('${p.chatId}','${_esc(p.nome)}',${p.premium})">Atender</button>
+      <button class="btn-sm" style="background:var(--goldlt);color:var(--gold);border:1px solid var(--goldbrd)" onclick="atenderPaciente('${p.id}','${_esc(p.nm)}',${!!p.premium})">Atender</button>
     </div>`).join('');
 }
 
 function atenderPaciente(chatId, nome, premium) {
-  // Marca como atendendo no Firebase
   const fb = window._fb;
-  fb.update(fb.ref(fb.rtdb, 'portal_fila/' + chatId), { status: 'atendendo' });
+  fb.update(fb.ref(fb.rtdb, 'salas_index/' + chatId), { status: 'atendendo' });
   abrirChatAdmin(chatId, nome, premium);
 }
 
+// Admin abre chat → lê /salas/{chatId}/msgs
 function abrirChatAdmin(chatId, nome, premium) {
   _pacAtual = chatId;
-
-  // Mostrar aba chat
   document.getElementById('adm-assinantes').style.display = 'none';
   document.getElementById('adm-sala').style.display = 'none';
-  document.getElementById('adm-enviar') && (document.getElementById('adm-enviar').style.display = 'none');
+  document.getElementById('adm-enviar').style.display = 'none';
   document.getElementById('adm-chat').style.display = 'flex';
   document.querySelectorAll('#s-admin .adm-tab').forEach(t => t.classList.remove('on'));
-
-  const nomeEl = document.getElementById('adm-chat-paciente');
-  if (nomeEl) nomeEl.textContent = (premium ? '★ ' : '') + nome;
+  document.getElementById('adm-chat-paciente').textContent = (premium?'★ ':'') + nome;
   document.getElementById('btn-encerrar').style.display = 'flex';
 
-  // Escutar msgs do paciente
   const fb = window._fb;
   if (_admChatRef) fb.off(_admChatRef);
-  _admChatRef = fb.ref(fb.rtdb, 'portal_sala/' + chatId + '/msgs');
+  _admChatRef = fb.ref(fb.rtdb, 'salas/' + chatId + '/msgs');
 
   const msgs = document.getElementById('adm-chat-msgs');
   msgs.innerHTML = '';
   appendMsg(msgs, 'Atendendo: ' + nome + (premium?' · ★ Plano 360°':' · Portal Básico'), 'sis', '', getHora());
 
   fb.onValue(_admChatRef, snap => {
-    // Limpa e re-renderiza mantendo a msg de sistema
-    const sysMsg = msgs.querySelector('div:first-child');
-    const sysHtml = sysMsg ? sysMsg.outerHTML : '';
+    const sysHtml = msgs.children[0] ? msgs.children[0].outerHTML : '';
     msgs.innerHTML = sysHtml;
     const data = snap.val();
     if (!data) { msgs.scrollTop = msgs.scrollHeight; return; }
-    Object.values(data).sort((a,b) => (a.ts||0)-(b.ts||0)).forEach(m => {
-      appendMsg(msgs, m.texto, m.de === 'pac' ? 'pac_adm' : 'adm', m.nome, m.hora);
+    Object.values(data).sort((a,b) => (a.tsNum||0)-(b.tsNum||0)).forEach(m => {
+      appendMsg(msgs, m.txt, m.de === 'pac' ? 'pac_adm' : 'adm', m.nome, m.ts);
     });
     msgs.scrollTop = msgs.scrollHeight;
   });
 }
 
-// Override para exibir msg de paciente no painel admin com cor diferente
-const _origAppendMsg = appendMsg;
-function appendMsg(container, texto, tipo, nome, hora) {
-  const div = document.createElement('div');
-  if (tipo === 'pac' || tipo === 'pac_adm') {
-    div.className = 'msg-r fadein';
-    div.innerHTML = '<div class="msg-from">' + _esc(nome||'Paciente') + '</div>' + _esc(texto) + '<div class="msg-time-r">' + hora + '</div>';
-  } else if (tipo === 'adm') {
-    div.className = 'msg-s fadein';
-    div.innerHTML = _esc(texto) + '<div class="msg-time">' + hora + '</div>';
-  } else if (tipo === 'pac') {
-    div.className = 'msg-s';
-    div.innerHTML = _esc(texto) + '<div class="msg-time">' + hora + '</div>';
-  } else {
-    div.className = 'msg-r';
-    div.style.cssText = 'background:var(--goldlt);border-color:var(--goldbrd);font-size:10px;color:var(--txm);align-self:center;max-width:90%';
-    div.innerHTML = '<div class="msg-from">Sistema</div>' + _esc(texto);
-  }
-  container.appendChild(div);
-  container.scrollTop = container.scrollHeight;
-}
-
+// Admin envia → /salas/{chatId}/msgs (campo: "txt", de: "dra")
 function adminSendMsg() {
   const inp = document.getElementById('adm-chat-inp');
   const txt = inp.value.trim(); if (!txt || !_pacAtual) return;
   inp.value = '';
   const fb = window._fb;
-  fb.push(fb.ref(fb.rtdb, 'portal_sala/' + _pacAtual + '/msgs'), {
-    texto: txt, de: 'adm', nome: 'Equipe Dra. Ilza', hora: getHora(), ts: Date.now()
+  const ts = getHora();
+  fb.push(fb.ref(fb.rtdb, 'salas/' + _pacAtual + '/msgs'), {
+    txt, de: 'dra', nome: 'Equipe Dra. Ilza', ts, tsNum: Date.now(), lida: true
   });
-  fb.update(fb.ref(fb.rtdb, 'portal_fila/' + _pacAtual), { ultimaMsg: '← ' + txt.substring(0,50) });
+  fb.update(fb.ref(fb.rtdb, 'salas_index/' + _pacAtual), {
+    ultimaTxt: '← ' + txt.substring(0,50), ultimaTs: ts, tsNum: Date.now()
+  });
 }
 document.getElementById('adm-chat-inp').addEventListener('keydown', e => { if(e.key==='Enter') adminSendMsg(); });
 
@@ -759,28 +698,24 @@ function voltarParaSala() {
   document.getElementById('adm-sala').style.display = 'block';
   document.getElementById('btn-encerrar').style.display = 'none';
   document.getElementById('adm-chat-paciente').textContent = '—';
-  document.querySelectorAll('#s-admin .adm-tab').forEach(t => t.classList.remove('on'));
-  const salaTab = Array.from(document.querySelectorAll('#s-admin .adm-tab')).find(t=>t.textContent.includes('Sala'));
-  if (salaTab) salaTab.classList.add('on');
   renderSala();
 }
 
-function pedirEncerrar() {
-  document.getElementById('modal-encerrar').style.display = 'flex';
-}
+function pedirEncerrar() { document.getElementById('modal-encerrar').style.display = 'flex'; }
 
+// Encerrar: envia msg de encerramento e remove de /salas_index/
 function confirmarEncerrar() {
   document.getElementById('modal-encerrar').style.display = 'none';
   if (!_pacAtual) return;
   const txt = document.getElementById('msg-encerramento').value.trim();
   const fb = window._fb;
+  const ts = getHora();
   if (txt) {
-    fb.push(fb.ref(fb.rtdb, 'portal_sala/' + _pacAtual + '/msgs'), {
-      texto: txt, de: 'adm', nome: 'Equipe Dra. Ilza', hora: getHora(), ts: Date.now()
+    fb.push(fb.ref(fb.rtdb, 'salas/' + _pacAtual + '/msgs'), {
+      txt, de: 'dra', nome: 'Equipe Dra. Ilza', ts, tsNum: Date.now(), lida: true
     });
   }
-  // Remove da fila
-  setTimeout(() => fb.remove(fb.ref(fb.rtdb, 'portal_fila/' + _pacAtual)), 800);
+  setTimeout(() => fb.remove(fb.ref(fb.rtdb, 'salas_index/' + _pacAtual)), 800);
   if (_admChatRef) { fb.off(_admChatRef); _admChatRef = null; }
   _pacAtual = null;
   voltarParaSala();
@@ -812,10 +747,7 @@ function loadAssinantes() {
   list.innerHTML = pacs.map(p => `
     <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--brd)">
       <div style="width:32px;height:32px;border-radius:50%;background:${p.premium?'var(--goldlt)':'#f0f0f0'};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:${p.premium?'var(--gold)':'#aaa'};flex-shrink:0">${p.nome.split(' ').map(x=>x[0]).slice(0,2).join('')}</div>
-      <div style="flex:1">
-        <div style="font-size:13px;font-weight:600;color:var(--brown)">${p.nome} ${p.premium?'★':''}</div>
-        <div style="font-size:10px;color:var(--txs)">${p.planoBadge} · ${p.email}</div>
-      </div>
+      <div style="flex:1"><div style="font-size:13px;font-weight:600;color:var(--brown)">${p.nome} ${p.premium?'★':''}</div><div style="font-size:10px;color:var(--txs)">${p.planoBadge} · ${p.email}</div></div>
       <span class="badge-ativo">✓ Ativo</span>
     </div>`).join('');
 }
@@ -823,11 +755,10 @@ function loadAssinantes() {
 function enviarMensagem() {
   const msg = document.getElementById('enviar-msg').value.trim();
   if (!msg) { alert('Digite uma mensagem'); return; }
-  alert('✅ Mensagem enviada para os assinantes!\n\n"' + msg.substring(0,80) + '"');
+  alert('✅ Mensagem enviada!\n\n"' + msg.substring(0,80) + '"');
   document.getElementById('enviar-msg').value = '';
 }
 
-// Init
 goTo('login');
 </script>
 </body>
