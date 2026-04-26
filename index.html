@@ -757,10 +757,6 @@ function confirmarSair() {
   document.getElementById('login-senha').value = '';
   goTo('login');
 }
-  if (fb && _admChatRef) { fb.off(_admChatRef); _admChatRef = null; }
-  if (fb && _salaListener) { fb.off(fb.ref(fb.rtdb,'salas_index')); _salaListener = null; }
-goTo('login');
-}
 
 // ════════════════════════════════════
 // CHAT PACIENTE
