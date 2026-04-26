@@ -184,8 +184,16 @@ body{height:100%;min-height:100vh;min-height:-webkit-fill-available;background:#
           <div style="font-size:10px;color:#7A6040">Utilize seu e-mail e senha cadastrados</div>
         </div>
       </div>
-      <div><span class="lbl">E-mail</span><input class="inp" type="email" placeholder="seu@email.com" id="login-email"></div>
-      <div><span class="lbl">Senha</span><input class="inp" type="password" placeholder="••••••••" id="login-senha"></div>
+      <div><span class="lbl">E-mail</span><input class="inp" type="email" placeholder="seu@email.com" id="login-email" autocomplete="email"></div>
+      <div>
+        <span class="lbl">Senha</span>
+        <div style="position:relative">
+          <input class="inp" type="password" placeholder="••••••••" id="login-senha" autocomplete="current-password" style="padding-right:44px">
+          <button type="button" id="btn-olho"
+            onclick="(function(){var i=document.getElementById('login-senha');var b=document.getElementById('btn-olho');i.type=i.type==='password'?'text':'password';b.textContent=i.type==='password'?'👁':'🙈';})()"
+            style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:16px;padding:0;line-height:1;color:#7A6040">👁</button>
+        </div>
+      </div>
       <button class="btn-gold" onclick="doLogin()">→ Entrar no Portal</button>
       <div class="divider"><span>não tem acesso?</span></div>
       <button class="btn-outline" onclick="goTo('planos')">Assinar o Portal →</button>
@@ -675,6 +683,19 @@ function validarCpfVisual(cpf) {
 
 // fillLogin removido por segurança
 
+// ════════════════════════════════════
+// AUTENTICAÇÃO LOCAL — Admin sem Firebase
+// ════════════════════════════════════
+// Hash SHA-256 das credenciais admin (nunca armazenar senha plain)
+const ADMIN_CREDENTIALS = {
+  'admin@drailza.com.br': '0b26ee69492137b82cd4f36a256d85b759c8fc6fe08c50e1fb3ee22bc0fd0dc5'
+};
+
+async function hashSenhaPortal(s) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
 async function doLogin() {
   const email = document.getElementById('login-email').value.trim().toLowerCase();
   const senha = document.getElementById('login-senha').value;
@@ -685,7 +706,6 @@ async function doLogin() {
     return;
   }
 
-  // Rate limit check
   const bloq = checkRateLimit(email);
   if(bloq) { showLoginErr(btn, bloq); return; }
 
@@ -693,14 +713,31 @@ async function doLogin() {
   btn.disabled = true;
 
   try {
+    // ── LOGIN LOCAL para admin (sem Firebase Auth) ──
+    if(ADMIN_CREDENTIALS[email] !== undefined) {
+      const hashDigitado = await hashSenhaPortal(senha);
+      if(hashDigitado !== ADMIN_CREDENTIALS[email]) {
+        const aviso = registrarFalha(email);
+        showLoginErr(btn, 'E-mail ou senha incorretos.' + aviso);
+        return;
+      }
+      const perfil = PERFIS[email] || { nome:'Admin', plano:'admin', planoBadge:'Admin', premium:true, isAdmin:true };
+      _currentUser = { ...perfil, email, uid: 'admin-local' };
+      delete _loginTentativas[email];
+      iniciarSessionTimer();
+      applySession(_currentUser);
+      if(_currentUser.isAdmin) goTo('admin');
+      else goTo('home');
+      return;
+    }
+
+    // ── LOGIN VIA FIREBASE para pacientes ──
     const fb = window._fb;
     if(!fb || !fb.auth) throw new Error('Firebase não disponível');
 
-    // Firebase Authentication — senha nunca fica no código
     const cred = await fb.signInWithEmailAndPassword(fb.auth, email, senha);
     const firebaseUser = cred.user;
 
-    // Busca perfil local (plano, nome, etc)
     const perfil = PERFIS[email] || {
       nome: firebaseUser.displayName || email.split('@')[0],
       plano: 'basico', planoBadge: 'Portal Básico',
@@ -708,7 +745,7 @@ async function doLogin() {
     };
 
     _currentUser = { ...perfil, email, uid: firebaseUser.uid };
-    delete _loginTentativas[email]; // limpa tentativas
+    delete _loginTentativas[email];
     iniciarSessionTimer();
     applySession(_currentUser);
     if(_currentUser.isAdmin) goTo('admin');
