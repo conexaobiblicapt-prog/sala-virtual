@@ -509,87 +509,6 @@ function confirmarSair() {
   if (fb && _chatRef)    { fb.off(_chatRef);    _chatRef = null; }
   if (fb && _admChatRef) { fb.off(_admChatRef); _admChatRef = null; }
   if (fb && _salaListener) { fb.off(fb.ref(fb.rtdb,'salas_index')); _salaListener = null; }
-  // ════════════════════════════════════
-// MODAL ASSINAR
-// ════════════════════════════════════
-const PLANOS_CONFIG = {
-  '360': {
-    icon: '★',
-    titulo: 'Plano Intestino 360°',
-    preco: 'R$ 3.000',
-    desc: '3 consultas + portal 6 meses + suporte prioritário',
-    itens: [
-      '✅ 3 consultas presenciais com Dra. Ilza',
-      '✅ Acesso ao portal por 6 meses',
-      '✅ Suporte prioritário via Sala Virtual',
-      '✅ Conteúdo exclusivo premium',
-      '✅ Acompanhamento personalizado',
-    ],
-    msgWA: 'Olá! Tenho interesse no *Plano Intestino 360°* (R$ 3.000). Gostaria de mais informações e como assinar. 😊',
-  },
-  'basico': {
-    icon: '☆',
-    titulo: 'Portal Básico',
-    preco: 'R$ 49/mês',
-    desc: 'Acesso ao conteúdo exclusivo e Sala Virtual',
-    itens: [
-      '✅ Acesso ao conteúdo exclusivo',
-      '✅ Lives e webinars gravados',
-      '✅ Protocolos clínicos em PDF',
-      '✅ Sala Virtual (chat com equipe)',
-      '✅ Cancele quando quiser',
-    ],
-    msgWA: 'Olá! Tenho interesse no *Portal Básico* (R$ 49/mês). Gostaria de mais informações e como assinar. 😊',
-  },
-};
-
-let _planoAtual = null;
-
-function abrirModalAssinar(plano) {
-  _planoAtual = plano;
-  const cfg = PLANOS_CONFIG[plano];
-  document.getElementById('modal-plano-icon').textContent = cfg.icon;
-  document.getElementById('modal-plano-titulo').textContent = cfg.titulo;
-  document.getElementById('modal-plano-preco').textContent = cfg.preco;
-  document.getElementById('modal-plano-desc').textContent = cfg.desc;
-  document.getElementById('modal-plano-itens').innerHTML = cfg.itens.map(i =>
-    `<div style="display:flex;align-items:flex-start;gap:6px">${i}</div>`
-  ).join('');
-  document.getElementById('assinar-nome').value = '';
-  document.getElementById('assinar-tel').value = '';
-  document.getElementById('assinar-email').value = '';
-  const modal = document.getElementById('modal-assinar');
-  modal.style.display = 'flex';
-}
-
-function fecharModalAssinar() {
-  document.getElementById('modal-assinar').style.display = 'none';
-  _planoAtual = null;
-}
-
-function confirmarAssinar() {
-  const nome  = document.getElementById('assinar-nome').value.trim();
-  const tel   = document.getElementById('assinar-tel').value.trim();
-  const email = document.getElementById('assinar-email').value.trim();
-  if (!nome) { document.getElementById('assinar-nome').focus(); return; }
-
-  const cfg = PLANOS_CONFIG[_planoAtual];
-  const CLINICA_WA = '5513978028137'; // (13) 97802-8137 — Dra. Ilza
-  let msg = cfg.msgWA;
-  if (nome)  msg += `\n\n👤 Nome: ${nome}`;
-  if (tel)   msg += `\n📱 WhatsApp: ${tel}`;
-  if (email) msg += `\n📧 E-mail: ${email}`;
-
-  const url = `https://wa.me/${CLINICA_WA}?text=${encodeURIComponent(msg)}`;
-  window.open(url, '_blank');
-  fecharModalAssinar();
-}
-
-// Fechar modal ao clicar no overlay
-document.getElementById('modal-assinar').addEventListener('click', function(e) {
-  if (e.target === this) fecharModalAssinar();
-});
-
 goTo('login');
 }
 
@@ -875,6 +794,82 @@ function enviarMensagem() {
   alert('✅ Mensagem enviada!\n\n"' + msg.substring(0,80) + '"');
   document.getElementById('enviar-msg').value = '';
 }
+
+// ════════════════════════════════════
+// MODAL ASSINAR — escopo global
+// ════════════════════════════════════
+const PLANOS_CONFIG = {
+  '360': {
+    icon: '★',
+    titulo: 'Plano Intestino 360°',
+    preco: 'R$ 3.000',
+    desc: '3 consultas + portal 6 meses + suporte prioritário',
+    itens: [
+      '✅ 3 consultas presenciais com Dra. Ilza',
+      '✅ Acesso ao portal por 6 meses',
+      '✅ Suporte prioritário via Sala Virtual',
+      '✅ Conteúdo exclusivo premium',
+      '✅ Acompanhamento personalizado',
+    ],
+    msgWA: 'Olá! Tenho interesse no *Plano Intestino 360°* (R$ 3.000). Gostaria de mais informações e como assinar. 😊',
+  },
+  'basico': {
+    icon: '☆',
+    titulo: 'Portal Básico',
+    preco: 'R$ 49/mês',
+    desc: 'Acesso ao conteúdo exclusivo e Sala Virtual',
+    itens: [
+      '✅ Acesso ao conteúdo exclusivo',
+      '✅ Lives e webinars gravados',
+      '✅ Protocolos clínicos em PDF',
+      '✅ Sala Virtual (chat com equipe)',
+      '✅ Cancele quando quiser',
+    ],
+    msgWA: 'Olá! Tenho interesse no *Portal Básico* (R$ 49/mês). Gostaria de mais informações e como assinar. 😊',
+  },
+};
+let _planoAtual = null;
+
+function abrirModalAssinar(plano) {
+  _planoAtual = plano;
+  const cfg = PLANOS_CONFIG[plano];
+  document.getElementById('modal-plano-icon').textContent = cfg.icon;
+  document.getElementById('modal-plano-titulo').textContent = cfg.titulo;
+  document.getElementById('modal-plano-preco').textContent = cfg.preco;
+  document.getElementById('modal-plano-desc').textContent = cfg.desc;
+  document.getElementById('modal-plano-itens').innerHTML = cfg.itens.map(i =>
+    '<div style="display:flex;align-items:flex-start;gap:6px">' + i + '</div>'
+  ).join('');
+  document.getElementById('assinar-nome').value = '';
+  document.getElementById('assinar-tel').value = '';
+  document.getElementById('assinar-email').value = '';
+  document.getElementById('modal-assinar').style.display = 'flex';
+}
+
+function fecharModalAssinar() {
+  document.getElementById('modal-assinar').style.display = 'none';
+  _planoAtual = null;
+}
+
+function confirmarAssinar() {
+  const nome  = document.getElementById('assinar-nome').value.trim();
+  const tel   = document.getElementById('assinar-tel').value.trim();
+  const email = document.getElementById('assinar-email').value.trim();
+  if (!nome) { document.getElementById('assinar-nome').focus(); alert('Por favor informe seu nome.'); return; }
+  const cfg = PLANOS_CONFIG[_planoAtual];
+  const CLINICA_WA = '5513978028137';
+  let msg = cfg.msgWA;
+  if (nome)  msg += '\n\n👤 Nome: ' + nome;
+  if (tel)   msg += '\n📱 WhatsApp: ' + tel;
+  if (email) msg += '\n📧 E-mail: ' + email;
+  window.open('https://wa.me/' + CLINICA_WA + '?text=' + encodeURIComponent(msg), '_blank');
+  fecharModalAssinar();
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  var mo = document.getElementById('modal-assinar');
+  if (mo) mo.addEventListener('click', function(e) { if (e.target === this) fecharModalAssinar(); });
+});
 
 goTo('login');
 </script>
