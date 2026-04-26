@@ -992,21 +992,13 @@ function enviarEmailInteresse() {
     }
   } catch(e) { console.warn('Firebase interesse:', e); }
   // Abre cliente de e-mail
-  const assunto = encodeURIComponent('Interesse: ' + cfg.titulo + ' — Portal Dra. Ilza');
+  const assunto = encodeURIComponent('Interesse: ' + cfg.titulo + ' - Portal Dra. Ilza');
   const corpo = encodeURIComponent(
-    'Olá!
-
-Tenho interesse em assinar o ' + cfg.titulo + ' (' + cfg.preco + ').
-
-' +
-    '👤 Nome: ' + nome + '
-' +
-    (tel   ? '📱 Telefone: ' + tel + '
-' : '') +
-    '📧 E-mail retorno: ' + email + '
-
-' +
-    'Aguardo o contato da equipe. Obrigada! 🌿'
+    'Ola!\n\nTenho interesse em assinar o ' + cfg.titulo + ' (' + cfg.preco + ').\n\n' +
+    'Nome: ' + nome + '\n' +
+    (tel ? 'Telefone: ' + tel + '\n' : '') +
+    'E-mail retorno: ' + email + '\n\n' +
+    'Aguardo o contato da equipe. Obrigada!'
   );
   window.open('mailto:ilzaeneta@gmail.com?subject=' + assunto + '&body=' + corpo, '_blank');
   // Mostra confirmação
