@@ -15,11 +15,6 @@
   import { getDatabase, ref, push, onValue,
            set, update, remove, off,
            serverTimestamp as dbTs }                from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
-  import { getAuth, signInWithEmailAndPassword,
-           createUserWithEmailAndPassword,
-           sendPasswordResetEmail,
-           signOut, onAuthStateChanged,
-           updateProfile }                          from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
   import { getStorage, ref as sRef,
            uploadBytesResumable, getDownloadURL }   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
 
@@ -36,7 +31,6 @@
   const app     = initializeApp(firebaseConfig);
   const db      = getFirestore(app);
   const rtdb    = getDatabase(app);
-  const auth    = getAuth(app);
   const storage = getStorage(app);
 
   window._fb = {
@@ -45,8 +39,7 @@
     setDoc, updateDoc, getDoc,
     rtdb, ref, push, onValue, set, update, remove, off, dbTs,
     storage, sRef, uploadBytesResumable, getDownloadURL,
-    auth, signInWithEmailAndPassword, createUserWithEmailAndPassword,
-    sendPasswordResetEmail, signOut, onAuthStateChanged, updateProfile,
+    auth: null, // Auth local — sem Firebase Auth
     configured: true,
   };
   console.log('[Portal] Firebase conectado: crm-dra-ilza ✅');
@@ -684,9 +677,8 @@ function validarCpfVisual(cpf) {
 // fillLogin removido por segurança
 
 // ════════════════════════════════════
-// AUTENTICAÇÃO LOCAL — Admin sem Firebase
+// AUTENTICAÇÃO LOCAL — Admin sem Firebase Auth
 // ════════════════════════════════════
-// Hash SHA-256 das credenciais admin (nunca armazenar senha plain)
 const ADMIN_CREDENTIALS = {
   'admin@drailza.com.br': '0b26ee69492137b82cd4f36a256d85b759c8fc6fe08c50e1fb3ee22bc0fd0dc5'
 };
@@ -701,10 +693,7 @@ async function doLogin() {
   const senha = document.getElementById('login-senha').value;
   const btn   = document.querySelector('#s-login .btn-gold');
 
-  if(!email || !senha) {
-    showLoginErr(btn, 'Preencha e-mail e senha.');
-    return;
-  }
+  if(!email || !senha) { showLoginErr(btn, 'Preencha e-mail e senha.'); return; }
 
   const bloq = checkRateLimit(email);
   if(bloq) { showLoginErr(btn, bloq); return; }
@@ -721,44 +710,20 @@ async function doLogin() {
         showLoginErr(btn, 'E-mail ou senha incorretos.' + aviso);
         return;
       }
-      const perfil = PERFIS[email] || { nome:'Admin', plano:'admin', planoBadge:'Admin', premium:true, isAdmin:true };
+      const perfil = PERFIS[email] || { nome:'Dra. Ilza Ezequiel', plano:'admin', planoBadge:'Admin', premium:true, isAdmin:true };
       _currentUser = { ...perfil, email, uid: 'admin-local' };
       delete _loginTentativas[email];
       iniciarSessionTimer();
       applySession(_currentUser);
-      if(_currentUser.isAdmin) goTo('admin');
-      else goTo('home');
+      goTo('admin');
       return;
     }
 
-    // ── LOGIN VIA FIREBASE para pacientes ──
-    const fb = window._fb;
-    if(!fb || !fb.auth) throw new Error('Firebase não disponível');
-
-    const cred = await fb.signInWithEmailAndPassword(fb.auth, email, senha);
-    const firebaseUser = cred.user;
-
-    const perfil = PERFIS[email] || {
-      nome: firebaseUser.displayName || email.split('@')[0],
-      plano: 'basico', planoBadge: 'Portal Básico',
-      premium: false, isAdmin: false
-    };
-
-    _currentUser = { ...perfil, email, uid: firebaseUser.uid };
-    delete _loginTentativas[email];
-    iniciarSessionTimer();
-    applySession(_currentUser);
-    if(_currentUser.isAdmin) goTo('admin');
-    else goTo('home');
+    // ── LOGIN para pacientes (sem Firebase Auth por enquanto) ──
+    showLoginErr(btn, 'Acesso não autorizado. Entre em contato com a clínica.');
 
   } catch(err) {
-    const aviso = registrarFalha(email);
-    const msg = err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found'
-      ? 'E-mail ou senha incorretos.' + aviso
-      : err.code === 'auth/too-many-requests'
-      ? 'Muitas tentativas. Conta temporariamente bloqueada.'
-      : 'Erro ao entrar. Tente novamente.';
-    showLoginErr(btn, msg);
+    showLoginErr(btn, 'Erro ao entrar. Tente novamente.');
   }
 }
 
@@ -785,7 +750,6 @@ function confirmarSair() {
   document.getElementById('modal-sair').style.display = 'none';
   if(_sessionTimer) clearTimeout(_sessionTimer);
   const fb = window._fb;
-  if(fb && fb.auth) fb.signOut(fb.auth).catch(()=>{});
   if (fb && _chatRef)    { fb.off(_chatRef);    _chatRef = null; }
   if (fb && _admChatRef) { fb.off(_admChatRef); _admChatRef = null; }
   if (fb && _salaListener) { fb.off(fb.ref(fb.rtdb,'salas_index')); _salaListener = null; }
