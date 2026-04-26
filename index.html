@@ -506,6 +506,28 @@ html,body{height:100%;background:#faf7f2;font-family:'DM Sans',sans-serif;-webki
   <div class="bni" id="nav-admin" onclick="goTo('admin')" style="display:none"><div class="bni-ic">🛡️</div><div class="bni-lb">Admin</div></div>
 </div>
 
+<!-- Modal: link MP não configurado -->
+<div id="modal-mp-aviso" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:500;align-items:center;justify-content:center;padding:20px">
+  <div style="background:#fff;border-radius:20px;padding:28px 22px;max-width:340px;width:100%;text-align:center">
+    <div style="font-size:40px;margin-bottom:10px">⚙️</div>
+    <div style="font-size:16px;font-weight:700;color:var(--brown);margin-bottom:8px">Link de pagamento não configurado</div>
+    <div style="font-size:12px;color:var(--txm);margin-bottom:16px;line-height:1.6">
+      O link do Mercado Pago ainda não foi configurado para este plano.<br><br>
+      <strong>Dra. Ilza:</strong> acesse o painel do Mercado Pago, crie o plano de assinatura e cole o link gerado no campo <code style="background:#f5f0e8;padding:2px 6px;border-radius:4px">mpLink</code> do arquivo <code style="background:#f5f0e8;padding:2px 6px;border-radius:4px">index.html</code>.
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <button onclick="document.getElementById('modal-mp-aviso').style.display='none'; enviarEmailInteresse();"
+        style="padding:12px;border-radius:11px;border:none;background:var(--gold);color:#fff;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer">
+        ✉️ Enviar interesse por e-mail enquanto isso
+      </button>
+      <button onclick="document.getElementById('modal-mp-aviso').style.display='none'"
+        style="padding:11px;border-radius:11px;border:1.5px solid var(--brd);background:#fff;color:var(--txm);font-size:13px;font-weight:600;font-family:inherit;cursor:pointer">
+        Fechar
+      </button>
+    </div>
+  </div>
+</div>
+
 </div><!-- /app -->
 
 <script>
@@ -920,7 +942,7 @@ const PLANOS_CONFIG = {
     preco: 'R$ 3.000',
     desc: '3 consultas + portal 6 meses + suporte prioritário',
     valorCentavos: 300000,
-    mpLink: 'COLE_AQUI_O_LINK_MP_360',
+    mpLink: '',
     itens: [
       '✅ 3 consultas presenciais com Dra. Ilza',
       '✅ Acesso ao portal por 6 meses',
@@ -935,7 +957,7 @@ const PLANOS_CONFIG = {
     preco: 'R$ 49/mês',
     desc: 'Acesso ao conteúdo exclusivo e Sala Virtual',
     valorCentavos: 4900,
-    mpLink: 'COLE_AQUI_O_LINK_MP_BASICO',
+    mpLink: '',
     itens: [
       '✅ Acesso ao conteúdo exclusivo',
       '✅ Lives e webinars gravados',
@@ -1021,8 +1043,17 @@ function abrirMercadoPago() {
     }
   } catch(e) { console.warn('Firebase registro:', e); }
   // Abre link do Mercado Pago
-  window.open(cfg.mpLink, '_blank');
+  const link = cfg.mpLink;
+  if (!link || !link.startsWith('https://')) {
+    mostrarAvisoLinkMP();
+    return;
+  }
+  window.open(link, '_blank');
   fecharModalAssinar();
+}
+
+function mostrarAvisoLinkMP() {
+  document.getElementById('modal-mp-aviso').style.display = 'flex';
 }
 
 function enviarEmailInteresse() {
