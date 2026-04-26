@@ -355,37 +355,108 @@ html,body{height:100%;background:#faf7f2;font-family:'DM Sans',sans-serif;-webki
 </div>
 
 <!-- Modal Assinar -->
-<div id="modal-assinar" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:300;align-items:flex-end;justify-content:center;padding:0">
-  <div style="background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:420px;padding:24px 20px 36px;max-height:90vh;overflow-y:auto">
-    <div style="text-align:center;margin-bottom:20px">
-      <div id="modal-plano-icon" style="font-size:40px;margin-bottom:8px">★</div>
-      <div id="modal-plano-titulo" style="font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:700;color:var(--brown)">Plano Intestino 360°</div>
-      <div id="modal-plano-preco" style="font-size:26px;font-weight:700;color:var(--gold);margin:4px 0">R$ 3.000</div>
-      <div id="modal-plano-desc" style="font-size:12px;color:var(--txm)">3 consultas + portal 6 meses + suporte prioritário</div>
-    </div>
+<div id="modal-assinar" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:300;align-items:flex-end;justify-content:center;padding:0">
+  <div style="background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:420px;max-height:92vh;overflow-y:auto">
 
-    <div style="background:var(--goldlt);border:1px solid var(--goldbrd);border-radius:14px;padding:16px;margin-bottom:16px">
-      <div style="font-size:11px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px">✨ O que está incluído</div>
-      <div id="modal-plano-itens" style="display:flex;flex-direction:column;gap:7px;font-size:12px;color:var(--txm)"></div>
-    </div>
+    <!-- Etapa 1: Dados -->
+    <div id="assinar-step1" style="padding:24px 20px 20px">
+      <div style="text-align:center;margin-bottom:18px">
+        <div id="modal-plano-icon" style="font-size:36px;margin-bottom:6px">★</div>
+        <div id="modal-plano-titulo" style="font-family:'Cormorant Garamond',serif;font-size:21px;font-weight:700;color:var(--brown)">Plano Intestino 360°</div>
+        <div id="modal-plano-preco" style="font-size:24px;font-weight:700;color:var(--gold);margin:4px 0">R$ 3.000</div>
+        <div id="modal-plano-desc" style="font-size:11px;color:var(--txm)">3 consultas + portal 6 meses + suporte prioritário</div>
+      </div>
 
-    <div style="background:#f9f9f9;border:1px solid var(--brd);border-radius:12px;padding:14px;margin-bottom:16px">
-      <div style="font-size:11px;font-weight:700;color:var(--txm);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px">📋 Seus dados para contato</div>
-      <div style="display:flex;flex-direction:column;gap:10px">
-        <div><label class="lbl">Nome completo</label><input class="inp" type="text" id="assinar-nome" placeholder="Seu nome"></div>
-        <div><label class="lbl">WhatsApp</label><input class="inp" type="tel" id="assinar-tel" placeholder="(13) 99999-9999"></div>
-        <div><label class="lbl">E-mail</label><input class="inp" type="email" id="assinar-email" placeholder="seu@email.com"></div>
+      <div style="background:var(--goldlt);border:1px solid var(--goldbrd);border-radius:12px;padding:13px;margin-bottom:14px">
+        <div style="font-size:10px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">✨ O que está incluído</div>
+        <div id="modal-plano-itens" style="display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--txm)"></div>
+      </div>
+
+      <div style="background:#f9f9f9;border:1px solid var(--brd);border-radius:12px;padding:13px;margin-bottom:14px">
+        <div style="font-size:10px;font-weight:700;color:var(--txm);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px">📋 Seus dados</div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div><label class="lbl">Nome completo *</label><input class="inp" type="text" id="assinar-nome" placeholder="Seu nome completo"></div>
+          <div><label class="lbl">E-mail *</label><input class="inp" type="email" id="assinar-email" placeholder="seu@email.com"></div>
+          <div><label class="lbl">Telefone / WhatsApp</label><input class="inp" type="tel" id="assinar-tel" placeholder="(13) 99999-9999"></div>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:10px;padding-bottom:10px">
+        <button class="btn-gold" onclick="irParaPagamento()" id="btn-ir-pagar">
+          🔒 Ir para pagamento
+        </button>
+        <button onclick="fecharModalAssinar()" style="padding:11px;border-radius:11px;border:1.5px solid var(--brd);background:#fff;color:var(--txm);font-size:13px;font-weight:600;font-family:inherit;cursor:pointer">
+          Cancelar
+        </button>
+        <div style="text-align:center;font-size:10px;color:var(--txs)">🔒 Pagamento seguro · LGPD · SSL</div>
       </div>
     </div>
 
-    <div style="display:flex;flex-direction:column;gap:10px">
-      <button class="btn-gold" onclick="confirmarAssinar()" id="btn-confirmar-assinar">
-        💬 Falar com a equipe no WhatsApp
-      </button>
-      <button onclick="fecharModalAssinar()" style="padding:12px;border-radius:11px;border:1.5px solid var(--brd);background:#fff;color:var(--txm);font-size:13px;font-weight:600;font-family:inherit;cursor:pointer">
-        Cancelar
-      </button>
-      <div style="text-align:center;font-size:10px;color:var(--txs)">🔒 Seus dados são protegidos · LGPD</div>
+    <!-- Etapa 2: Pagamento -->
+    <div id="assinar-step2" style="display:none;padding:24px 20px 28px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px">
+        <button onclick="voltarStep1()" style="width:32px;height:32px;border-radius:50%;border:1.5px solid var(--brd);background:#fff;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;flex-shrink:0">←</button>
+        <div style="font-size:15px;font-weight:700;color:var(--brown)">Escolha como pagar</div>
+      </div>
+
+      <!-- Resumo -->
+      <div style="background:var(--goldlt);border:1px solid var(--goldbrd);border-radius:12px;padding:12px 14px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between">
+        <div>
+          <div style="font-size:13px;font-weight:700;color:var(--brown)" id="pay-titulo-resumo">Plano 360°</div>
+          <div style="font-size:11px;color:var(--txm)" id="pay-nome-resumo"></div>
+        </div>
+        <div style="font-size:18px;font-weight:700;color:var(--gold)" id="pay-preco-resumo">R$ 3.000</div>
+      </div>
+
+      <!-- Botão Mercado Pago -->
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <button onclick="pagarMercadoPago()" id="btn-mp"
+          style="background:#009EE3;color:#fff;border:none;border-radius:11px;padding:14px 20px;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px">
+          <svg width="22" height="22" viewBox="0 0 48 48" fill="none"><circle cx="24" cy="24" r="24" fill="#fff"/><path d="M8 24C8 15.163 15.163 8 24 8c8.836 0 16 7.163 16 16 0 8.836-7.164 16-16 16C15.163 40 8 32.837 8 24z" fill="#009EE3"/><path d="M33.6 20.8H14.4c-.883 0-1.6.717-1.6 1.6v3.2c0 .883.717 1.6 1.6 1.6h19.2c.883 0 1.6-.717 1.6-1.6v-3.2c0-.883-.717-1.6-1.6-1.6z" fill="#fff"/></svg>
+          Pagar com Mercado Pago
+        </button>
+
+        <div style="display:flex;align-items:center;gap:8px;margin:2px 0">
+          <div style="flex:1;height:1px;background:var(--brd)"></div>
+          <span style="font-size:10px;color:var(--txs)">ou prefere contato direto?</span>
+          <div style="flex:1;height:1px;background:var(--brd)"></div>
+        </div>
+
+        <button onclick="enviarEmailInteresse()"
+          style="background:#fff;color:var(--brown);border:1.5px solid var(--brd);border-radius:11px;padding:12px 20px;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px">
+          ✉️ Enviar interesse por e-mail
+        </button>
+
+        <div style="background:#f0f9f4;border:1px solid #a8ddb5;border-radius:10px;padding:10px 13px;font-size:11px;color:var(--green)">
+          ✅ Após o pagamento, você receberá as instruções de acesso em <strong id="pay-email-conf"></strong>
+        </div>
+      </div>
+    </div>
+
+    <!-- Etapa 3: Confirmação -->
+    <div id="assinar-step3" style="display:none;padding:32px 20px 36px;text-align:center">
+      <div style="font-size:52px;margin-bottom:16px">✅</div>
+      <div style="font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:700;color:var(--brown);margin-bottom:8px">Solicitação enviada!</div>
+      <div style="font-size:13px;color:var(--txm);margin-bottom:6px">Seu e-mail de interesse foi enviado para</div>
+      <div style="font-size:14px;font-weight:700;color:var(--gold);margin-bottom:16px">ilzaeneta@gmail.com</div>
+      <div style="background:var(--goldlt);border:1px solid var(--goldbrd);border-radius:12px;padding:13px;font-size:12px;color:var(--txm);margin-bottom:20px">
+        A equipe da Dra. Ilza entrará em contato em até <strong>24h úteis</strong> para confirmar e enviar o link de pagamento. 🌿
+      </div>
+      <button onclick="fecharModalAssinar()" class="btn-gold">Entendido</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- Modal confirmação Mercado Pago -->
+<div id="modal-mp-confirm" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:400;align-items:center;justify-content:center;padding:20px">
+  <div style="background:#fff;border-radius:20px;padding:28px 20px;max-width:360px;width:100%;text-align:center">
+    <div style="font-size:44px;margin-bottom:12px">💳</div>
+    <div style="font-size:17px;font-weight:700;color:var(--brown);margin-bottom:8px">Redirecionando para o Mercado Pago</div>
+    <div style="font-size:12px;color:var(--txm);margin-bottom:16px">Você será levado ao ambiente seguro do Mercado Pago para concluir o pagamento.<br><br>Após o pagamento confirmado, envie o comprovante para:<br><strong style="color:var(--gold)">ilzaeneta@gmail.com</strong></div>
+    <div style="display:flex;gap:10px">
+      <button onclick="document.getElementById('modal-mp-confirm').style.display='none'" style="flex:1;padding:12px;border-radius:11px;border:1.5px solid var(--brd);background:#fff;color:var(--txm);font-size:13px;font-weight:600;font-family:inherit;cursor:pointer">Cancelar</button>
+      <button onclick="abrirMercadoPago()" style="flex:1;padding:12px;border-radius:11px;border:none;background:#009EE3;color:#fff;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer">Continuar →</button>
     </div>
   </div>
 </div>
@@ -804,6 +875,8 @@ const PLANOS_CONFIG = {
     titulo: 'Plano Intestino 360°',
     preco: 'R$ 3.000',
     desc: '3 consultas + portal 6 meses + suporte prioritário',
+    valorCentavos: 300000,
+    mpLink: 'https://www.mercadopago.com.br/subscriptions/checkout?preapproval_plan_id=2c93808497d6e29f0197d79a82db0098',
     itens: [
       '✅ 3 consultas presenciais com Dra. Ilza',
       '✅ Acesso ao portal por 6 meses',
@@ -811,13 +884,14 @@ const PLANOS_CONFIG = {
       '✅ Conteúdo exclusivo premium',
       '✅ Acompanhamento personalizado',
     ],
-    msgWA: 'Olá! Tenho interesse no *Plano Intestino 360°* (R$ 3.000). Gostaria de mais informações e como assinar. 😊',
   },
   'basico': {
     icon: '☆',
     titulo: 'Portal Básico',
     preco: 'R$ 49/mês',
     desc: 'Acesso ao conteúdo exclusivo e Sala Virtual',
+    valorCentavos: 4900,
+    mpLink: 'https://www.mercadopago.com.br/subscriptions/checkout?preapproval_plan_id=2c93808497d6e29f0197d79a82db0098',
     itens: [
       '✅ Acesso ao conteúdo exclusivo',
       '✅ Lives e webinars gravados',
@@ -825,7 +899,6 @@ const PLANOS_CONFIG = {
       '✅ Sala Virtual (chat com equipe)',
       '✅ Cancele quando quiser',
     ],
-    msgWA: 'Olá! Tenho interesse no *Portal Básico* (R$ 49/mês). Gostaria de mais informações e como assinar. 😊',
   },
 };
 let _planoAtual = null;
@@ -843,6 +916,10 @@ function abrirModalAssinar(plano) {
   document.getElementById('assinar-nome').value = '';
   document.getElementById('assinar-tel').value = '';
   document.getElementById('assinar-email').value = '';
+  // Reset steps
+  document.getElementById('assinar-step1').style.display = 'block';
+  document.getElementById('assinar-step2').style.display = 'none';
+  document.getElementById('assinar-step3').style.display = 'none';
   document.getElementById('modal-assinar').style.display = 'flex';
 }
 
@@ -851,19 +928,90 @@ function fecharModalAssinar() {
   _planoAtual = null;
 }
 
-function confirmarAssinar() {
+function voltarStep1() {
+  document.getElementById('assinar-step2').style.display = 'none';
+  document.getElementById('assinar-step1').style.display = 'block';
+}
+
+function irParaPagamento() {
   const nome  = document.getElementById('assinar-nome').value.trim();
-  const tel   = document.getElementById('assinar-tel').value.trim();
   const email = document.getElementById('assinar-email').value.trim();
-  if (!nome) { document.getElementById('assinar-nome').focus(); alert('Por favor informe seu nome.'); return; }
+  if (!nome)  { document.getElementById('assinar-nome').focus();  alert('Por favor informe seu nome.'); return; }
+  if (!email) { document.getElementById('assinar-email').focus(); alert('Por favor informe seu e-mail.'); return; }
   const cfg = PLANOS_CONFIG[_planoAtual];
-  const CLINICA_WA = '5513978028137';
-  let msg = cfg.msgWA;
-  if (nome)  msg += '\n\n👤 Nome: ' + nome;
-  if (tel)   msg += '\n📱 WhatsApp: ' + tel;
-  if (email) msg += '\n📧 E-mail: ' + email;
-  window.open('https://wa.me/' + CLINICA_WA + '?text=' + encodeURIComponent(msg), '_blank');
+  document.getElementById('pay-titulo-resumo').textContent = cfg.titulo;
+  document.getElementById('pay-preco-resumo').textContent  = cfg.preco;
+  document.getElementById('pay-nome-resumo').textContent   = nome;
+  document.getElementById('pay-email-conf').textContent    = email;
+  document.getElementById('assinar-step1').style.display = 'none';
+  document.getElementById('assinar-step2').style.display = 'block';
+}
+
+function pagarMercadoPago() {
+  document.getElementById('modal-mp-confirm').style.display = 'flex';
+}
+
+function abrirMercadoPago() {
+  document.getElementById('modal-mp-confirm').style.display = 'none';
+  const cfg = PLANOS_CONFIG[_planoAtual];
+  const nome  = document.getElementById('assinar-nome').value.trim();
+  const email = document.getElementById('assinar-email').value.trim();
+  const tel   = document.getElementById('assinar-tel').value.trim();
+  // Salva no Firebase para registro
+  try {
+    const fb = window._fb;
+    if (fb && fb.configured) {
+      fb.push(fb.ref(fb.rtdb, 'interesse_planos'), {
+        plano: _planoAtual, nome, email, tel,
+        ts: new Date().toLocaleString('pt-BR'),
+        tsNum: Date.now(),
+        status: 'aguardando_pagamento',
+      });
+    }
+  } catch(e) { console.warn('Firebase registro:', e); }
+  // Abre link do Mercado Pago
+  window.open(cfg.mpLink, '_blank');
   fecharModalAssinar();
+}
+
+function enviarEmailInteresse() {
+  const nome  = document.getElementById('assinar-nome').value.trim();
+  const email = document.getElementById('assinar-email').value.trim();
+  const tel   = document.getElementById('assinar-tel').value.trim();
+  const cfg   = PLANOS_CONFIG[_planoAtual];
+  // Salva interesse no Firebase
+  try {
+    const fb = window._fb;
+    if (fb && fb.configured) {
+      fb.push(fb.ref(fb.rtdb, 'interesse_planos'), {
+        plano: _planoAtual, nome, email, tel,
+        ts: new Date().toLocaleString('pt-BR'),
+        tsNum: Date.now(),
+        status: 'email_interesse',
+      });
+    }
+  } catch(e) { console.warn('Firebase interesse:', e); }
+  // Abre cliente de e-mail
+  const assunto = encodeURIComponent('Interesse: ' + cfg.titulo + ' — Portal Dra. Ilza');
+  const corpo = encodeURIComponent(
+    'Olá!
+
+Tenho interesse em assinar o ' + cfg.titulo + ' (' + cfg.preco + ').
+
+' +
+    '👤 Nome: ' + nome + '
+' +
+    (tel   ? '📱 Telefone: ' + tel + '
+' : '') +
+    '📧 E-mail retorno: ' + email + '
+
+' +
+    'Aguardo o contato da equipe. Obrigada! 🌿'
+  );
+  window.open('mailto:ilzaeneta@gmail.com?subject=' + assunto + '&body=' + corpo, '_blank');
+  // Mostra confirmação
+  document.getElementById('assinar-step2').style.display = 'none';
+  document.getElementById('assinar-step3').style.display = 'block';
 }
 
 document.addEventListener('DOMContentLoaded', function() {
