@@ -1030,18 +1030,6 @@ function abrirMercadoPago() {
   const cpf   = document.getElementById('assinar-cpf').value.trim();
   const email = document.getElementById('assinar-email').value.trim();
   const tel   = document.getElementById('assinar-tel').value.trim();
-  // Salva no Firebase para registro
-  try {
-    const fb = window._fb;
-    if (fb && fb.configured) {
-      fb.push(fb.ref(fb.rtdb, 'interesse_planos'), {
-        plano: _planoAtual, nome, cpf, email, tel,
-        ts: new Date().toLocaleString('pt-BR'),
-        tsNum: Date.now(),
-        status: 'aguardando_pagamento',
-      });
-    }
-  } catch(e) { console.warn('Firebase registro:', e); }
   // Abre link do Mercado Pago
   const link = cfg.mpLink;
   if (!link || !link.startsWith('https://')) {
@@ -1062,18 +1050,6 @@ function enviarEmailInteresse() {
   const email = document.getElementById('assinar-email').value.trim();
   const tel   = document.getElementById('assinar-tel').value.trim();
   const cfg   = PLANOS_CONFIG[_planoAtual];
-  // Salva interesse no Firebase
-  try {
-    const fb = window._fb;
-    if (fb && fb.configured) {
-      fb.push(fb.ref(fb.rtdb, 'interesse_planos'), {
-        plano: _planoAtual, nome, cpf, email, tel,
-        ts: new Date().toLocaleString('pt-BR'),
-        tsNum: Date.now(),
-        status: 'email_interesse',
-      });
-    }
-  } catch(e) { console.warn('Firebase interesse:', e); }
   // Abre cliente de e-mail
   const assunto = encodeURIComponent('Interesse: ' + cfg.titulo + ' - Portal Dra. Ilza');
   const corpo = encodeURIComponent(
