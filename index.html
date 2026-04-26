@@ -130,25 +130,11 @@ html,body{height:100%;background:#faf7f2;font-family:'DM Sans',sans-serif;-webki
       <div style="font-family:'Cormorant Garamond',serif;font-size:12px;color:#B8924A;letter-spacing:.18em;text-transform:uppercase">Área Exclusiva · Pacientes</div>
     </div>
     <div style="background:#FAFAFA;border-top:1px solid #EEE;border-radius:24px 24px 0 0;padding:28px 24px 36px;display:flex;flex-direction:column;gap:14px">
-      <div style="background:#FDF5E8;border:1px solid #E8D5A8;border-radius:12px;padding:12px 14px;margin-bottom:2px">
-        <div style="font-size:10px;font-weight:700;color:#B8924A;text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">Acessos de demonstração</div>
-        <div style="display:flex;flex-direction:column;gap:6px">
-          <div onclick="fillLogin('premium360@drailza.com.br','Ilza@360')" style="display:flex;align-items:center;gap:10px;background:#fff;border:1px solid #E8D5A8;border-radius:9px;padding:8px 12px;cursor:pointer">
-            <div style="width:28px;height:28px;border-radius:8px;background:#FDF5E8;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0">★</div>
-            <div style="flex:1"><div style="font-size:11px;font-weight:700;color:#2C1F14">Plano 360° — R$ 3.000</div><div style="font-size:10px;color:#B8924A;font-family:monospace">premium360@drailza.com.br · Ilza@360</div></div>
-            <div style="font-size:10px;color:#B8924A;font-weight:600">Usar →</div>
-          </div>
-          <div onclick="fillLogin('basico@drailza.com.br','Ilza@49')" style="display:flex;align-items:center;gap:10px;background:#fff;border:1px solid #E8D5A8;border-radius:9px;padding:8px 12px;cursor:pointer">
-            <div style="width:28px;height:28px;border-radius:8px;background:#EBF5EE;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0">☆</div>
-            <div style="flex:1"><div style="font-size:11px;font-weight:700;color:#2C1F14">Portal Básico — R$ 49,90/mês</div><div style="font-size:10px;color:#7A6040;font-family:monospace">basico@drailza.com.br · Ilza@49</div></div>
-            <div style="font-size:10px;color:#7A6040;font-weight:600">Usar →</div>
-          </div>
-          <div style="height:1px;background:#E8D5A8;margin:2px 0"></div>
-          <div onclick="fillLogin('admin@drailza.com.br','Ilza@Admin2026')" style="display:flex;align-items:center;gap:10px;background:#fff;border:1px solid #C8B89A;border-radius:9px;padding:8px 12px;cursor:pointer">
-            <div style="width:28px;height:28px;border-radius:8px;background:#2C1F14;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0">🛡️</div>
-            <div style="flex:1"><div style="font-size:11px;font-weight:700;color:#2C1F14">Admin — Dra. Ilza Ezequiel</div><div style="font-size:10px;color:#7A6040;font-family:monospace">admin@drailza.com.br · Ilza@Admin2026</div></div>
-            <div style="font-size:10px;color:#2C1F14;font-weight:700">Admin →</div>
-          </div>
+      <div style="background:#FDF5E8;border:1px solid #E8D5A8;border-radius:12px;padding:12px 14px;margin-bottom:2px;display:flex;align-items:center;gap:10px">
+        <div style="font-size:20px">🔒</div>
+        <div>
+          <div style="font-size:11px;font-weight:700;color:#B8924A">Área exclusiva para pacientes</div>
+          <div style="font-size:10px;color:#7A6040">Utilize seu e-mail e senha cadastrados</div>
         </div>
       </div>
       <div><span class="lbl">E-mail</span><input class="inp" type="email" placeholder="seu@email.com" id="login-email"></div>
@@ -563,11 +549,50 @@ function filterContent(btn, tipo) {
 // ════════════════════════════════════
 // AUTENTICAÇÃO
 // ════════════════════════════════════
-const USUARIOS = {
-  'premium360@drailza.com.br': { senha:'Ilza@360',       nome:'Maria Aparecida Santos', plano:'360',    planoBadge:'Plano 360°',   premium:true,  isAdmin:false },
-  'basico@drailza.com.br':     { senha:'Ilza@49',        nome:'João Carlos Oliveira',   plano:'basico', planoBadge:'Portal Básico', premium:false, isAdmin:false },
-  'admin@drailza.com.br':      { senha:'Ilza@Admin2026', nome:'Dra. Ilza Ezequiel',     plano:'admin',  planoBadge:'Admin',         premium:true,  isAdmin:true  },
+// ══════════════════════════════════════════════════════════════
+// SEGURANÇA — Autenticação via Firebase Auth (sem senhas no código)
+// Usuários gerenciados no Firebase Console → Authentication
+// ══════════════════════════════════════════════════════════════
+
+// Perfis por email (sem senha — auth feita pelo Firebase)
+const PERFIS = {
+  'premium360@drailza.com.br': { nome:'Maria Aparecida Santos', plano:'360',    planoBadge:'Plano 360°',   premium:true,  isAdmin:false },
+  'basico@drailza.com.br':     { nome:'João Carlos Oliveira',   plano:'basico', planoBadge:'Portal Básico', premium:false, isAdmin:false },
+  'admin@drailza.com.br':      { nome:'Dra. Ilza Ezequiel',     plano:'admin',  planoBadge:'Admin',         premium:true,  isAdmin:true  },
 };
+
+// Rate limiting: 5 tentativas → 15min bloqueio
+const _loginTentativas = {};
+function checkRateLimit(email) {
+  const r = _loginTentativas[email];
+  if(!r) return null;
+  if(r.count >= 5 && (Date.now()-r.ts) < 15*60*1000) {
+    const min = Math.ceil((15*60*1000-(Date.now()-r.ts))/60000);
+    return `Muitas tentativas. Aguarde ${min} minuto${min>1?'s':''}.`;
+  }
+  if((Date.now()-r.ts) >= 15*60*1000) { delete _loginTentativas[email]; return null; }
+  return null;
+}
+function registrarFalha(email) {
+  if(!_loginTentativas[email]) _loginTentativas[email]={count:0,ts:Date.now()};
+  _loginTentativas[email].count++;
+  _loginTentativas[email].ts = Date.now();
+  const r = 5-_loginTentativas[email].count;
+  return r>0 ? ` (${r} tentativa${r>1?'s':''} restante${r>1?'s':''})` : '';
+}
+
+// Session timeout: 30min sem atividade
+let _sessionTimer = null;
+function iniciarSessionTimer() {
+  if(_sessionTimer) clearTimeout(_sessionTimer);
+  _sessionTimer = setTimeout(()=>{
+    alert('⚠️ Sessão encerrada por inatividade.');
+    confirmarSair();
+  }, 30*60*1000);
+}
+['mousedown','keydown','touchstart'].forEach(ev=>{
+  document.addEventListener(ev, ()=>{ if(_currentUser) iniciarSessionTimer(); }, {passive:true});
+});
 
 let _currentUser = null;
 
@@ -607,26 +632,67 @@ function validarCpfVisual(cpf) {
   }
 }
 
-function fillLogin(email, senha) {
-  document.getElementById('login-email').value = email;
-  document.getElementById('login-senha').value = senha;
-}
+// fillLogin removido por segurança
 
-function doLogin() {
+async function doLogin() {
   const email = document.getElementById('login-email').value.trim().toLowerCase();
   const senha = document.getElementById('login-senha').value;
-  const u = USUARIOS[email];
-  if (u && u.senha === senha) {
-    _currentUser = { ...u, email };
-    applySession(_currentUser);
-    if (_currentUser.isAdmin) goTo('admin');
-    else goTo('home');
+  const btn   = document.querySelector('#s-login .btn-gold');
+
+  if(!email || !senha) {
+    showLoginErr(btn, 'Preencha e-mail e senha.');
     return;
   }
-  const btn = document.querySelector('#s-login .btn-gold');
+
+  // Rate limit check
+  const bloq = checkRateLimit(email);
+  if(bloq) { showLoginErr(btn, bloq); return; }
+
+  btn.textContent = '🔐 Verificando...';
+  btn.disabled = true;
+
+  try {
+    const fb = window._fb;
+    if(!fb || !fb.auth) throw new Error('Firebase não disponível');
+
+    // Firebase Authentication — senha nunca fica no código
+    const cred = await fb.signInWithEmailAndPassword(fb.auth, email, senha);
+    const firebaseUser = cred.user;
+
+    // Busca perfil local (plano, nome, etc)
+    const perfil = PERFIS[email] || {
+      nome: firebaseUser.displayName || email.split('@')[0],
+      plano: 'basico', planoBadge: 'Portal Básico',
+      premium: false, isAdmin: false
+    };
+
+    _currentUser = { ...perfil, email, uid: firebaseUser.uid };
+    delete _loginTentativas[email]; // limpa tentativas
+    iniciarSessionTimer();
+    applySession(_currentUser);
+    if(_currentUser.isAdmin) goTo('admin');
+    else goTo('home');
+
+  } catch(err) {
+    const aviso = registrarFalha(email);
+    const msg = err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found'
+      ? 'E-mail ou senha incorretos.' + aviso
+      : err.code === 'auth/too-many-requests'
+      ? 'Muitas tentativas. Conta temporariamente bloqueada.'
+      : 'Erro ao entrar. Tente novamente.';
+    showLoginErr(btn, msg);
+  }
+}
+
+function showLoginErr(btn, msg) {
+  btn.disabled = false;
   btn.style.background = 'var(--red)';
-  btn.textContent = 'E-mail ou senha incorretos';
-  setTimeout(() => { btn.style.background = ''; btn.textContent = '→ Entrar no Portal'; }, 2500);
+  btn.textContent = msg;
+  setTimeout(() => {
+    btn.style.background = '';
+    btn.textContent = '→ Entrar no Portal';
+    btn.disabled = false;
+  }, 3500);
 }
 
 function applySession(user) {
@@ -639,11 +705,17 @@ function applySession(user) {
 function pedirSair() { document.getElementById('modal-sair').style.display = 'flex'; }
 function confirmarSair() {
   document.getElementById('modal-sair').style.display = 'none';
+  if(_sessionTimer) clearTimeout(_sessionTimer);
+  const fb = window._fb;
+  if(fb && fb.auth) fb.signOut(fb.auth).catch(()=>{});
+  if (fb && _chatRef)    { fb.off(_chatRef);    _chatRef = null; }
+  if (fb && _admChatRef) { fb.off(_admChatRef); _admChatRef = null; }
+  if (fb && _salaListener) { fb.off(fb.ref(fb.rtdb,'salas_index')); _salaListener = null; }
   _currentUser = null;
   document.getElementById('login-email').value = '';
   document.getElementById('login-senha').value = '';
-  const fb = window._fb;
-  if (fb && _chatRef)    { fb.off(_chatRef);    _chatRef = null; }
+  goTo('login');
+}
   if (fb && _admChatRef) { fb.off(_admChatRef); _admChatRef = null; }
   if (fb && _salaListener) { fb.off(fb.ref(fb.rtdb,'salas_index')); _salaListener = null; }
 goTo('login');
@@ -916,7 +988,7 @@ function adminTab(btn, tab) {
 function loadAssinantes() {
   const list = document.getElementById('assinantes-list');
   if (!list) return;
-  const pacs = Object.entries(USUARIOS).filter(([,u]) => !u.isAdmin).map(([email,u]) => ({...u,email}));
+  const pacs = Object.entries(PERFIS).filter(([,u]) => !u.isAdmin).map(([email,u]) => ({...u,email}));
   list.innerHTML = pacs.map(p => `
     <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--brd)">
       <div style="width:32px;height:32px;border-radius:50%;background:${p.premium?'var(--goldlt)':'#f0f0f0'};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:${p.premium?'var(--gold)':'#aaa'};flex-shrink:0">${p.nome.split(' ').map(x=>x[0]).slice(0,2).join('')}</div>
