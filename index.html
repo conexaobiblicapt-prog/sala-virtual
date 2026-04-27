@@ -675,53 +675,140 @@ function validarCpfVisual(cpf) {
 
 // fillLogin removido por segurança
 
+async function hashSenha(s) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+
 async function doLogin() {
   const email = document.getElementById('login-email').value.trim().toLowerCase();
   const senha = document.getElementById('login-senha').value;
   const btn   = document.querySelector('#s-login .btn-gold');
 
-  if(!email || !senha) {
-    showLoginErr(btn, 'Preencha e-mail e senha.');
-    return;
-  }
+  if(!email || !senha) { showLoginErr(btn, 'Preencha e-mail e senha.'); return; }
 
-  // Rate limit check
   const bloq = checkRateLimit(email);
   if(bloq) { showLoginErr(btn, bloq); return; }
 
   btn.textContent = '🔐 Verificando...';
   btn.disabled = true;
 
-  try {
-    const fb = window._fb;
-    if(!fb || !fb.auth) throw new Error('Firebase não disponível');
+  const fb = window._fb;
+  if(!fb) { showLoginErr(btn, 'Erro de conexão. Recarregue a página.'); return; }
 
-    // Firebase Authentication — senha nunca fica no código
+  // ── TENTATIVA 1: Firebase Authentication (Dra. e usuários cadastrados no Auth) ──
+  try {
     const cred = await fb.signInWithEmailAndPassword(fb.auth, email, senha);
     const firebaseUser = cred.user;
 
-    // Busca perfil local (plano, nome, etc)
-    const perfil = PERFIS[email] || {
-      nome: firebaseUser.displayName || email.split('@')[0],
-      plano: 'basico', planoBadge: 'Portal Básico',
-      premium: false, isAdmin: false
-    };
+    // Perfil local (plano, nome) — primeiro busca PERFIS, depois Firestore
+    let perfil = PERFIS[email];
+    if (!perfil) {
+      // Busca no Firestore pela collection assinantes
+      try {
+        const q = fb.query(fb.collection(fb.db,'assinantes'), fb.where('email','==',email), fb.limit(1));
+        const snap = await fb.getDocs(q);
+        if (!snap.empty) {
+          const d = snap.docs[0].data();
+          perfil = {
+            nome:       d.nome,
+            plano:      d.plano || 'basico',
+            planoBadge: d.plano === '360' ? 'Plano 360°' : 'Portal Básico',
+            premium:    d.plano === '360',
+            isAdmin:    false,
+          };
+        }
+      } catch(_) {}
+    }
+    if (!perfil) {
+      perfil = {
+        nome:       firebaseUser.displayName || email.split('@')[0],
+        plano:      'basico',
+        planoBadge: 'Portal Básico',
+        premium:    false,
+        isAdmin:    false,
+      };
+    }
 
     _currentUser = { ...perfil, email, uid: firebaseUser.uid };
-    delete _loginTentativas[email]; // limpa tentativas
+    delete _loginTentativas[email];
     iniciarSessionTimer();
     applySession(_currentUser);
-    if(_currentUser.isAdmin) goTo('admin');
+    if (_currentUser.isAdmin) goTo('admin');
     else goTo('home');
+    return;
 
-  } catch(err) {
-    const aviso = registrarFalha(email);
-    const msg = err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found'
-      ? 'E-mail ou senha incorretos.' + aviso
-      : err.code === 'auth/too-many-requests'
-      ? 'Muitas tentativas. Conta temporariamente bloqueada.'
-      : 'Erro ao entrar. Tente novamente.';
-    showLoginErr(btn, msg);
+  } catch(authErr) {
+    // Se o erro NÃO é "usuário não encontrado no Auth", para aqui
+    if (authErr.code !== 'auth/user-not-found' &&
+        authErr.code !== 'auth/invalid-credential' &&
+        authErr.code !== 'auth/wrong-password' &&
+        authErr.code !== 'auth/invalid-email') {
+      // Erro real (sem conexão, bloqueio, etc)
+      if (authErr.code === 'auth/too-many-requests') {
+        showLoginErr(btn, 'Muitas tentativas. Aguarde alguns minutos.');
+      } else {
+        const aviso = registrarFalha(email);
+        showLoginErr(btn, 'E-mail ou senha incorretos.' + aviso);
+      }
+      return;
+    }
+    // Continua para tentativa 2 (Firestore com hash)
+  }
+
+  // ── TENTATIVA 2: Login via Firestore (pacientes sem conta no Firebase Auth) ──
+  try {
+    const q = fb.query(fb.collection(fb.db,'assinantes'), fb.where('email','==',email), fb.limit(1));
+    const snap = await fb.getDocs(q);
+
+    if (snap.empty) {
+      const aviso = registrarFalha(email);
+      showLoginErr(btn, 'E-mail ou senha incorretos.' + aviso);
+      return;
+    }
+
+    const d = snap.docs[0].data();
+
+    // Verifica status
+    if (d.status === 'inativo') {
+      showLoginErr(btn, 'Acesso inativo. Contate a clínica.');
+      return;
+    }
+
+    // Verifica senha por hash SHA-256
+    if (!d.senhaHash) {
+      showLoginErr(btn, 'Cadastro incompleto. Contate a clínica.');
+      return;
+    }
+    const hash = await hashSenha(senha);
+    if (hash !== d.senhaHash) {
+      const aviso = registrarFalha(email);
+      showLoginErr(btn, 'E-mail ou senha incorretos.' + aviso);
+      return;
+    }
+
+    _currentUser = {
+      nome:       d.nome,
+      email:      d.email,
+      plano:      d.plano || 'basico',
+      planoBadge: d.plano === '360' ? 'Plano 360°' : 'Portal Básico',
+      premium:    d.plano === '360',
+      isAdmin:    false,
+      uid:        snap.docs[0].id,
+    };
+    delete _loginTentativas[email];
+    iniciarSessionTimer();
+    applySession(_currentUser);
+    goTo('home');
+
+  } catch(fsErr) {
+    console.error('[Login Firestore]', fsErr);
+    // Se Firestore falhou por permissão, avisa sobre regras
+    if (fsErr.code === 'permission-denied' || fsErr.message?.includes('Missing or insufficient permissions')) {
+      showLoginErr(btn, '⚙️ Regras do Firebase não configuradas. Veja o Admin.');
+    } else {
+      showLoginErr(btn, 'Erro de conexão. Tente novamente.');
+    }
   }
 }
 
@@ -1020,18 +1107,176 @@ function adminTab(btn, tab) {
 }
 
 // ════════════════════════════════════
-// ASSINANTES
+// ASSINANTES — carrega do Firestore
 // ════════════════════════════════════
-function loadAssinantes() {
+async function loadAssinantes() {
   const list = document.getElementById('assinantes-list');
   if (!list) return;
-  const pacs = Object.entries(PERFIS).filter(([,u]) => !u.isAdmin).map(([email,u]) => ({...u,email}));
-  list.innerHTML = pacs.map(p => `
-    <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--brd)">
-      <div style="width:32px;height:32px;border-radius:50%;background:${p.premium?'var(--goldlt)':'#f0f0f0'};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:${p.premium?'var(--gold)':'#aaa'};flex-shrink:0">${p.nome.split(' ').map(x=>x[0]).slice(0,2).join('')}</div>
-      <div style="flex:1"><div style="font-size:13px;font-weight:600;color:var(--brown)">${p.nome} ${p.premium?'★':''}</div><div style="font-size:10px;color:var(--txs)">${p.planoBadge} · ${p.email}</div></div>
-      <span class="badge-ativo">✓ Ativo</span>
-    </div>`).join('');
+  list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--txs);font-size:12px">Carregando...</div>';
+
+  const fb = window._fb;
+  if (!fb) { list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--red);font-size:12px">Firebase não conectado.</div>'; return; }
+
+  try {
+    const snap = await fb.getDocs(fb.query(fb.collection(fb.db,'assinantes'), fb.orderBy('nome')));
+
+    // Monta lista: PERFIS hardcoded + Firestore
+    const perfisHard = Object.entries(PERFIS)
+      .filter(([,u]) => !u.isAdmin)
+      .map(([email,u]) => ({ ...u, email, _origem:'local' }));
+
+    const perfisFS = snap.docs.map(d => ({ ...d.data(), _id: d.id, _origem:'firestore' }));
+
+    // Merge: prefere Firestore, remove duplicatas por email
+    const mapa = {};
+    perfisHard.forEach(p => { mapa[p.email] = p; });
+    perfisFS.forEach(p => { mapa[p.email] = p; });
+    const todos = Object.values(mapa);
+
+    if (todos.length === 0) {
+      list.innerHTML = `<div style="padding:20px;text-align:center;color:var(--txs);font-size:12px">
+        Nenhum assinante ainda.<br><br>
+        <button class="btn-gold" onclick="abrirModalNovoPac()" style="font-size:13px;padding:10px 18px;width:auto">+ Novo assinante</button>
+      </div>`;
+      return;
+    }
+
+    list.innerHTML = todos.map(p => {
+      const iniciais = (p.nome||'?').split(' ').map(x=>x[0]).slice(0,2).join('').toUpperCase();
+      const premium  = p.premium || p.plano === '360';
+      const status   = p.status || 'ativo';
+      const statusOk = status === 'ativo';
+      return `<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--brd)">
+        <div style="width:32px;height:32px;border-radius:50%;background:${premium?'var(--goldlt)':'#f0f0f0'};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:${premium?'var(--gold)':'#aaa'};flex-shrink:0">${iniciais}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:600;color:var(--brown);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${_esc(p.nome||'—')} ${premium?'★':''}</div>
+          <div style="font-size:10px;color:var(--txs)">${_esc(p.planoBadge||'Portal Básico')} · ${_esc(p.email||'')}</div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0">
+          <span class="badge-ativo" style="background:${statusOk?'var(--greenbg)':'var(--redbg)'};color:${statusOk?'var(--green)':'var(--red)'};border-color:${statusOk?'#a8ddb5':'#e0b0b0'}">
+            ${statusOk?'✓ Ativo':'✗ Inativo'}
+          </span>
+          ${p._id ? `<button class="btn-sm" style="font-size:9px;background:${statusOk?'var(--redbg)':'var(--greenbg)'};color:${statusOk?'var(--red)':'var(--green)'};border:1px solid ${statusOk?'#e0b0b0':'#a8ddb5'}" onclick="toggleStatus('${p._id}','${status}')">
+            ${statusOk?'Desativar':'Ativar'}
+          </button>` : ''}
+        </div>
+      </div>`;
+    }).join('') + `<div style="padding:12px 14px">
+      <button class="btn-gold" onclick="abrirModalNovoPac()" style="font-size:13px;padding:10px">+ Novo assinante</button>
+    </div>`;
+
+  } catch(e) {
+    console.error('[loadAssinantes]', e);
+    if (e.code === 'permission-denied' || e.message?.includes('Missing or insufficient')) {
+      list.innerHTML = `<div style="padding:16px;background:var(--redbg);border-radius:10px;font-size:12px;color:var(--red)">
+        ⚠️ <strong>Sem permissão no Firestore.</strong><br>Configure as regras no Firebase Console.<br><br>
+        <strong>Regra mínima (Firestore → Rules):</strong><br>
+        <code style="font-size:10px">allow read, write: if true;</code>
+      </div>`;
+    } else {
+      list.innerHTML = `<div style="padding:16px;text-align:center;color:var(--red);font-size:12px">Erro: ${e.message}</div>`;
+    }
+  }
+}
+
+async function toggleStatus(docId, statusAtual) {
+  const fb = window._fb;
+  if (!fb) return;
+  const novo = statusAtual === 'ativo' ? 'inativo' : 'ativo';
+  try {
+    await fb.updateDoc(fb.doc(fb.db,'assinantes',docId), { status: novo });
+    loadAssinantes();
+  } catch(e) { alert('Erro: ' + e.message); }
+}
+
+// ── Modal Novo Assinante ──
+function abrirModalNovoPac() {
+  let m = document.getElementById('modal-novo-pac');
+  if (!m) {
+    m = document.createElement('div');
+    m.id = 'modal-novo-pac';
+    m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:350;display:flex;align-items:flex-end;justify-content:center';
+    m.innerHTML = `
+      <div style="background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:480px;max-height:88vh;overflow-y:auto;padding:24px 20px 32px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
+          <div style="font-family:'Cormorant Garamond',serif;font-size:19px;font-weight:700;color:var(--brown)">Novo Assinante</div>
+          <button onclick="document.getElementById('modal-novo-pac').style.display='none'" style="background:none;border:none;font-size:22px;color:var(--txs);cursor:pointer;line-height:1">✕</button>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:11px">
+          <div><label class="lbl">Nome completo *</label><input class="inp" id="npac-nome" type="text" placeholder="Nome do paciente"></div>
+          <div><label class="lbl">E-mail *</label><input class="inp" id="npac-email" type="email" placeholder="email@exemplo.com"></div>
+          <div><label class="lbl">CPF</label><input class="inp" id="npac-cpf" type="text" placeholder="000.000.000-00" maxlength="14"></div>
+          <div><label class="lbl">Telefone / WhatsApp</label><input class="inp" id="npac-tel" type="tel" placeholder="(13) 99999-9999"></div>
+          <div><label class="lbl">Plano</label>
+            <select class="inp" id="npac-plano">
+              <option value="basico">Portal Básico — R$ 49/mês</option>
+              <option value="360">Plano Intestino 360° — R$ 3.000</option>
+            </select>
+          </div>
+          <div><label class="lbl">Senha de acesso *</label><input class="inp" id="npac-senha" type="password" placeholder="Mínimo 6 caracteres"></div>
+          <div id="npac-msg" style="display:none;font-size:12px;border-radius:8px;padding:9px;text-align:center"></div>
+          <button class="btn-gold" id="btn-salvar-pac" onclick="salvarNovoPac()">✅ Cadastrar assinante</button>
+        </div>
+      </div>`;
+    m.addEventListener('click', e => { if (e.target === m) m.style.display='none'; });
+    document.getElementById('app').appendChild(m);
+  }
+  document.getElementById('npac-nome').value = '';
+  document.getElementById('npac-email').value = '';
+  document.getElementById('npac-cpf').value = '';
+  document.getElementById('npac-tel').value = '';
+  document.getElementById('npac-senha').value = '';
+  document.getElementById('npac-plano').value = 'basico';
+  document.getElementById('npac-msg').style.display = 'none';
+  m.style.display = 'flex';
+}
+
+async function salvarNovoPac() {
+  const nome  = document.getElementById('npac-nome').value.trim();
+  const email = document.getElementById('npac-email').value.trim().toLowerCase();
+  const cpf   = document.getElementById('npac-cpf').value.trim();
+  const tel   = document.getElementById('npac-tel').value.trim();
+  const senha = document.getElementById('npac-senha').value;
+  const plano = document.getElementById('npac-plano').value;
+  const msgEl = document.getElementById('npac-msg');
+  const btn   = document.getElementById('btn-salvar-pac');
+
+  function showMsg(t, ok) {
+    msgEl.style.display='block';
+    msgEl.textContent=t;
+    msgEl.style.background = ok?'var(--greenbg)':'var(--redbg)';
+    msgEl.style.color = ok?'var(--green)':'var(--red)';
+  }
+
+  if (!nome || !email || !senha) { showMsg('Preencha nome, e-mail e senha.',false); return; }
+  if (senha.length < 6) { showMsg('Senha mínima: 6 caracteres.',false); return; }
+
+  btn.disabled = true; btn.textContent = 'Salvando...';
+  const fb = window._fb;
+
+  try {
+    // Verifica duplicata
+    const q = fb.query(fb.collection(fb.db,'assinantes'), fb.where('email','==',email), fb.limit(1));
+    const ex = await fb.getDocs(q);
+    if (!ex.empty) { showMsg('E-mail já cadastrado.',false); btn.disabled=false; btn.textContent='✅ Cadastrar assinante'; return; }
+
+    const senhaHash = await hashSenha(senha);
+    await fb.addDoc(fb.collection(fb.db,'assinantes'), {
+      nome, email, cpf, tel, plano,
+      planoBadge: plano==='360' ? 'Plano 360°' : 'Portal Básico',
+      senhaHash, status:'ativo',
+      criadoEm: fb.serverTimestamp()
+    });
+    showMsg('✅ Assinante cadastrado com sucesso!', true);
+    setTimeout(() => {
+      document.getElementById('modal-novo-pac').style.display = 'none';
+      loadAssinantes();
+    }, 1400);
+  } catch(e) {
+    showMsg('Erro: ' + e.message, false);
+  } finally {
+    btn.disabled=false; btn.textContent='✅ Cadastrar assinante';
+  }
 }
 
 function enviarMensagem() {
