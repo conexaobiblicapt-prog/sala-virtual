@@ -263,7 +263,8 @@ body{height:100%;min-height:100vh;min-height:-webkit-fill-available;background:#
 <div class="screen" id="s-suporte" style="padding-bottom:0">
   <div style="background:var(--white);padding:12px 14px;border-bottom:1px solid var(--brd);flex-shrink:0">
     <div style="display:flex;align-items:center;gap:10px">
-      <div style="width:38px;height:38px;border-radius:50%;background:var(--goldlt);border:1.5px solid var(--goldbrd);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">💬</div>
+      <button onclick="goTo('home')" style="width:36px;height:36px;border-radius:50%;background:var(--goldlt);border:1.5px solid var(--goldbrd);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;cursor:pointer">←</button>
+      <div style="width:36px;height:36px;border-radius:50%;background:var(--goldlt);border:1.5px solid var(--goldbrd);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">💬</div>
       <div style="flex:1">
         <div style="font-family:'Cormorant Garamond',serif;font-size:16px;font-weight:600;color:var(--brown)">Sala Virtual</div>
         <div style="font-size:10px;color:var(--green);display:flex;align-items:center;gap:4px">
@@ -286,25 +287,66 @@ body{height:100%;min-height:100vh;min-height:-webkit-fill-available;background:#
 </div>
 
 <!-- PLANOS -->
-<div class="screen" id="s-planos">
-  <div style="background:var(--white);padding:20px 16px 14px;border-bottom:1px solid var(--brd);text-align:center">
-    <img src="https://static.wixstatic.com/media/1f0134_5c378964392f45058ff834b96d82a578~mv2.png/v1/fill/w_488,h_269,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/1f0134_5c378964392f45058ff834b96d82a578~mv2.png" alt="Logo" style="height:30px;object-fit:contain;margin-bottom:8px">
-    <div style="font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:600;color:var(--brown)">Portal do Paciente</div>
-  </div>
-  <div style="margin:14px 14px 12px;border-radius:16px;overflow:hidden;border:2px solid var(--gold)">
-    <div style="padding:14px 16px;background:var(--white)">
-      <div style="font-size:18px;font-weight:700;color:var(--brown)">Plano Intestino 360°</div>
-      <div style="font-size:24px;font-weight:700;color:var(--gold)">R$ 3.000 <small style="font-size:12px;font-weight:400;color:var(--txm)">/ pacote completo</small></div>
-      <div style="font-size:11px;color:var(--txm);margin-bottom:10px">3 consultas + portal 6 meses + suporte prioritário</div>
-      <button class="btn-gold" onclick="abrirModalAssinar('360')">★ Assinar agora</button>
+<div class="screen" id="s-planos" style="overflow-y:auto;background:var(--bg)">
+  <div style="min-height:100dvh;display:flex;flex-direction:column;padding:0 0 100px">
+
+    <!-- Header -->
+    <div style="text-align:center;padding:40px 24px 0">
+      <img src="https://static.wixstatic.com/media/1f0134_5c378964392f45058ff834b96d82a578~mv2.png/v1/fill/w_488,h_269,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/1f0134_5c378964392f45058ff834b96d82a578~mv2.png" alt="Logo" style="height:38px;object-fit:contain;margin-bottom:16px">
+      <div style="display:inline-block;background:linear-gradient(135deg,var(--gold),#b8892a);color:#fff;font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;padding:4px 14px;border-radius:99px;margin-bottom:14px">✦ Acesso Premium</div>
+      <div style="font-family:'Cormorant Garamond',serif;font-size:28px;font-weight:700;color:var(--brown);line-height:1.2;margin-bottom:8px">Portal do Paciente</div>
+      <div style="font-size:13px;color:var(--txm);max-width:280px;margin:0 auto">Acompanhamento personalizado com a Dra. Ilza</div>
     </div>
-  </div>
-  <div style="margin:0 14px 80px;border-radius:16px;overflow:hidden;border:1px solid var(--brd)">
-    <div style="padding:14px 16px;background:var(--white)">
-      <div style="font-size:18px;font-weight:700;color:var(--brown)">Portal Básico</div>
-      <div style="font-size:24px;font-weight:700;color:var(--gold)">R$ 49 <small style="font-size:12px;font-weight:400;color:var(--txm)">/ mês</small></div>
-      <button class="btn-gold" style="background:var(--brown);margin-top:10px" onclick="abrirModalAssinar('basico')">Assinar por R$ 49/mês</button>
+
+    <!-- Card premium -->
+    <div style="margin:28px 16px 0;border-radius:24px;overflow:hidden;box-shadow:0 8px 32px rgba(168,114,42,.18);border:1.5px solid var(--gold)">
+      <div style="background:linear-gradient(135deg,var(--brown),#7a5018);padding:18px 20px 16px">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+          <div style="width:40px;height:40px;border-radius:12px;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:20px">🌿</div>
+          <div>
+            <div style="font-size:11px;color:rgba(255,255,255,.65);font-weight:600;letter-spacing:.08em;text-transform:uppercase">Plano</div>
+            <div style="font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:700;color:#fff">Portal Básico</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:baseline;gap:4px">
+          <div style="font-size:13px;color:rgba(255,255,255,.7);font-weight:500">R$</div>
+          <div style="font-size:48px;font-weight:800;color:#fff;line-height:1;font-family:'Cormorant Garamond',serif">49</div>
+          <div style="font-size:13px;color:rgba(255,255,255,.7)">/mês</div>
+        </div>
+        <div style="font-size:11px;color:rgba(255,255,255,.55);margin-top:4px">Cancele quando quiser · Sem fidelidade</div>
+      </div>
+      <div style="background:var(--white);padding:20px">
+        <div style="font-size:11px;font-weight:700;color:var(--txm);text-transform:uppercase;letter-spacing:.08em;margin-bottom:14px">O que está incluído</div>
+        <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:24px">
+          <div style="display:flex;align-items:center;gap:12px">
+            <div style="width:28px;height:28px;border-radius:8px;background:var(--goldlt);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">📚</div>
+            <div><div style="font-size:13px;font-weight:600;color:var(--brown)">Conteúdo exclusivo</div><div style="font-size:11px;color:var(--txs)">Artigos, guias e protocolos da Dra. Ilza</div></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px">
+            <div style="width:28px;height:28px;border-radius:8px;background:var(--goldlt);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">💬</div>
+            <div><div style="font-size:13px;font-weight:600;color:var(--brown)">Sala Virtual</div><div style="font-size:11px;color:var(--txs)">Chat direto com a equipe toda quarta-feira</div></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px">
+            <div style="width:28px;height:28px;border-radius:8px;background:var(--goldlt);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">🔔</div>
+            <div><div style="font-size:13px;font-weight:600;color:var(--brown)">Atualizações em primeira mão</div><div style="font-size:11px;color:var(--txs)">Novidades e dicas diretamente para você</div></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px">
+            <div style="width:28px;height:28px;border-radius:8px;background:var(--goldlt);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">🌱</div>
+            <div><div style="font-size:13px;font-weight:600;color:var(--brown)">Acompanhamento contínuo</div><div style="font-size:11px;color:var(--txs)">Suporte ao longo do seu tratamento</div></div>
+          </div>
+        </div>
+        <button class="btn-gold" style="font-size:15px;padding:16px;border-radius:14px;letter-spacing:.03em" onclick="abrirModalAssinar('basico')">★ Assinar por R$ 49/mês</button>
+        <div style="text-align:center;margin-top:12px;font-size:11px;color:var(--txs)">🔒 Pagamento seguro · Cancele a qualquer momento</div>
+      </div>
     </div>
+
+    <!-- Depoimento -->
+    <div style="margin:20px 16px 0;border-radius:16px;background:var(--white);border:1px solid var(--brd);padding:16px 18px">
+      <div style="font-size:18px;text-align:center;margin-bottom:8px">🌟🌟🌟🌟🌟</div>
+      <div style="font-size:12px;color:var(--txm);text-align:center;line-height:1.6;font-style:italic">"O portal mudou minha relação com o tratamento. Ter acesso direto à equipe da Dra. Ilza toda semana fez toda a diferença."</div>
+      <div style="text-align:center;font-size:11px;font-weight:600;color:var(--brown);margin-top:10px">— Paciente do Portal</div>
+    </div>
+
   </div>
 </div>
 
