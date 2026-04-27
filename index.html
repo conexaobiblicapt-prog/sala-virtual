@@ -157,12 +157,12 @@ body{height:100%;min-height:100vh;min-height:-webkit-fill-available;background:#
 
 <!-- LOGIN -->
 <div class="screen active fadein" id="s-login" style="padding-bottom:0;background:#fff">
-  <div style="background:#ffffff;display:flex;flex-direction:column;align-items:stretch;min-height:100vh">
+  <div style="background:#ffffff;display:flex;flex-direction:column;align-items:stretch;min-height:100%;overflow-y:auto">
     <div style="height:4px;background:linear-gradient(90deg,#B8924A,#D4A85A,#B8924A)"></div>
-    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 28px 24px">
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:36px 28px 20px;text-align:center">
       <img src="https://static.wixstatic.com/media/1f0134_5c378964392f45058ff834b96d82a578~mv2.png/v1/fill/w_488,h_269,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/1f0134_5c378964392f45058ff834b96d82a578~mv2.png"
-        alt="Logo" style="width:100%;max-width:320px;object-fit:contain;margin-bottom:18px">
-      <div style="display:flex;align-items:center;gap:10px;width:100%;max-width:280px;margin-bottom:6px">
+        alt="Logo" style="width:100%;max-width:240px;height:auto;object-fit:contain;margin:0 auto 16px">
+      <div style="display:flex;align-items:center;gap:10px;width:100%;max-width:240px;margin:0 auto 6px">
         <div style="flex:1;height:1px;background:linear-gradient(to right,transparent,#D4A85A)"></div>
         <div style="width:6px;height:6px;border-radius:50%;background:#B8924A"></div>
         <div style="flex:1;height:1px;background:linear-gradient(to left,transparent,#D4A85A)"></div>
@@ -189,7 +189,7 @@ body{height:100%;min-height:100vh;min-height:-webkit-fill-available;background:#
       </div>
       <button class="btn-gold" onclick="doLogin()">→ Entrar no Portal</button>
       <div class="divider"><span>não tem acesso?</span></div>
-      <button class="btn-outline" onclick="goTo('planos')">Assinar o Portal →</button>
+      <button class="btn-outline" onclick="goTo('planos')">Conhecer os Planos →</button>
       <div style="text-align:center;font-size:10px;color:var(--txs);margin-top:4px">🔒 Dados protegidos · LGPD · SSL</div>
     </div>
   </div>
@@ -308,19 +308,9 @@ body{height:100%;min-height:100vh;min-height:-webkit-fill-available;background:#
     <button class="adm-tab" onclick="filterContent(this,'audio')">Áudios</button>
     <button class="adm-tab" onclick="filterContent(this,'pdf')">PDFs</button>
   </div>
-  <div id="content-list" style="padding:0 14px;display:flex;flex-direction:column;gap:10px">
-    <div class="card" style="display:flex;align-items:center;gap:10px;padding:10px 14px" data-tipo="video">
-      <div style="width:36px;height:36px;border-radius:9px;background:#FEF0F0;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">🎬</div>
-      <div style="flex:1"><div style="font-size:13px;font-weight:600;color:var(--brown)">SII — Live Completa</div><div style="font-size:10px;color:var(--txs)">42 min · Premium</div></div>
-    </div>
-    <div class="card" style="display:flex;align-items:center;gap:10px;padding:10px 14px" data-tipo="audio">
-      <div style="width:36px;height:36px;border-radius:9px;background:#EBF5EE;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">🎙️</div>
-      <div style="flex:1"><div style="font-size:13px;font-weight:600;color:var(--brown)">Microbiota — Ep. 08</div><div style="font-size:10px;color:var(--txs)">28 min · Premium</div></div>
-    </div>
-    <div class="card" style="display:flex;align-items:center;gap:10px;padding:10px 14px" data-tipo="pdf">
-      <div style="width:36px;height:36px;border-radius:9px;background:#EBF2FB;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">📄</div>
-      <div style="flex:1"><div style="font-size:13px;font-weight:600;color:var(--brown)">Protocolo SIBO</div><div style="font-size:10px;color:var(--txs)">PDF · 18p · Premium</div></div>
-    </div>
+  <div id="content-list" style="padding:0 14px;display:flex;flex-direction:column;gap:10px" data-loaded="false">
+    <!-- Conteúdo carregado dinamicamente do Firebase -->
+    <div id="content-loading" style="padding:30px;text-align:center;color:var(--txs);font-size:13px">Carregando conteúdo...</div>
   </div>
 </div>
 
@@ -328,7 +318,7 @@ body{height:100%;min-height:100vh;min-height:-webkit-fill-available;background:#
 <div class="screen" id="s-suporte" style="padding-bottom:0">
   <div style="background:var(--white);padding:12px 14px;border-bottom:1px solid var(--brd);flex-shrink:0">
     <div style="display:flex;align-items:center;gap:10px">
-      <button onclick="goTo('home')" style="width:36px;height:36px;border-radius:50%;background:var(--goldlt);border:1.5px solid var(--goldbrd);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;cursor:pointer">←</button>
+      <button onclick="sairSalaVirtual()" style="width:36px;height:36px;border-radius:50%;background:var(--goldlt);border:1.5px solid var(--goldbrd);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;cursor:pointer">←</button>
       <div style="width:36px;height:36px;border-radius:50%;background:var(--goldlt);border:1.5px solid var(--goldbrd);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">💬</div>
       <div style="flex:1">
         <div style="font-family:'Cormorant Garamond',serif;font-size:16px;font-weight:600;color:var(--brown)">Sala Virtual</div>
@@ -412,9 +402,12 @@ body{height:100%;min-height:100vh;min-height:-webkit-fill-available;background:#
     <button class="adm-tab on" onclick="adminTab(this,'assinantes')">👤 Assinantes</button>
     <button class="adm-tab" onclick="adminTab(this,'senha')">🔑 Trocar Senha</button>
   </div>
-
-  <!-- Assinantes -->
   <div id="adm-assinantes" style="padding:14px">
+    <div id="adm-firebase-aviso" style="background:#FFF3E0;border:1px solid #FFB74D;border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:11px;color:#E65100">
+      ⚙️ <strong>Atenção:</strong> Configure as regras do Firebase para o portal funcionar.
+      <button onclick="document.getElementById('adm-firebase-aviso').style.display='none'" style="float:right;background:none;border:none;cursor:pointer;font-size:14px;color:#E65100;line-height:1">✕</button>
+      <br><a href="#" onclick="mostrarRegrasFirebase();return false;" style="color:#E65100;font-weight:700">Ver regras →</a>
+    </div>
     <div style="font-size:12px;font-weight:700;color:var(--txm);margin-bottom:10px">Assinantes ativos</div>
     <div class="card" id="assinantes-list"><div style="padding:20px;text-align:center;color:var(--txs);font-size:12px">Carregando...</div></div>
   </div>
@@ -668,6 +661,65 @@ body{height:100%;min-height:100vh;min-height:-webkit-fill-available;background:#
   </div>
 </div>
 
+<!-- Modal Regras Firebase -->
+<div id="modal-regras-firebase" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:400;align-items:center;justify-content:center;padding:16px">
+  <div style="background:#fff;border-radius:16px;padding:20px;max-width:440px;width:100%;max-height:80vh;overflow-y:auto">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <div style="font-size:15px;font-weight:700;color:var(--brown)">⚙️ Regras do Firebase</div>
+      <button onclick="document.getElementById('modal-regras-firebase').style.display='none'" style="background:none;border:none;font-size:20px;color:var(--txs);cursor:pointer">✕</button>
+    </div>
+    <div style="font-size:11px;color:var(--txm);line-height:1.7">
+      <strong>1. Realtime Database</strong> (Firebase Console → Realtime Database → Rules)<br>
+      <code style="display:block;background:#f5f0e8;border-radius:8px;padding:10px;font-size:10px;white-space:pre-wrap;margin:6px 0">{"rules":{"salas":{".read":true,".write":true},"salas_index":{".read":true,".write":true}}}</code>
+      <strong>2. Firestore</strong> (Firebase Console → Firestore → Rules)<br>
+      <code style="display:block;background:#f5f0e8;border-radius:8px;padding:10px;font-size:10px;white-space:pre-wrap;margin:6px 0">rules_version='2';
+service cloud.firestore {
+  match /databases/{db}/documents {
+    match /assinantes/{d} { allow read, write: if true; }
+    match /conteudo/{d}   { allow read, write: if true; }
+  }
+}</code>
+      <strong>3. Storage</strong> (Firebase Console → Storage → Rules)<br>
+      <code style="display:block;background:#f5f0e8;border-radius:8px;padding:10px;font-size:10px;white-space:pre-wrap;margin:6px 0">rules_version='2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /{allPaths=**} {
+      allow read, write: if true;
+    }
+  }
+}</code>
+      <div style="background:#e6f5ee;border-radius:8px;padding:10px;margin-top:8px;font-size:11px;color:#1a7a52">
+        ✅ Após configurar, salve as regras e recarregue o portal.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Novo Assinante (Admin) -->
+<div id="modal-novo-pac" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:350;align-items:flex-end;justify-content:center">
+  <div style="background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:480px;max-height:88vh;overflow-y:auto;padding:24px 20px 32px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
+      <div style="font-family:'Cormorant Garamond',serif;font-size:19px;font-weight:700;color:var(--brown)">Novo Assinante</div>
+      <button onclick="document.getElementById('modal-novo-pac').style.display='none'" style="background:none;border:none;font-size:20px;color:var(--txs);cursor:pointer">✕</button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:11px">
+      <div><label class="lbl">Nome completo *</label><input class="inp" id="npac-nome" type="text" placeholder="Nome do paciente"></div>
+      <div><label class="lbl">E-mail *</label><input class="inp" id="npac-email" type="email" placeholder="email@exemplo.com"></div>
+      <div><label class="lbl">CPF</label><input class="inp" id="npac-cpf" type="text" placeholder="000.000.000-00" maxlength="14" oninput="maskCpf(this)"></div>
+      <div><label class="lbl">Telefone / WhatsApp</label><input class="inp" id="npac-tel" type="tel" placeholder="(13) 99999-9999"></div>
+      <div><label class="lbl">Plano</label>
+        <select class="inp" id="npac-plano">
+          <option value="basico">Portal Básico — R$ 49/mês</option>
+          <option value="360">Plano Intestino 360° — R$ 3.000</option>
+        </select>
+      </div>
+      <div><label class="lbl">Senha de acesso *</label><input class="inp" id="npac-senha" type="password" placeholder="Mínimo 6 caracteres"></div>
+      <div id="npac-msg" style="display:none;font-size:12px;border-radius:8px;padding:9px;text-align:center"></div>
+      <button class="btn-gold" id="btn-salvar-pac" onclick="salvarNovoAssinante()">✅ Cadastrar assinante</button>
+    </div>
+  </div>
+</div>
+
 </div><!-- /app -->
 
 <script>
@@ -682,22 +734,69 @@ function goTo(page) {
   const sId = page === 'login' ? 's-login' : SCREENS[page];
   if (sId) { const s = document.getElementById(sId); if(s){ s.classList.add('active'); s.scrollTop = 0; } }
   const gNav = document.getElementById('global-nav');
-  if (page === 'login' || page === 'suporte') { gNav.style.display = 'none'; }
+  // Suporte mostra nav (para ter botão de voltar via nav), login não
+  if (page === 'login') { gNav.style.display = 'none'; }
   else {
     gNav.style.display = 'flex';
     document.querySelectorAll('.bni').forEach(n => n.classList.remove('on'));
     const ni = NAV_IDS[page]; if(ni){ const n = document.getElementById(ni); if(n) n.classList.add('on'); }
   }
   if (page === 'suporte' && _currentUser && !_currentUser.isAdmin) enterSala(_currentUser);
-  if (page === 'admin') { loadAssinantes(); iniciarListenerSala(); }
+  if (page === 'admin') { loadAssinantes(); }
+  if (page === 'conteudo') { loadConteudo(); }
+}
+
+function sairSalaVirtual() {
+  // Desconecta listener do chat ao sair
+  const fb = window._fb;
+  if (fb && _chatRef) { fb.off(_chatRef); _chatRef = null; }
+  goTo('home');
 }
 
 function filterContent(btn, tipo) {
-  document.querySelectorAll('.adm-tab').forEach(b => b.classList.remove('on'));
+  document.querySelectorAll('#s-conteudo .adm-tab').forEach(b => b.classList.remove('on'));
   btn.classList.add('on');
   document.querySelectorAll('[data-tipo]').forEach(el => {
     el.style.display = (tipo === 'todos' || el.dataset.tipo === tipo) ? 'flex' : 'none';
   });
+  _conteudoFiltro = tipo;
+}
+
+let _conteudoFiltro = 'todos';
+let _conteudoCarregado = false;
+
+async function loadConteudo() {
+  if (_conteudoCarregado) return;
+  const list = document.getElementById('content-list');
+  const fb = window._fb;
+  if (!fb) return;
+  try {
+    const snap = await fb.getDocs(fb.query(fb.collection(fb.db,'conteudo'), fb.where('ativo','==',true), fb.orderBy('criadoEm','desc')));
+    const icones = { video:'🎬', audio:'🎙️', pdf:'📄' };
+    const cores  = { video:'#FEF0F0', audio:'#EBF5EE', pdf:'#EBF2FB' };
+    if (snap.empty) {
+      list.innerHTML = '<div style="padding:40px;text-align:center;color:var(--txs);font-size:13px">Nenhum conteúdo publicado ainda.</div>';
+      _conteudoCarregado = true;
+      return;
+    }
+    document.getElementById('content-loading').style.display = 'none';
+    snap.docs.forEach(d => {
+      const p = d.data();
+      const tipo = p.tipo || 'pdf';
+      const div = document.createElement('div');
+      div.className = 'card';
+      div.dataset.tipo = tipo;
+      div.style.cssText = 'display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer';
+      div.innerHTML = `<div style="width:36px;height:36px;border-radius:9px;background:${cores[tipo]||'#f0f0f0'};display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">${icones[tipo]||'📄'}</div>
+        <div style="flex:1"><div style="font-size:13px;font-weight:600;color:var(--brown)">${_esc(p.titulo||'Sem título')}</div><div style="font-size:10px;color:var(--txs)">${tipo.toUpperCase()} · Premium</div></div>
+        <div style="font-size:18px;color:var(--txs)">›</div>`;
+      div.onclick = () => { if(p.url) window.open(p.url,'_blank'); };
+      list.appendChild(div);
+    });
+    _conteudoCarregado = true;
+  } catch(e) {
+    list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--red);font-size:12px">Erro ao carregar conteúdo.</div>';
+  }
 }
 
 // ════════════════════════════════════
@@ -814,7 +913,7 @@ async function doLogin() {
   btn.disabled = true;
 
   try {
-    // ── LOGIN LOCAL para admin (sem Firebase Auth) ──
+    // ── LOGIN LOCAL para admin ──
     if(ADMIN_CREDENTIALS[email] !== undefined) {
       const hashDigitado = await hashSenhaPortal(senha);
       if(hashDigitado !== ADMIN_CREDENTIALS[email]) {
@@ -827,14 +926,50 @@ async function doLogin() {
       delete _loginTentativas[email];
       iniciarSessionTimer();
       applySession(_currentUser);
-      goTo('admin');
+      goTo('home'); // admin também começa pela home
       return;
     }
 
-    // ── LOGIN para pacientes (sem Firebase Auth por enquanto) ──
-    showLoginErr(btn, 'Acesso não autorizado. Entre em contato com a clínica.');
+    // ── LOGIN pacientes via Firebase Firestore ──
+    const fb = window._fb;
+    if (!fb) { showLoginErr(btn, 'Erro de conexão.'); return; }
+
+    // Busca paciente no Firestore pelo email
+    const q = fb.query(fb.collection(fb.db,'assinantes'), fb.where('email','==',email), fb.limit(1));
+    const snap = await fb.getDocs(q);
+    if (snap.empty) {
+      const aviso = registrarFalha(email);
+      showLoginErr(btn, 'Acesso não encontrado.' + aviso);
+      return;
+    }
+    const docData = snap.docs[0].data();
+    // Verifica senha (hash SHA-256)
+    const hashDigitado = await hashSenhaPortal(senha);
+    if (hashDigitado !== docData.senhaHash) {
+      const aviso = registrarFalha(email);
+      showLoginErr(btn, 'E-mail ou senha incorretos.' + aviso);
+      return;
+    }
+    if (docData.status === 'inativo') {
+      showLoginErr(btn, 'Acesso inativo. Entre em contato com a clínica.');
+      return;
+    }
+    _currentUser = {
+      nome:       docData.nome,
+      email:      docData.email,
+      plano:      docData.plano || 'basico',
+      planoBadge: docData.plano === '360' ? 'Plano 360°' : 'Portal Básico',
+      premium:    docData.plano === '360',
+      isAdmin:    false,
+      uid:        snap.docs[0].id
+    };
+    delete _loginTentativas[email];
+    iniciarSessionTimer();
+    applySession(_currentUser);
+    goTo('home'); // sempre começa pelo Início
 
   } catch(err) {
+    console.error('[Login]', err);
     showLoginErr(btn, 'Erro ao entrar. Tente novamente.');
   }
 }
@@ -858,11 +993,17 @@ function applySession(user) {
   // Mostrar ferramentas admin na home
   const tools = document.getElementById('home-admin-tools');
   if (tools) tools.style.display = user.isAdmin ? 'block' : 'none';
+  // Esconder conteúdo de paciente para admin
+  const conteudoHd = document.getElementById('home-conteudo-hd');
+  if (conteudoHd) conteudoHd.style.display = user.isAdmin ? 'none' : 'block';
+  const homegrid = document.querySelector('#s-home > div[style*="grid"]');
+  if (homegrid) homegrid.style.display = user.isAdmin ? 'none' : 'grid';
   // Admin não acessa Sala Virtual pelo rodapé
-  if (user.isAdmin) {
-    const navSuporte = document.getElementById('nav-suporte');
-    if (navSuporte) navSuporte.style.display = 'none';
-  }
+  const navSuporte = document.getElementById('nav-suporte');
+  if (navSuporte) navSuporte.style.display = user.isAdmin ? 'none' : 'flex';
+  // Mostrar badge de bem-vinda correta
+  const bemVinda = document.querySelector('#s-home [style*="Bem-vinda"]');
+  if (bemVinda) bemVinda.textContent = user.isAdmin ? 'Bem-vinda de volta' : 'Bem-vinda de volta';
 }
 
 function pedirSair() { document.getElementById('modal-sair').style.display = 'flex'; }
@@ -926,6 +1067,9 @@ function enterSala(user) {
   const fb = window._fb;
   if (!fb) return;
 
+  // Status: online
+  const statusEl = document.querySelector('#s-suporte .pulse')?.parentElement;
+
   // Registra na fila (salas_index)
   fb.set(fb.ref(fb.rtdb, 'salas_index/' + _chatId), {
     id:        _chatId,
@@ -949,7 +1093,7 @@ function enterSala(user) {
     msgs.innerHTML = '';
     const data = snap.val();
     if (!data) {
-      appendMsg(msgs, 'Olá! Como posso ajudar você hoje? 🌿', 'adm', 'Equipe', '—');
+      appendMsg(msgs, 'Olá! Como posso ajudar você hoje? 🌿', 'adm', 'Equipe', getHora());
       return;
     }
     Object.values(data)
@@ -1135,6 +1279,8 @@ function abrirAdminChat() {
   document.getElementById('global-nav').style.display = 'none';
   // Iniciar listener da sala nessa tela
   iniciarListenerSala2();
+  // Também iniciar na aba admin se necessário
+  iniciarListenerSala();
 }
 
 function voltarHomeAdmin() {
@@ -1416,16 +1562,110 @@ function adminTab(btn, tab) {
 // ════════════════════════════════════
 // ASSINANTES
 // ════════════════════════════════════
-function loadAssinantes() {
+// ════════════════════════════════════
+// ASSINANTES — Firebase Firestore
+// ════════════════════════════════════
+async function loadAssinantes() {
   const list = document.getElementById('assinantes-list');
   if (!list) return;
-  const pacs = Object.entries(PERFIS).filter(([,u]) => !u.isAdmin).map(([email,u]) => ({...u,email}));
-  list.innerHTML = pacs.map(p => `
-    <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--brd)">
-      <div style="width:32px;height:32px;border-radius:50%;background:${p.premium?'var(--goldlt)':'#f0f0f0'};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:${p.premium?'var(--gold)':'#aaa'};flex-shrink:0">${p.nome.split(' ').map(x=>x[0]).slice(0,2).join('')}</div>
-      <div style="flex:1"><div style="font-size:13px;font-weight:600;color:var(--brown)">${p.nome} ${p.premium?'★':''}</div><div style="font-size:10px;color:var(--txs)">${p.planoBadge} · ${p.email}</div></div>
-      <span class="badge-ativo">✓ Ativo</span>
-    </div>`).join('');
+  list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--txs);font-size:12px">Carregando...</div>';
+  const fb = window._fb;
+  if (!fb) { list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--red);font-size:12px">Firebase não conectado.</div>'; return; }
+  try {
+    const snap = await fb.getDocs(fb.query(fb.collection(fb.db,'assinantes'), fb.orderBy('nome')));
+    if (snap.empty) {
+      list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--txs);font-size:12px">Nenhum assinante cadastrado ainda.<br><br><button class="btn-gold" onclick="abrirModalNovoAssinante()" style="font-size:13px;padding:10px 20px">+ Novo assinante</button></div>';
+      return;
+    }
+    list.innerHTML = snap.docs.map(d => {
+      const p = d.data();
+      const iniciais = (p.nome||'?').split(' ').map(x=>x[0]).slice(0,2).join('').toUpperCase();
+      const badge = p.plano==='360' ? '<span class="badge-prem-mini">★ 360°</span>' : '<span style="font-size:10px;color:var(--txs)">Básico</span>';
+      const statusColor = p.status==='ativo' ? 'var(--green)' : 'var(--red)';
+      return `<div style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--brd)">
+        <div style="width:34px;height:34px;border-radius:50%;background:${p.plano==='360'?'var(--goldlt)':'#f0f0f0'};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:${p.plano==='360'?'var(--gold)':'#aaa'};flex-shrink:0">${iniciais}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:600;color:var(--brown);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.nome||'—'} ${p.plano==='360'?'★':''}</div>
+          <div style="font-size:10px;color:var(--txs)">${p.planoBadge||'Portal Básico'} · ${p.email||''}</div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
+          <span class="badge-ativo" style="background:${p.status==='ativo'?'var(--greenbg)':'var(--redbg)'};color:${statusColor};border-color:${p.status==='ativo'?'#a8ddb5':'#e0b0b0'}">
+            ${p.status==='ativo'?'✓ Ativo':'✗ Inativo'}
+          </span>
+          <button class="btn-sm" style="font-size:10px;background:var(--redbg);color:var(--red);border:1px solid #e0b0b0" onclick="toggleAssinante('${d.id}','${p.status}')">
+            ${p.status==='ativo'?'Desativar':'Ativar'}
+          </button>
+        </div>
+      </div>`;
+    }).join('') + `<div style="padding:12px 14px">
+      <button class="btn-gold" onclick="abrirModalNovoAssinante()" style="font-size:13px;padding:10px">+ Novo assinante</button>
+    </div>`;
+  } catch(e) {
+    list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--red);font-size:12px">Erro ao carregar: ' + e.message + '</div>';
+  }
+}
+
+async function toggleAssinante(docId, statusAtual) {
+  const fb = window._fb;
+  if (!fb) return;
+  const novoStatus = statusAtual === 'ativo' ? 'inativo' : 'ativo';
+  await fb.updateDoc(fb.doc(fb.db,'assinantes',docId), { status: novoStatus });
+  loadAssinantes();
+}
+
+// Modal novo assinante
+function abrirModalNovoAssinante() {
+  document.getElementById('modal-novo-pac').style.display = 'flex';
+  document.getElementById('npac-nome').value = '';
+  document.getElementById('npac-email').value = '';
+  document.getElementById('npac-cpf').value = '';
+  document.getElementById('npac-tel').value = '';
+  document.getElementById('npac-senha').value = '';
+  document.getElementById('npac-plano').value = 'basico';
+  document.getElementById('npac-msg').style.display = 'none';
+}
+
+async function salvarNovoAssinante() {
+  const nome  = document.getElementById('npac-nome').value.trim();
+  const email = document.getElementById('npac-email').value.trim().toLowerCase();
+  const cpf   = document.getElementById('npac-cpf').value.trim();
+  const tel   = document.getElementById('npac-tel').value.trim();
+  const senha = document.getElementById('npac-senha').value;
+  const plano = document.getElementById('npac-plano').value;
+  const msg   = document.getElementById('npac-msg');
+
+  function showMsg(t, ok) { msg.style.display='block'; msg.textContent=t; msg.style.background=ok?'var(--greenbg)':'var(--redbg)'; msg.style.color=ok?'var(--green)':'var(--red)'; }
+
+  if (!nome||!email||!senha) { showMsg('Preencha nome, e-mail e senha.',false); return; }
+  if (senha.length < 6) { showMsg('Senha mínima: 6 caracteres.',false); return; }
+
+  const btn = document.getElementById('btn-salvar-pac');
+  btn.disabled = true; btn.textContent = 'Salvando...';
+
+  try {
+    const fb = window._fb;
+    const senhaHash = await hashSenhaPortal(senha);
+    // Verifica se email já existe
+    const q = fb.query(fb.collection(fb.db,'assinantes'), fb.where('email','==',email), fb.limit(1));
+    const existe = await fb.getDocs(q);
+    if (!existe.empty) { showMsg('E-mail já cadastrado.',false); btn.disabled=false; btn.textContent='Salvar'; return; }
+
+    await fb.addDoc(fb.collection(fb.db,'assinantes'), {
+      nome, email, cpf, tel, plano, senhaHash,
+      planoBadge: plano==='360'?'Plano 360°':'Portal Básico',
+      status: 'ativo',
+      criadoEm: fb.serverTimestamp()
+    });
+    showMsg('✅ Assinante cadastrado!', true);
+    setTimeout(() => {
+      document.getElementById('modal-novo-pac').style.display = 'none';
+      loadAssinantes();
+    }, 1500);
+  } catch(e) {
+    showMsg('Erro: ' + e.message, false);
+  } finally {
+    btn.disabled = false; btn.textContent = 'Salvar';
+  }
 }
 
 function enviarMensagem() {
@@ -1572,7 +1812,42 @@ function enviarEmailInteresse() {
 document.addEventListener('DOMContentLoaded', function() {
   var mo = document.getElementById('modal-assinar');
   if (mo) mo.addEventListener('click', function(e) { if (e.target === this) fecharModalAssinar(); });
+  var mn = document.getElementById('modal-novo-pac');
+  if (mn) mn.addEventListener('click', function(e) { if (e.target === this) mn.style.display='none'; });
+  var mr = document.getElementById('modal-regras-firebase');
+  if (mr) mr.addEventListener('click', function(e) { if (e.target === this) mr.style.display='none'; });
 });
+
+function mostrarRegrasFirebase() {
+  document.getElementById('modal-regras-firebase').style.display = 'flex';
+}
+
+// ════════════════════════════════════
+// REGRAS FIREBASE — lembrete console
+// ════════════════════════════════════
+// Realtime Database rules necessárias (Firebase Console):
+// {
+//   "rules": {
+//     "salas": { ".read": "auth != null || true", ".write": "auth != null || true" },
+//     "salas_index": { ".read": "auth != null || true", ".write": "auth != null || true" }
+//   }
+// }
+// Firestore rules necessárias:
+// rules_version = '2';
+// service cloud.firestore {
+//   match /databases/{database}/documents {
+//     match /assinantes/{doc} { allow read, write: if true; }
+//     match /conteudo/{doc}   { allow read: if true; allow write: if true; }
+//   }
+// }
+// Firebase Storage rules:
+// rules_version = '2';
+// service firebase.storage {
+//   match /b/{bucket}/o {
+//     match /{allPaths=**} { allow read, write: if true; }
+//   }
+// }
+console.warn('[Portal] Certifique-se que as regras do Firebase estão configuradas! Ver comentários no código.');
 
 goTo('login');
 </script>
