@@ -2,177 +2,185 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Portal Dra. Ilza Ezequiel</title>
+<link rel="manifest" href="#"/>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<!-- Firebase SDK -->
 <script type="module">
-  import { initializeApp }                          from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getFirestore, collection, addDoc,
-           getDocs, deleteDoc, doc,
-           serverTimestamp, onSnapshot,
-           query, orderBy, where, limit,
-           setDoc, updateDoc, getDoc }              from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-  import { getDatabase, ref, push, onValue,
-           set, update, remove, off,
-           serverTimestamp as dbTs }                from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
-  import { getAuth, signInWithEmailAndPassword,
-           createUserWithEmailAndPassword,
-           sendPasswordResetEmail,
-           signOut, onAuthStateChanged,
-           updateProfile }                          from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-  import { getStorage, ref as sRef,
-           uploadBytesResumable, getDownloadURL }   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
+  import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
+  // ── CONFIG Firebase — substitua pelos dados do seu projeto ──────────────────
+  // 1. Acesse: https://console.firebase.google.com
+  // 2. Crie projeto "portal-dra-ilza"
+  // 3. Vá em Configurações > Seus apps > Web > Copie firebaseConfig
   const firebaseConfig = {
-    apiKey:            "AIzaSyAGIzv6j1XIRwlDkhr9FXgmrYYSvs1HEW4",
-    authDomain:        "crm-dra-ilza.firebaseapp.com",
-    databaseURL:       "https://crm-dra-ilza-default-rtdb.firebaseio.com",
-    projectId:         "crm-dra-ilza",
-    storageBucket:     "crm-dra-ilza.firebasestorage.app",
-    messagingSenderId: "391937930253",
-    appId:             "1:391937930253:web:e32204dc8c810e69ef5144"
+    apiKey:            "SUA_API_KEY",
+    authDomain:        "portal-dra-ilza.firebaseapp.com",
+    projectId:         "portal-dra-ilza",
+    storageBucket:     "portal-dra-ilza.appspot.com",
+    messagingSenderId: "SEU_SENDER_ID",
+    appId:             "SEU_APP_ID"
   };
 
-  const app     = initializeApp(firebaseConfig);
-  const db      = getFirestore(app);
-  const rtdb    = getDatabase(app);
-  const auth    = getAuth(app);
+  const app  = initializeApp(firebaseConfig);
   const storage = getStorage(app);
+  const db      = getFirestore(app);
+  const auth    = getAuth(app);
 
-  window._fb = {
-    db, collection, addDoc, getDocs, deleteDoc, doc,
-    serverTimestamp, onSnapshot, query, orderBy, where, limit,
-    setDoc, updateDoc, getDoc,
-    rtdb, ref, push, onValue, set, update, remove, off, dbTs,
-    storage, sRef, uploadBytesResumable, getDownloadURL,
-    auth, signInWithEmailAndPassword, createUserWithEmailAndPassword,
-    sendPasswordResetEmail, signOut, onAuthStateChanged, updateProfile,
-    configured: true,
-  };
-  console.log('[Portal] Firebase conectado: crm-dra-ilza ✅');
-  // Teste de conectividade com Auth
-  window._fb.auth.onAuthStateChanged(() => {}, (e) => {
-    console.error('[Portal] Auth listener error:', e);
-  });
+  // ── Expor para funções globais ─────────────────────────────────────────────
+  window._fb = { storage, db, collection, addDoc, getDocs, deleteDoc, doc,
+                 ref, uploadBytesResumable, getDownloadURL, serverTimestamp,
+                 auth, signInWithEmailAndPassword, onAuthStateChanged };
 </script>
 <style>
+/* ── Reset ── */
 *{box-sizing:border-box;margin:0;padding:0}
-html{height:100%;height:-webkit-fill-available}
-body{height:100%;min-height:100vh;min-height:-webkit-fill-available;background:#faf7f2;font-family:'DM Sans',sans-serif;-webkit-font-smoothing:antialiased}
+html,body{height:100%;background:#faf7f2;font-family:'DM Sans',sans-serif;-webkit-font-smoothing:antialiased}
+
+/* ── Tokens ── */
 :root{
-  --cream:#F5F0E8;--gold:#B8924A;--gold2:#D4A85A;--goldlt:#FDF5E8;--goldbrd:#E8D5A8;
-  --brown:#2C1F14;--green:#1A7A52;--greenbg:#E6F5EE;
-  --blue:#1A5FA8;--bluelt:#EBF2FB;
-  --bg:#FAF7F2;--white:#FFFFFF;
-  --tx:#1A1208;--txm:#7A6040;--txs:#B8A080;
-  --brd:#E8E0D0;--brd2:#D8CCC0;
-  --red:#B83228;--redbg:#FCECEA;
-  --amber:#A8720A;--amberbg:#FEF5E6;
-  --safe-bottom: env(safe-area-inset-bottom, 0px);
-  --nav-h: calc(62px + env(safe-area-inset-bottom, 0px));
+  --cream:#F5F0E8; --gold:#B8924A; --gold2:#D4A85A; --goldlt:#FDF5E8; --goldbrd:#E8D5A8;
+  --brown:#2C1F14; --green:#1A7A52; --greenbg:#E6F5EE;
+  --blue:#1A5FA8; --bluelt:#EBF2FB;
+  --bg:#FAF7F2; --white:#FFFFFF;
+  --tx:#1A1208; --txm:#7A6040; --txs:#B8A080;
+  --brd:#E8E0D0; --brd2:#D8CCC0;
+  --red:#B83228; --redbg:#FCECEA;
+  --amber:#A8720A; --amberbg:#FEF5E6;
 }
-/* App container — ocupa a tela toda, centralizado em desktop */
-#app{
-  max-width:480px;
-  margin:0 auto;
-  height:100vh;
-  height:100dvh;
-  display:flex;flex-direction:column;
-  background:var(--bg);
-  position:relative;
-  overflow:hidden;
-  box-shadow:0 0 60px rgba(44,31,20,.15)
-}
-/* Screens: preenchem o app, mas deixam espaço para a nav FIXA */
-.screen{
-  position:absolute;inset:0;
-  overflow-y:auto;overflow-x:hidden;
-  display:none;flex-direction:column;
-  padding-bottom:var(--nav-h);
-  /* Scroll suave no iOS */
-  -webkit-overflow-scrolling:touch;
-}
+
+/* ── App wrapper ── */
+#app{max-width:420px;margin:0 auto;height:100vh;display:flex;flex-direction:column;background:var(--bg);position:relative;overflow:hidden;box-shadow:0 0 60px rgba(44,31,20,.15)}
+
+/* ── Screens ── */
+.screen{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;display:none;flex-direction:column;padding-bottom:70px}
 .screen.active{display:flex}
 .screen::-webkit-scrollbar{display:none}
-/* Bottom nav: FIXO na tela, nunca some */
-.bnav{
-  position:fixed;
-  bottom:0;
-  left:50%;
-  transform:translateX(-50%);
-  width:100%;
-  max-width:480px;
-  background:var(--white);
-  border-top:1px solid var(--brd);
-  display:flex;
-  z-index:200;
-  /* Padding para área segura do iPhone (notch, home bar) */
-  padding:6px 0 calc(6px + env(safe-area-inset-bottom, 0px));
-  box-shadow:0 -2px 12px rgba(44,31,20,.06);
-}
-.bni{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;padding:4px 2px;min-width:0}
-.bni-ic{font-size:20px;width:24px;height:24px;display:flex;align-items:center;justify-content:center;opacity:.35;transition:.2s}
-.bni-lb{font-size:clamp(9px,2.5vw,11px);color:#C0A878;font-weight:500;transition:.2s;letter-spacing:.02em;white-space:nowrap}
+
+/* ── Bottom Nav ── */
+.bnav{position:absolute;bottom:0;left:0;right:0;background:var(--white);border-top:1px solid var(--brd);display:flex;z-index:100;padding:6px 0 8px}
+.bni{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;padding:4px 2px}
+.bni-ic{font-size:0;width:22px;height:22px;display:flex;align-items:center;justify-content:center;opacity:.35;transition:.2s}
+.bni-lb{font-size:9px;color:#C0A878;font-weight:500;transition:.2s;letter-spacing:.02em}
 .bni.on .bni-ic{opacity:1}
 .bni.on .bni-lb{color:var(--gold)}
-.inp{width:100%;padding:11px 14px;border-radius:10px;border:1px solid var(--brd);background:var(--white);font-size:clamp(14px,4vw,16px);color:var(--tx);font-family:inherit;outline:none;-webkit-appearance:none}
+
+/* ── Inputs ── */
+.inp{width:100%;padding:10px 13px;border-radius:10px;border:1px solid var(--brd);background:var(--white);font-size:13px;color:var(--tx);font-family:inherit;outline:none}
 .inp:focus{border-color:var(--gold)}
-.lbl{font-size:clamp(10px,3vw,12px);font-weight:700;color:var(--txm);text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px;display:block}
-.btn-gold{background:var(--gold);color:#fff;border:none;border-radius:11px;padding:14px 20px;font-size:clamp(14px,4vw,15px);font-weight:700;font-family:inherit;cursor:pointer;width:100%;display:flex;align-items:center;justify-content:center;gap:8px;transition:opacity .15s;-webkit-tap-highlight-color:transparent}
+.lbl{font-size:10px;font-weight:700;color:var(--txm);text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px;display:block}
+
+/* ── Buttons ── */
+.btn-gold{background:var(--gold);color:#fff;border:none;border-radius:11px;padding:13px 20px;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;width:100%;display:flex;align-items:center;justify-content:center;gap:8px;transition:opacity .15s}
 .btn-gold:hover{opacity:.88}
-.btn-outline{background:transparent;color:var(--gold);border:1.5px solid var(--gold);border-radius:11px;padding:12px 20px;font-size:clamp(13px,3.5vw,14px);font-weight:600;font-family:inherit;cursor:pointer;width:100%;transition:.15s;-webkit-tap-highlight-color:transparent}
-.btn-sm{padding:8px 14px;border-radius:8px;border:none;font-size:clamp(12px,3vw,13px);font-weight:600;font-family:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.btn-outline{background:transparent;color:var(--gold);border:1.5px solid var(--gold);border-radius:11px;padding:11px 20px;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;width:100%;transition:.15s}
+.btn-outline:hover{background:var(--goldlt)}
+.btn-sm{padding:7px 14px;border-radius:8px;border:none;font-size:12px;font-weight:600;font-family:inherit;cursor:pointer}
+
+/* ── Cards ── */
 .card{background:var(--white);border:1px solid var(--brd);border-radius:14px;overflow:hidden}
-.sec-hd{font-size:clamp(10px,2.5vw,11px);font-weight:700;color:var(--txs);text-transform:uppercase;letter-spacing:.09em;padding:14px 18px 8px}
+.card-p{padding:14px 16px}
+
+/* ── Section header ── */
+.sec-hd{font-size:10px;font-weight:700;color:var(--txs);text-transform:uppercase;letter-spacing:.09em;padding:14px 18px 8px}
+
+/* ── Badge premium ── */
 .badge-premium{display:inline-flex;align-items:center;gap:4px;background:var(--goldlt);border:1px solid var(--goldbrd);border-radius:99px;padding:2px 8px;font-size:10px;font-weight:700;color:var(--gold)}
 .star-gold{color:#D4A825;font-size:12px;line-height:1}
+
+/* ── Divider ── */
 .divider{display:flex;align-items:center;gap:10px;margin:12px 0}
 .divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--brd)}
 .divider span{font-size:10px;color:var(--txs)}
+
+/* ── Plan card ── */
+.plan-card{margin:0 14px 12px;border-radius:16px;overflow:hidden;border:1px solid var(--brd);background:var(--white)}
+.plan-card.feat{border:2px solid var(--gold)}
+.plan-img{height:90px;overflow:hidden;position:relative}
+.plan-img img{width:100%;height:100%;object-fit:cover;object-position:center 20%}
+.plan-img-ov{position:absolute;inset:0;background:linear-gradient(to right,rgba(44,31,20,.72),rgba(44,31,20,.12))}
+.plan-img-txt{position:absolute;inset:0;padding:12px 16px;display:flex;flex-direction:column;justify-content:center}
+.plan-body{padding:14px 16px}
+.plan-price{font-size:24px;font-weight:700;color:var(--gold);margin:4px 0 2px}
+.plan-price small{font-size:12px;font-weight:400;color:var(--txm)}
+.plan-feats{display:flex;flex-direction:column;gap:5px;margin:10px 0 12px}
+.plan-feat{display:flex;align-items:flex-start;gap:7px;font-size:11px;color:var(--txm);line-height:1.45}
+.plan-feat::before{content:'✦';color:var(--gold);font-size:8px;flex-shrink:0;margin-top:2px}
+
+/* ── Chat ── */
 .chat-wrap{display:flex;flex-direction:column;height:100%;min-height:calc(100vh - 130px)}
-.chat-msgs{flex:1;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:8px;background:var(--bg);-webkit-overflow-scrolling:touch}
+.chat-msgs{flex:1;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:8px;background:var(--bg)}
 .chat-msgs::-webkit-scrollbar{display:none}
-.msg-r{background:var(--white);border:1px solid var(--brd);color:var(--tx);border-bottom-left-radius:4px;align-self:flex-start;max-width:82%;padding:9px 12px;border-radius:14px;font-size:clamp(12px,3.5vw,14px);line-height:1.55}
-.msg-s{background:var(--gold);color:#fff;border-bottom-right-radius:4px;align-self:flex-end;max-width:82%;padding:9px 12px;border-radius:14px;font-size:clamp(12px,3.5vw,14px);line-height:1.55}
-.msg-from{font-size:clamp(9px,2.5vw,10px);color:var(--gold);font-weight:700;margin-bottom:3px}
+.msg-r{background:var(--white);border:1px solid var(--brd);color:var(--tx);border-bottom-left-radius:4px;align-self:flex-start;max-width:82%;padding:9px 12px;border-radius:14px;font-size:12px;line-height:1.55}
+.msg-s{background:var(--gold);color:#fff;border-bottom-right-radius:4px;align-self:flex-end;max-width:82%;padding:9px 12px;border-radius:14px;font-size:12px;line-height:1.55}
+.msg-from{font-size:9px;color:var(--gold);font-weight:700;margin-bottom:3px}
 .msg-time{font-size:8px;color:rgba(255,255,255,.55);margin-top:3px}
 .msg-time-r{font-size:8px;color:var(--txs);margin-top:3px}
-.adm-tab{padding:8px 16px;border-radius:99px;font-size:clamp(12px,3vw,13px);font-weight:600;font-family:inherit;cursor:pointer;border:1.5px solid var(--brd);background:var(--white);color:var(--txm);transition:.13s;white-space:nowrap;-webkit-tap-highlight-color:transparent}
+.chat-file{background:var(--white);border:1px solid var(--brd);border-radius:10px;padding:8px 12px;display:flex;align-items:center;gap:10px;align-self:flex-start;max-width:82%}
+
+/* ── Admin panel ── */
+.adm-tab{padding:7px 16px;border-radius:99px;font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;border:1.5px solid var(--brd);background:var(--white);color:var(--txm);transition:.13s}
 .adm-tab.on{background:var(--goldlt);border-color:var(--gold);color:var(--gold)}
-.modal-ov{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:flex-end;justify-content:center;z-index:300;backdrop-filter:blur(3px)}
-.modal-sheet{background:var(--white);border-radius:20px 20px 0 0;width:100%;max-width:480px;padding:20px 20px calc(24px + env(safe-area-inset-bottom,0px));max-height:90vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
-.sala-row{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--brd)}
-.sala-row:last-child{border-bottom:none}
-.sala-avatar{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0}
-.badge-prem-mini{display:inline-flex;align-items:center;gap:3px;background:var(--goldlt);border:1px solid var(--goldbrd);border-radius:99px;padding:2px 7px;font-size:9px;font-weight:700;color:var(--gold)}
-.fila-num{width:26px;height:26px;border-radius:50%;background:var(--goldlt);border:1px solid var(--goldbrd);font-size:11px;font-weight:700;color:var(--gold);display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.badge-ativo{display:inline-block;background:var(--greenbg);color:var(--green);border:1px solid #a8ddb5;border-radius:99px;padding:2px 8px;font-size:10px;font-weight:700}
+.upload-zone{border:2px dashed var(--goldbrd);border-radius:12px;padding:24px;text-align:center;cursor:pointer;background:var(--goldlt);transition:.15s}
+.upload-zone:hover{background:#F8EDD0}
+.content-row{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--brd)}
+.content-type-ic{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px}
+
+/* ── Modal overlay ── */
+.modal-ov{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:flex-end;justify-content:center;z-index:200;backdrop-filter:blur(3px)}
+.modal-sheet{background:var(--white);border-radius:20px 20px 0 0;width:100%;max-width:420px;padding:20px 20px 36px;max-height:90vh;overflow-y:auto}
+.modal-sheet::-webkit-scrollbar{display:none}
+.modal-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.modal-hd h3{font-size:16px;font-weight:700;color:var(--tx)}
+
+/* ── Assinante card ── */
+.assinante-row{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--brd)}
+
+/* ── Payment method ── */
+.pay-opt{display:flex;align-items:center;gap:12px;padding:13px;border:1.5px solid var(--brd);border-radius:12px;cursor:pointer;margin-bottom:10px;transition:.13s;background:var(--white)}
+.pay-opt:hover{border-color:var(--gold);background:var(--goldlt)}
+.pay-opt.sel{border-color:var(--gold);background:var(--goldlt)}
+.pay-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+
+/* ── Animations ── */
 @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
 .fadein{animation:fadeUp .32s ease}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
 .pulse{animation:pulse 2s infinite}
-/* Tablet / desktop: aumenta o max-width e ajusta proporções */
-@media(min-width:481px){
-  #app{border-radius:0}
-  .bnav{border-radius:0}
-}
-/* Telas pequenas (< 360px): ajustes adicionais */
-@media(max-width:359px){
-  .btn-gold,.btn-outline{padding:12px 16px;font-size:13px}
-  .bni-lb{font-size:9px}
-}
+
+/* ── Sala Virtual / Fila ── */
+.sala-row{display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid var(--brd)}
+.sala-row:last-child{border-bottom:none}
+.sala-avatar{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0}
+.badge-normal{display:inline-flex;align-items:center;gap:3px;background:#F0F0F0;border:1px solid #DDD;border-radius:99px;padding:2px 7px;font-size:9px;font-weight:700;color:#888}
+.badge-prem-mini{display:inline-flex;align-items:center;gap:3px;background:var(--goldlt);border:1px solid var(--goldbrd);border-radius:99px;padding:2px 7px;font-size:9px;font-weight:700;color:var(--gold)}
+.sala-waiting{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;gap:10px;text-align:center}
+.fila-num{width:26px;height:26px;border-radius:50%;background:var(--goldlt);border:1px solid var(--goldbrd);font-size:11px;font-weight:700;color:var(--gold);display:flex;align-items:center;justify-content:center;flex-shrink:0}
 </style>
 </head>
 <body>
 <div id="app">
 
-<!-- LOGIN -->
+<!-- ════════════════════════════ LOGIN ════════════════════════════ -->
 <div class="screen active fadein" id="s-login" style="padding-bottom:0;background:#fff">
-  <div style="background:#ffffff;display:flex;flex-direction:column;align-items:stretch;min-height:100vh">
+
+  <!-- Hero branco com logo em destaque -->
+  <div style="background:#ffffff;padding:0;display:flex;flex-direction:column;align-items:stretch;min-height:100vh">
+
+    <!-- Topo — faixa dourada fina -->
     <div style="height:4px;background:linear-gradient(90deg,#B8924A,#D4A85A,#B8924A)"></div>
+
+    <!-- Área logo — ocupa boa parte da tela -->
     <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 28px 24px">
+      <!-- Logo grande, cores originais (sem filtro) -->
       <img src="https://static.wixstatic.com/media/1f0134_5c378964392f45058ff834b96d82a578~mv2.png/v1/fill/w_488,h_269,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/1f0134_5c378964392f45058ff834b96d82a578~mv2.png"
-        alt="Logo" style="width:100%;max-width:320px;object-fit:contain;margin-bottom:18px">
+        alt="Logo Dra. Ilza Ezequiel"
+        style="width:100%;max-width:320px;object-fit:contain;margin-bottom:18px">
+      <!-- Linha dourada decorativa -->
       <div style="display:flex;align-items:center;gap:10px;width:100%;max-width:280px;margin-bottom:6px">
         <div style="flex:1;height:1px;background:linear-gradient(to right,transparent,#D4A85A)"></div>
         <div style="width:6px;height:6px;border-radius:50%;background:#B8924A"></div>
@@ -180,93 +188,250 @@ body{height:100%;min-height:100vh;min-height:-webkit-fill-available;background:#
       </div>
       <div style="font-family:'Cormorant Garamond',serif;font-size:12px;color:#B8924A;letter-spacing:.18em;text-transform:uppercase">Área Exclusiva · Pacientes</div>
     </div>
+
+    <!-- Formulário — fundo levemente acinzentado, bordas arredondadas no topo -->
     <div style="background:#FAFAFA;border-top:1px solid #EEE;border-radius:24px 24px 0 0;padding:28px 24px 36px;display:flex;flex-direction:column;gap:14px">
-      <div style="background:#FDF5E8;border:1px solid #E8D5A8;border-radius:12px;padding:12px 14px;margin-bottom:2px;display:flex;align-items:center;gap:10px">
-        <div style="font-size:20px">🔒</div>
-        <div>
-          <div style="font-size:11px;font-weight:700;color:#B8924A">Área exclusiva para pacientes</div>
-          <div style="font-size:10px;color:#7A6040">Utilize seu e-mail e senha cadastrados</div>
+
+      <!-- Logins demo visíveis -->
+      <div style="background:#FDF5E8;border:1px solid #E8D5A8;border-radius:12px;padding:12px 14px;margin-bottom:2px">
+        <div style="font-size:10px;font-weight:700;color:#B8924A;text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">Acessos de demonstração</div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <!-- Premium 360 -->
+          <div onclick="fillLogin('premium360@drailza.com.br','Ilza@360')"
+            style="display:flex;align-items:center;gap:10px;background:#fff;border:1px solid #E8D5A8;border-radius:9px;padding:8px 12px;cursor:pointer;transition:.15s"
+            onmouseover="this.style.borderColor='#B8924A'" onmouseout="this.style.borderColor='#E8D5A8'">
+            <div style="width:28px;height:28px;border-radius:8px;background:#FDF5E8;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0">★</div>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:11px;font-weight:700;color:#2C1F14">Plano 360° — R$ 3.000</div>
+              <div style="font-size:10px;color:#B8924A;font-family:monospace;margin-top:1px">premium360@drailza.com.br · Ilza@360</div>
+            </div>
+            <div style="font-size:10px;color:#B8924A;font-weight:600;flex-shrink:0">Usar →</div>
+          </div>
+          <!-- Básico 49,90 -->
+          <div onclick="fillLogin('basico@drailza.com.br','Ilza@49')"
+            style="display:flex;align-items:center;gap:10px;background:#fff;border:1px solid #E8D5A8;border-radius:9px;padding:8px 12px;cursor:pointer;transition:.15s"
+            onmouseover="this.style.borderColor='#B8924A'" onmouseout="this.style.borderColor='#E8D5A8'">
+            <div style="width:28px;height:28px;border-radius:8px;background:#EBF5EE;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0">☆</div>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:11px;font-weight:700;color:#2C1F14">Portal Básico — R$ 49,90/mês</div>
+              <div style="font-size:10px;color:#7A6040;font-family:monospace;margin-top:1px">basico@drailza.com.br · Ilza@49</div>
+            </div>
+            <div style="font-size:10px;color:#7A6040;font-weight:600;flex-shrink:0">Usar →</div>
+          </div>
+          <!-- Linha separadora fina -->
+          <div style="height:1px;background:#E8D5A8;margin:2px 0"></div>
+          <!-- Admin -->
+          <div onclick="fillLogin('admin@drailza.com.br','Ilza@Admin2026')"
+            style="display:flex;align-items:center;gap:10px;background:#fff;border:1px solid #C8B89A;border-radius:9px;padding:8px 12px;cursor:pointer;transition:.15s"
+            onmouseover="this.style.borderColor='#2C1F14'" onmouseout="this.style.borderColor='#C8B89A'">
+            <div style="width:28px;height:28px;border-radius:8px;background:#2C1F14;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0">🛡️</div>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:11px;font-weight:700;color:#2C1F14">Admin — Dra. Ilza Ezequiel</div>
+              <div style="font-size:10px;color:#7A6040;font-family:monospace;margin-top:1px">admin@drailza.com.br · Ilza@Admin2026</div>
+            </div>
+            <div style="font-size:10px;color:#2C1F14;font-weight:700;flex-shrink:0">Admin →</div>
+          </div>
         </div>
       </div>
-      <div><span class="lbl">E-mail</span><input class="inp" type="email" placeholder="seu@email.com" id="login-email"></div>
-      <div><span class="lbl">Senha</span><input class="inp" type="password" placeholder="••••••••" id="login-senha"></div>
-      <button class="btn-gold" onclick="doLogin()">→ Entrar no Portal</button>
+
+      <div>
+        <span class="lbl">E-mail ou CPF</span>
+        <input class="inp" type="email" placeholder="seu@email.com" id="login-email">
+      </div>
+      <div>
+        <span class="lbl">Senha</span>
+        <input class="inp" type="password" placeholder="••••••••" id="login-senha">
+      </div>
+      <button class="btn-gold" onclick="doLogin()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4M10 17l5-5-5-5M15 12H3"/></svg>
+        Entrar no Portal
+      </button>
       <div class="divider"><span>não tem acesso?</span></div>
       <button class="btn-outline" onclick="goTo('planos')">Assinar o Portal →</button>
-      <div style="text-align:center;font-size:10px;color:var(--txs);margin-top:4px">🔒 Dados protegidos · LGPD · SSL</div>
+      <div style="display:flex;align-items:center;gap:6px;justify-content:center;margin-top:4px">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#B8A080" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+        <span style="font-size:10px;color:var(--txs)">Dados protegidos · LGPD · SSL</span>
+      </div>
     </div>
   </div>
 </div>
 
-<!-- HOME -->
+<!-- ════════════════════════════ HOME ════════════════════════════ -->
 <div class="screen" id="s-home">
+  <!-- Header com LOGO apenas, sem foto da Dra. -->
   <div style="background:var(--white);padding:14px 16px 10px;border-bottom:1px solid var(--brd)">
     <div style="display:flex;align-items:center;justify-content:space-between">
-      <img src="https://static.wixstatic.com/media/1f0134_5c378964392f45058ff834b96d82a578~mv2.png/v1/fill/w_488,h_269,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/1f0134_5c378964392f45058ff834b96d82a578~mv2.png" alt="Logo" style="height:30px;object-fit:contain">
+      <img src="https://static.wixstatic.com/media/1f0134_5c378964392f45058ff834b96d82a578~mv2.png/v1/fill/w_488,h_269,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/1f0134_5c378964392f45058ff834b96d82a578~mv2.png"
+        alt="Logo" style="height:30px;object-fit:contain">
+      <!-- Avatar simples sem foto -->
       <div style="display:flex;align-items:center;gap:8px">
-        <div class="badge-premium"><span class="star-gold">★</span><span id="home-plano-badge">Plano 360°</span></div>
-        <button onclick="pedirSair()" style="width:30px;height:30px;border-radius:50%;background:var(--bg);border:1px solid var(--brd);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--txm)">✕</button>
+        <!-- Badge premium com estrela dourada -->
+        <div class="badge-premium">
+          <span class="star-gold">★</span>
+          Plano 360°
+        </div>
+        <!-- Botão Sair -->
+        <button onclick="doLogout()" title="Sair" style="width:30px;height:30px;border-radius:50%;background:var(--bg);border:1px solid var(--brd);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--txm);transition:.15s;flex-shrink:0" onmouseover="this.style.borderColor='var(--red)';this.style.color='var(--red)'" onmouseout="this.style.borderColor='var(--brd)';this.style.color='var(--txm)'">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        </button>
       </div>
     </div>
     <div style="margin-top:10px">
       <div style="font-size:12px;color:var(--txs)">Bem-vinda de volta</div>
-      <div style="font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:600;color:var(--brown)" id="home-nome">—</div>
+      <div style="display:flex;align-items:center;gap:6px">
+        <span style="font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:600;color:var(--brown)" class="cormorant-name">Maria Aparecida</span>
+        <span class="star-gold nome-star" title="Assinante Premium">★</span>
+      </div>
     </div>
   </div>
+
+  <!-- Banner upgrade Plano 360° — visível apenas para plano básico -->
+  <div id="home-upgrade-banner" style="display:none;margin:6px 14px 0">
+    <div style="background:linear-gradient(135deg,#2C1F14 0%,#4A3020 100%);border-radius:14px;padding:16px;position:relative;overflow:hidden">
+      <div style="position:absolute;top:-14px;right:-14px;width:80px;height:80px;border-radius:50%;background:rgba(184,146,74,.18)"></div>
+      <div style="position:absolute;bottom:-20px;right:20px;width:50px;height:50px;border-radius:50%;background:rgba(184,146,74,.12)"></div>
+      <div style="font-size:9px;color:rgba(212,168,90,.8);letter-spacing:.1em;text-transform:uppercase;margin-bottom:4px">✦ Upgrade disponível</div>
+      <div style="font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:600;color:#fff;margin-bottom:4px;line-height:1.2">Plano Intestino 360°</div>
+      <div style="font-size:11px;color:rgba(255,255,255,.6);margin-bottom:12px;line-height:1.5">3 consultas · portal 6 meses · suporte prioritário</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+        <div>
+          <div style="font-size:22px;font-weight:700;color:#D4A85A;line-height:1">R$ 3.000</div>
+          <div style="font-size:10px;color:rgba(255,255,255,.45);margin-top:1px">pacote completo</div>
+        </div>
+        <button onclick="openPayment('360')" style="background:linear-gradient(135deg,#B8924A,#D4A85A);color:#fff;border:none;border-radius:10px;padding:10px 18px;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;white-space:nowrap;box-shadow:0 2px 8px rgba(184,146,74,.4)">★ Comprar agora</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Conteúdo Premium -->
   <div class="sec-hd">Conteúdo exclusivo</div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 14px">
+    <!-- Lives -->
     <div class="card" style="cursor:pointer" onclick="goTo('conteudo')">
-      <div style="height:56px;overflow:hidden"><img src="https://static.wixstatic.com/media/1f0134_1e5f1dc566c64df888ce425e028eb99c~mv2.jpg/v1/fill/w_200,h_100,al_c,q_80,enc_avif,quality_auto/1f0134_1e5f1dc566c64df888ce425e028eb99c~mv2.jpg" style="width:100%;height:100%;object-fit:cover"></div>
-      <div style="padding:8px 10px"><div style="font-size:11px;font-weight:600;color:var(--brown)">Lives & Webinars</div><div style="font-size:10px;color:var(--txs)">4 disponíveis</div></div>
+      <div style="height:56px;overflow:hidden">
+        <img src="https://static.wixstatic.com/media/1f0134_1e5f1dc566c64df888ce425e028eb99c~mv2.jpg/v1/fill/w_200,h_100,al_c,q_80,enc_avif,quality_auto/1f0134_1e5f1dc566c64df888ce425e028eb99c~mv2.jpg"
+          style="width:100%;height:100%;object-fit:cover">
+      </div>
+      <div style="padding:8px 10px">
+        <div style="font-size:11px;font-weight:600;color:var(--brown);margin-bottom:2px">Lives & Webinars</div>
+        <div style="font-size:10px;color:var(--txs)">4 disponíveis</div>
+        <div class="badge-premium" style="margin-top:5px;font-size:9px"><span class="star-gold">★</span> Premium</div>
+      </div>
     </div>
+    <!-- Protocolos -->
     <div class="card" style="cursor:pointer" onclick="goTo('conteudo')">
-      <div style="height:56px;overflow:hidden"><img src="https://static.wixstatic.com/media/1f0134_bd631527d814487ca3de1c4360955c61~mv2.jpg/v1/fill/w_200,h_100,al_c,q_80,enc_avif,quality_auto/1f0134_bd631527d814487ca3de1c4360955c61~mv2.jpg" style="width:100%;height:100%;object-fit:cover"></div>
-      <div style="padding:8px 10px"><div style="font-size:11px;font-weight:600;color:var(--brown)">Protocolos Clínicos</div><div style="font-size:10px;color:var(--txs)">12 guias</div></div>
+      <div style="height:56px;overflow:hidden">
+        <img src="https://static.wixstatic.com/media/1f0134_bd631527d814487ca3de1c4360955c61~mv2.jpg/v1/fill/w_200,h_100,al_c,q_80,enc_avif,quality_auto/1f0134_bd631527d814487ca3de1c4360955c61~mv2.jpg"
+          style="width:100%;height:100%;object-fit:cover">
+      </div>
+      <div style="padding:8px 10px">
+        <div style="font-size:11px;font-weight:600;color:var(--brown);margin-bottom:2px">Protocolos Clínicos</div>
+        <div style="font-size:10px;color:var(--txs)">12 guias em PDF</div>
+        <div class="badge-premium" style="margin-top:5px;font-size:9px"><span class="star-gold">★</span> Premium</div>
+      </div>
     </div>
-    <div class="card" style="cursor:pointer;display:flex;align-items:center;gap:10px;padding:10px" onclick="goTo('suporte')">
-      <div style="width:40px;height:40px;border-radius:9px;background:var(--goldlt);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:20px">💬</div>
-      <div><div style="font-size:11px;font-weight:600;color:var(--brown)">Sala Virtual</div><div style="font-size:10px;color:var(--txs)">Chat com equipe</div></div>
+    <!-- Podcast -->
+    <div class="card" style="cursor:pointer;display:flex;align-items:center;gap:10px;padding:10px" onclick="goTo('conteudo')">
+      <div style="width:40px;height:40px;border-radius:9px;background:var(--goldlt);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:20px">🎙️</div>
+      <div>
+        <div style="font-size:11px;font-weight:600;color:var(--brown)">Podcast & Áudio</div>
+        <div style="font-size:10px;color:var(--txs)">8 episódios</div>
+      </div>
     </div>
+    <!-- Artigos -->
     <div class="card" style="cursor:pointer;display:flex;align-items:center;gap:10px;padding:10px" onclick="goTo('conteudo')">
       <div style="width:40px;height:40px;border-radius:9px;background:var(--goldlt);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:20px">📝</div>
-      <div><div style="font-size:11px;font-weight:600;color:var(--brown)">Artigos Técnicos</div><div style="font-size:10px;color:var(--txs)">Novidades</div></div>
+      <div>
+        <div style="font-size:11px;font-weight:600;color:var(--brown)">Artigos Técnicos</div>
+        <div style="font-size:10px;color:var(--txs)">Novidades</div>
+      </div>
     </div>
   </div>
+
+  <div style="height:10px"></div>
 </div>
 
-<!-- CONTEÚDO -->
+<!-- ════════════════════════════ CONTEÚDO PREMIUM ════════════════════════════ -->
 <div class="screen" id="s-conteudo">
   <div style="background:var(--white);padding:16px 16px 12px;border-bottom:1px solid var(--brd);display:flex;align-items:center;gap:10px">
-    <img src="https://static.wixstatic.com/media/1f0134_5c378964392f45058ff834b96d82a578~mv2.png/v1/fill/w_488,h_269,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/1f0134_5c378964392f45058ff834b96d82a578~mv2.png" alt="Logo" style="height:26px;object-fit:contain">
-    <div style="margin-left:auto"><div class="badge-premium"><span class="star-gold">★</span> Área Premium</div></div>
+    <img src="https://static.wixstatic.com/media/1f0134_5c378964392f45058ff834b96d82a578~mv2.png/v1/fill/w_488,h_269,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/1f0134_5c378964392f45058ff834b96d82a578~mv2.png"
+      alt="Logo" style="height:26px;object-fit:contain">
+    <div style="margin-left:auto">
+      <div class="badge-premium"><span class="star-gold">★</span> Área Premium</div>
+    </div>
   </div>
-  <div style="display:flex;gap:8px;padding:12px 14px;overflow-x:auto">
+
+  <!-- Filtros -->
+  <div style="display:flex;gap:8px;padding:12px 14px;overflow-x:auto" id="content-filters">
     <button class="adm-tab on" onclick="filterContent(this,'todos')">Todos</button>
     <button class="adm-tab" onclick="filterContent(this,'video')">Vídeos</button>
     <button class="adm-tab" onclick="filterContent(this,'audio')">Áudios</button>
     <button class="adm-tab" onclick="filterContent(this,'pdf')">PDFs</button>
+    <button class="adm-tab" onclick="filterContent(this,'artigo')">Artigos</button>
   </div>
+
+  <!-- Lista de conteúdos -->
   <div id="content-list" style="padding:0 14px;display:flex;flex-direction:column;gap:10px">
-    <div class="card" style="display:flex;align-items:center;gap:10px;padding:10px 14px" data-tipo="video">
-      <div style="width:36px;height:36px;border-radius:9px;background:#FEF0F0;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">🎬</div>
-      <div style="flex:1"><div style="font-size:13px;font-weight:600;color:var(--brown)">SII — Live Completa</div><div style="font-size:10px;color:var(--txs)">42 min · Premium</div></div>
+    <div class="card content-row" data-tipo="video">
+      <div class="content-type-ic" style="background:#FEF0F0">🎬</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:600;color:var(--brown)">Síndrome do Intestino Irritável — Live</div>
+        <div style="font-size:11px;color:var(--txs);margin-top:2px">42 min · Adicionado em 10/04/2026</div>
+      </div>
+      <div class="badge-premium" style="font-size:9px;flex-shrink:0"><span class="star-gold">★</span></div>
     </div>
-    <div class="card" style="display:flex;align-items:center;gap:10px;padding:10px 14px" data-tipo="audio">
-      <div style="width:36px;height:36px;border-radius:9px;background:#EBF5EE;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">🎙️</div>
-      <div style="flex:1"><div style="font-size:13px;font-weight:600;color:var(--brown)">Microbiota — Ep. 08</div><div style="font-size:10px;color:var(--txs)">28 min · Premium</div></div>
+    <div class="card content-row" data-tipo="audio">
+      <div class="content-type-ic" style="background:#EBF5EE">🎙️</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:600;color:var(--brown)">Microbiota Intestinal — Ep. 08</div>
+        <div style="font-size:11px;color:var(--txs);margin-top:2px">28 min · Adicionado em 05/04/2026</div>
+      </div>
+      <div class="badge-premium" style="font-size:9px;flex-shrink:0"><span class="star-gold">★</span></div>
     </div>
-    <div class="card" style="display:flex;align-items:center;gap:10px;padding:10px 14px" data-tipo="pdf">
-      <div style="width:36px;height:36px;border-radius:9px;background:#EBF2FB;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">📄</div>
-      <div style="flex:1"><div style="font-size:13px;font-weight:600;color:var(--brown)">Protocolo SIBO</div><div style="font-size:10px;color:var(--txs)">PDF · 18p · Premium</div></div>
+    <div class="card content-row" data-tipo="pdf">
+      <div class="content-type-ic" style="background:#EBF2FB">📄</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:600;color:var(--brown)">Protocolo SIBO — Guia Clínico</div>
+        <div style="font-size:11px;color:var(--txs);margin-top:2px">PDF · 18 páginas · 02/04/2026</div>
+      </div>
+      <div class="badge-premium" style="font-size:9px;flex-shrink:0"><span class="star-gold">★</span></div>
+    </div>
+    <div class="card content-row" data-tipo="video">
+      <div class="content-type-ic" style="background:#FEF0F0">🎬</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:600;color:var(--brown)">Disbiose & Saúde Mental — Webinar</div>
+        <div style="font-size:11px;color:var(--txs);margin-top:2px">58 min · Adicionado em 28/03/2026</div>
+      </div>
+      <div class="badge-premium" style="font-size:9px;flex-shrink:0"><span class="star-gold">★</span></div>
+    </div>
+    <div class="card content-row" data-tipo="artigo">
+      <div class="content-type-ic" style="background:#FEF5E6">📝</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:600;color:var(--brown)">DRGE: além do omeprazol</div>
+        <div style="font-size:11px;color:var(--txs);margin-top:2px">Artigo técnico · 20/03/2026</div>
+      </div>
+      <div class="badge-premium" style="font-size:9px;flex-shrink:0"><span class="star-gold">★</span></div>
+    </div>
+    <div class="card content-row" data-tipo="audio">
+      <div class="content-type-ic" style="background:#EBF5EE">🎙️</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:600;color:var(--brown)">Constipação Crônica — Ep. 07</div>
+        <div style="font-size:11px;color:var(--txs);margin-top:2px">35 min · 15/03/2026</div>
+      </div>
+      <div class="badge-premium" style="font-size:9px;flex-shrink:0"><span class="star-gold">★</span></div>
     </div>
   </div>
 </div>
 
-<!-- SALA VIRTUAL (paciente) -->
+<!-- ════════════════════════════ SALA VIRTUAL (pacientes) ════════════════════════════ -->
 <div class="screen" id="s-suporte" style="padding-bottom:0">
+  <!-- Header Sala Virtual -->
   <div style="background:var(--white);padding:12px 14px;border-bottom:1px solid var(--brd);flex-shrink:0">
     <div style="display:flex;align-items:center;gap:10px">
-      <div style="width:38px;height:38px;border-radius:50%;background:var(--goldlt);border:1.5px solid var(--goldbrd);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">💬</div>
+      <div style="width:38px;height:38px;border-radius:50%;background:var(--goldlt);border:1.5px solid var(--goldbrd);display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden">
+        <img src="https://static.wixstatic.com/media/1f0134_5c378964392f45058ff834b96d82a578~mv2.png/v1/fill/w_100,h_55,al_c,q_85,enc_avif/1f0134_5c378964392f45058ff834b96d82a578~mv2.png"
+          style="width:100%;height:100%;object-fit:contain;padding:4px">
+      </div>
       <div style="flex:1">
         <div style="font-family:'Cormorant Garamond',serif;font-size:16px;font-weight:600;color:var(--brown)">Sala Virtual</div>
         <div style="font-size:10px;color:var(--green);display:flex;align-items:center;gap:4px">
@@ -274,937 +439,930 @@ body{height:100%;min-height:100vh;min-height:-webkit-fill-available;background:#
           Equipe disponível
         </div>
       </div>
+      <!-- Posição na fila -->
+      <div id="fila-badge" style="display:none;background:var(--goldlt);border:1px solid var(--goldbrd);border-radius:8px;padding:4px 10px;text-align:center">
+        <div style="font-size:9px;color:var(--txs);text-transform:uppercase;letter-spacing:.05em">Fila</div>
+        <div id="fila-pos" style="font-size:16px;font-weight:700;color:var(--gold);line-height:1">—</div>
+      </div>
     </div>
     <div style="margin-top:8px;background:var(--goldlt);border-radius:8px;padding:7px 10px;font-size:11px;color:var(--txm);border:1px solid var(--goldbrd)">
-      🗓️ Atendimento · <strong>Quartas-feiras · 8h às 18h</strong>
+      🗓️ Atendimento com a Dra. Ilza · <strong>Quartas-feiras · 8h às 18h</strong>
     </div>
   </div>
-  <div class="chat-msgs" id="chat-msgs" style="flex:1;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:8px;background:var(--bg)">
-    <div class="msg-r"><div class="msg-from">Equipe Dra. Ilza</div>Olá! Como posso ajudar você hoje? 🌿<div class="msg-time-r">—</div></div>
+
+  <div class="chat-msgs" id="chat-msgs">
+    <div class="msg-r">
+      <div class="msg-from">Equipe Dra. Ilza</div>
+      Olá! Como posso ajudar você hoje? 🌿
+      <div class="msg-time-r">09:15</div>
+    </div>
+    <div class="msg-s">
+      Tenho uma dúvida sobre minha medicação
+      <div class="msg-time">09:22</div>
+    </div>
+    <div class="msg-r">
+      <div class="msg-from">Equipe Dra. Ilza</div>
+      Claro! Pode me contar sua dúvida? Estamos aqui para ajudar 😊
+      <div class="msg-time-r">09:24</div>
+    </div>
+    <div class="msg-s">
+      Posso tomar o Omeprazol junto com o café da manhã?
+      <div class="msg-time">09:31</div>
+    </div>
+    <div class="msg-r">
+      <div class="msg-from">Equipe Dra. Ilza</div>
+      Ideal é tomar em jejum, 30 min antes ☕ Potencializa muito o efeito!
+      <div class="msg-time-r">09:33</div>
+    </div>
   </div>
-  <div style="background:var(--white);border-top:1px solid var(--brd);padding:8px 12px calc(8px + env(safe-area-inset-bottom,0px));display:flex;gap:8px;align-items:center;flex-shrink:0">
-    <input class="inp" placeholder="Escreva sua mensagem..." id="chat-inp" style="border-radius:20px;padding:8px 14px;flex:1;font-size:14px">
-    <button onclick="sendMsg()" style="width:40px;height:40px;border-radius:50%;background:var(--gold);border:none;color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">➤</button>
+
+  <div style="background:var(--white);border-top:1px solid var(--brd);padding:8px 12px;display:flex;gap:8px;align-items:center;flex-shrink:0">
+    <button style="width:32px;height:32px;border-radius:50%;background:var(--goldlt);border:1px solid var(--goldbrd);color:var(--gold);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">📎</button>
+    <input class="inp" placeholder="Escreva sua mensagem..." id="chat-inp" style="border-radius:20px;padding:8px 14px;flex:1">
+    <button onclick="sendMsg()" style="width:34px;height:34px;border-radius:50%;background:var(--gold);border:none;color:#fff;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+    </button>
+  </div>
+
+  <!-- Nav incluso aqui -->
+  <div class="bnav" style="position:relative;margin-top:auto">
+    <div class="bni" onclick="goTo('home')">
+      <div class="bni-ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5L12 3l9 7.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V10.5z"/><path d="M9 21V13h6v8"/></svg></div>
+      <div class="bni-lb">Início</div>
+    </div>
+    <div class="bni" onclick="goTo('conteudo')">
+      <div class="bni-ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg></div>
+      <div class="bni-lb">Conteúdo</div>
+    </div>
+    <div class="bni on" onclick="goTo('suporte')">
+      <div class="bni-ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#B8924A" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M9 12h6M12 9v6"/></svg></div>
+      <div class="bni-lb">Sala Virtual</div>
+    </div>
+    <div class="bni" onclick="goTo('planos')">
+      <div class="bni-ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div>
+      <div class="bni-lb">Planos</div>
+    </div>
   </div>
 </div>
 
-<!-- PLANOS -->
+<!-- ════════════════════════════ PLANOS ════════════════════════════ -->
 <div class="screen" id="s-planos">
   <div style="background:var(--white);padding:20px 16px 14px;border-bottom:1px solid var(--brd);text-align:center">
-    <img src="https://static.wixstatic.com/media/1f0134_5c378964392f45058ff834b96d82a578~mv2.png/v1/fill/w_488,h_269,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/1f0134_5c378964392f45058ff834b96d82a578~mv2.png" alt="Logo" style="height:30px;object-fit:contain;margin-bottom:8px">
+    <img src="https://static.wixstatic.com/media/1f0134_5c378964392f45058ff834b96d82a578~mv2.png/v1/fill/w_488,h_269,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/1f0134_5c378964392f45058ff834b96d82a578~mv2.png"
+      alt="Logo" style="height:30px;object-fit:contain;margin-bottom:8px">
     <div style="font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:600;color:var(--brown)">Portal do Paciente</div>
+    <div style="font-size:12px;color:var(--txm);margin-top:3px">Acesso exclusivo ao conteúdo premium</div>
   </div>
-  <div style="margin:14px 14px 12px;border-radius:16px;overflow:hidden;border:2px solid var(--gold)">
-    <div style="padding:14px 16px;background:var(--white)">
-      <div style="font-size:18px;font-weight:700;color:var(--brown)">Plano Intestino 360°</div>
-      <div style="font-size:24px;font-weight:700;color:var(--gold)">R$ 3.000 <small style="font-size:12px;font-weight:400;color:var(--txm)">/ pacote completo</small></div>
-      <div style="font-size:11px;color:var(--txm);margin-bottom:10px">3 consultas + portal 6 meses + suporte prioritário</div>
-      <button class="btn-gold" onclick="abrirModalAssinar('360')">★ Assinar agora</button>
+
+  <!-- Plano 360° -->
+  <div class="plan-card feat" style="margin-top:14px">
+    <div class="plan-img">
+      <img src="https://static.wixstatic.com/media/1f0134_c9ae84b5990f44e9934dedd0575a9261~mv2.jpg/v1/fill/w_600,h_200,al_c,q_80,enc_avif,quality_auto/1f0134_c9ae84b5990f44e9934dedd0575a9261~mv2.jpg">
+      <div class="plan-img-ov"></div>
+      <div class="plan-img-txt">
+        <div style="font-size:9px;color:rgba(255,255,255,.6);letter-spacing:.08em;text-transform:uppercase">✦ Mais escolhido</div>
+        <div style="font-family:'Cormorant Garamond',serif;font-size:18px;color:#fff;font-weight:600;margin-top:2px">Plano Intestino 360°</div>
+      </div>
+    </div>
+    <div class="plan-body">
+      <div class="plan-price">R$ 3.000 <small>/ pacote completo</small></div>
+      <div style="font-size:11px;color:var(--txm);margin-bottom:8px">3 consultas + portal por 6 meses + suporte prioritário</div>
+      <div class="plan-feats">
+        <div class="plan-feat">Acesso a lives, webinars e protocolos clínicos</div>
+        <div class="plan-feat">Podcast e áudio aulas exclusivas</div>
+        <div class="plan-feat">Chat direto com a equipe · Respostas prioritárias</div>
+        <div class="plan-feat">Receitas e atestados digitais</div>
+        <div class="plan-feat">★ Badge Premium ao lado do seu nome</div>
+      </div>
+      <!-- Assinar Agora → abre modal de pagamento -->
+      <button class="btn-gold" onclick="openPayment('360')">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        Assinar agora
+      </button>
     </div>
   </div>
-  <div style="margin:0 14px 80px;border-radius:16px;overflow:hidden;border:1px solid var(--brd)">
-    <div style="padding:14px 16px;background:var(--white)">
-      <div style="font-size:18px;font-weight:700;color:var(--brown)">Portal Básico</div>
-      <div style="font-size:24px;font-weight:700;color:var(--gold)">R$ 49 <small style="font-size:12px;font-weight:400;color:var(--txm)">/ mês</small></div>
-      <button class="btn-gold" style="background:var(--brown);margin-top:10px" onclick="abrirModalAssinar('basico')">Assinar por R$ 49/mês</button>
+
+  <!-- Plano Básico -->
+  <div class="plan-card">
+    <div class="plan-img">
+      <img src="https://static.wixstatic.com/media/1f0134_bd631527d814487ca3de1c4360955c61~mv2.jpg/v1/fill/w_600,h_200,al_c,q_80,enc_avif,quality_auto/1f0134_bd631527d814487ca3de1c4360955c61~mv2.jpg">
+      <div class="plan-img-ov"></div>
+      <div class="plan-img-txt">
+        <div style="font-family:'Cormorant Garamond',serif;font-size:18px;color:#fff;font-weight:600">Portal Básico</div>
+      </div>
+    </div>
+    <div class="plan-body">
+      <div class="plan-price">R$ 49 <small>/ mês</small></div>
+      <div class="plan-feats">
+        <div class="plan-feat">Todo o conteúdo premium (vídeos, áudios, PDFs)</div>
+        <div class="plan-feat">Chat com a equipe</div>
+      </div>
+      <button class="btn-gold" onclick="openPayment('basico')" style="background:var(--txm)">Assinar por R$ 49/mês</button>
     </div>
   </div>
+  <div style="height:80px"></div>
 </div>
 
-<!-- ADMIN -->
+<!-- ════════════════════════════ ADMIN PANEL ════════════════════════════ -->
 <div class="screen" id="s-admin">
   <div style="background:var(--brown);padding:16px 16px 12px">
     <div style="display:flex;align-items:center;gap:10px">
-      <div style="width:36px;height:36px;border-radius:9px;background:var(--gold);display:flex;align-items:center;justify-content:center;font-size:18px">🛡️</div>
+      <div style="width:36px;height:36px;border-radius:9px;background:var(--gold);display:flex;align-items:center;justify-content:center">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l7 4v5c0 4.4-2.9 8.5-7 10C7.9 19.5 5 15.4 5 11V6l7-4z"/></svg>
+      </div>
       <div>
         <div style="font-size:15px;font-weight:700;color:#fff">Painel Admin</div>
-        <div style="font-size:11px;color:rgba(255,255,255,.5)">Portal · Sala Virtual</div>
+        <div style="font-size:11px;color:rgba(255,255,255,.5)">Gerenciar conteúdo e assinantes</div>
       </div>
-      <button onclick="pedirSair()" style="margin-left:auto;width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);cursor:pointer;color:#fff;font-size:16px">✕</button>
+      <button onclick="doLogout()" title="Sair" style="margin-left:auto;width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);cursor:pointer;display:flex;align-items:center;justify-content:center;color:#fff;flex-shrink:0">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      </button>
     </div>
   </div>
+
+  <!-- Tabs admin -->
   <div style="display:flex;gap:6px;padding:10px 12px;background:var(--white);border-bottom:1px solid var(--brd);overflow-x:auto">
-    <button class="adm-tab on" onclick="adminTab(this,'assinantes')">👤 Assinantes</button>
+    <button class="adm-tab on" onclick="adminTab(this,'conteudos')">📂 Conteúdos</button>
+    <button class="adm-tab" onclick="adminTab(this,'assinantes')">👤 Assinantes</button>
+    <button class="adm-tab" onclick="adminTab(this,'upload')">⬆️ Enviar</button>
     <button class="adm-tab" onclick="adminTab(this,'chat')">💬 Chat</button>
     <button class="adm-tab" onclick="adminTab(this,'sala')" id="tab-sala">🚪 Sala</button>
-    <button class="adm-tab" onclick="adminTab(this,'enviar')">📤 Enviar</button>
   </div>
 
-  <div id="adm-assinantes" style="padding:14px">
-    <div style="font-size:12px;font-weight:700;color:var(--txm);margin-bottom:10px">Assinantes</div>
-    <div class="card" id="assinantes-list"><div style="padding:20px;text-align:center;color:var(--txs);font-size:12px">Carregando...</div></div>
-  </div>
-
-  <div id="adm-chat" style="display:none;flex-direction:column;height:calc(100dvh - 170px)">
-    <div style="padding:10px 14px;background:var(--goldlt);border-bottom:1px solid var(--goldbrd);display:flex;align-items:center;gap:8px;flex-shrink:0">
-      <button onclick="voltarParaSala()" style="width:30px;height:30px;border-radius:50%;background:var(--white);border:1px solid var(--goldbrd);color:var(--gold);cursor:pointer;font-size:16px">←</button>
-      <div style="flex:1">
-        <div style="font-size:11px;color:var(--txm)">💬 Respondendo como <strong>Equipe Dra. Ilza</strong></div>
-        <div id="adm-chat-paciente" style="font-size:12px;font-weight:700;color:var(--brown)">—</div>
+  <!-- Tab: Conteúdos -->
+  <div id="adm-conteudos" style="padding:14px">
+    <div style="font-size:12px;font-weight:700;color:var(--txm);margin-bottom:10px">Conteúdos publicados</div>
+    <div class="card" id="admin-content-list">
+      <div class="content-row" style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--brd)">
+        <div class="content-type-ic" style="background:#FEF0F0;font-size:16px;width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0">🎬</div>
+        <div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:600;color:var(--brown)">SII — Live Completa</div><div style="font-size:10px;color:var(--txs)">Vídeo · 42 min · 🔒 Premium</div></div>
+        <button class="btn-sm" style="background:var(--redbg);color:var(--red);border:none;cursor:pointer">Remover</button>
       </div>
-      <button onclick="pedirEncerrar()" id="btn-encerrar" style="display:none;padding:6px 12px;border-radius:20px;background:var(--redbg);border:1px solid #e0b0b0;color:var(--red);font-size:11px;font-weight:700;font-family:inherit;cursor:pointer">✕ Encerrar</button>
-    </div>
-    <div id="adm-chat-msgs" style="flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:8px;background:var(--bg)"></div>
-    <div style="background:var(--white);border-top:1px solid var(--brd);padding:8px 12px;display:flex;gap:8px;align-items:center;flex-shrink:0">
-      <input class="inp" placeholder="Responder ao paciente..." id="adm-chat-inp" style="border-radius:20px;padding:8px 14px;flex:1">
-      <button onclick="adminSendMsg()" style="width:34px;height:34px;border-radius:50%;background:var(--gold);border:none;color:#fff;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center">➤</button>
+      <div class="content-row" style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--brd)">
+        <div class="content-type-ic" style="background:#EBF5EE;font-size:16px;width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0">🎙️</div>
+        <div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:600;color:var(--brown)">Microbiota — Ep. 08</div><div style="font-size:10px;color:var(--txs)">Áudio · 28 min · 🔒 Premium</div></div>
+        <button class="btn-sm" style="background:var(--redbg);color:var(--red);border:none;cursor:pointer">Remover</button>
+      </div>
+      <div class="content-row" style="display:flex;align-items:center;gap:10px;padding:10px 14px">
+        <div class="content-type-ic" style="background:#EBF2FB;font-size:16px;width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0">📄</div>
+        <div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:600;color:var(--brown)">Protocolo SIBO</div><div style="font-size:10px;color:var(--txs)">PDF · 18p · 🔒 Premium</div></div>
+        <button class="btn-sm" style="background:var(--redbg);color:var(--red);border:none;cursor:pointer">Remover</button>
+      </div>
     </div>
   </div>
 
-  <div id="adm-sala" style="display:none;padding:14px">
-    <div id="sala-atendendo-wrap" style="display:none;margin-bottom:14px">
-      <div style="font-size:10px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">● Em atendimento</div>
-      <div class="card" id="sala-atendendo-lista"></div>
+  <!-- Tab: Assinantes -->
+  <div id="adm-assinantes" style="padding:14px;display:none">
+    <div style="font-size:12px;font-weight:700;color:var(--txm);margin-bottom:10px">Assinantes ativos</div>
+    <div class="card" id="assinantes-list">
+      <div class="assinante-row" style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--brd)">
+        <div style="width:32px;height:32px;border-radius:50%;background:var(--goldlt);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--gold);flex-shrink:0">MA</div>
+        <div style="flex:1"><div style="font-size:13px;font-weight:600;color:var(--brown);display:flex;align-items:center;gap:5px">Maria Aparecida <span class="star-gold">★</span></div><div style="font-size:10px;color:var(--txs)">Plano 360° · Ativo até 10/2026</div></div>
+        <button class="btn-sm" style="background:var(--greenbg);color:var(--green);border:none">Ativo</button>
+      </div>
+      <div class="assinante-row" style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--brd)">
+        <div style="width:32px;height:32px;border-radius:50%;background:var(--goldlt);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--gold);flex-shrink:0">JO</div>
+        <div style="flex:1"><div style="font-size:13px;font-weight:600;color:var(--brown);display:flex;align-items:center;gap:5px">João Oliveira <span class="star-gold">★</span></div><div style="font-size:10px;color:var(--txs)">Portal Básico · R$ 49/mês</div></div>
+        <button class="btn-sm" style="background:var(--greenbg);color:var(--green);border:none">Ativo</button>
+      </div>
+      <div class="assinante-row" style="display:flex;align-items:center;gap:10px;padding:10px 14px">
+        <div style="width:32px;height:32px;border-radius:50%;background:#f0f0f0;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#aaa;flex-shrink:0">RL</div>
+        <div style="flex:1"><div style="font-size:13px;font-weight:600;color:var(--brown)">Rosa Lima</div><div style="font-size:10px;color:var(--txs)">Portal Básico · Expirado</div></div>
+        <button class="btn-sm" style="background:var(--redbg);color:var(--red);border:none;cursor:pointer" onclick="renovarAcesso()">Renovar</button>
+      </div>
     </div>
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-      <div style="font-size:10px;font-weight:700;color:var(--txs);text-transform:uppercase;letter-spacing:.08em">Aguardando</div>
+  </div>
+
+  <!-- Tab: Upload -->
+  <div id="adm-upload" style="padding:14px;display:none">
+    <div class="upload-zone" onclick="document.getElementById('file-input').click()">
+      <div style="font-size:32px;margin-bottom:10px">⬆️</div>
+      <div style="font-size:14px;font-weight:600;color:var(--gold);margin-bottom:4px">Clique para enviar arquivo</div>
+      <div style="font-size:12px;color:var(--txm)">Vídeos (MP4), Áudios (MP3), PDFs, Imagens</div>
+      <div style="font-size:11px;color:var(--txs);margin-top:4px">Máx. 500MB · Armazenado no Supabase Storage</div>
+      <input type="file" id="file-input" style="display:none" accept="video/*,audio/*,.pdf,image/*" onchange="handleUpload(this)">
+    </div>
+    <div style="margin-top:16px">
+      <span class="lbl">Título do conteúdo</span>
+      <input class="inp" placeholder="Ex: Live sobre SIBO — Episódio 9" id="upload-titulo" style="margin-bottom:10px">
+      <span class="lbl">Tipo</span>
+      <select class="inp" id="upload-tipo" style="margin-bottom:10px">
+        <option value="video">🎬 Vídeo</option>
+        <option value="audio">🎙️ Áudio / Podcast</option>
+        <option value="pdf">📄 PDF / Protocolo</option>
+        <option value="artigo">📝 Artigo</option>
+      </select>
+      <span class="lbl">Acesso</span>
+      <div style="display:flex;gap:8px;margin-bottom:14px">
+        <button class="adm-tab on" id="acesso-premium" onclick="setAcesso('premium',this)">★ Apenas Premium</button>
+        <button class="adm-tab" id="acesso-todos" onclick="setAcesso('todos',this)">Todos os assinantes</button>
+      </div>
+      <button class="btn-gold" id="upload-btn" onclick="publicarConteudo()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0018 9h-1.26A8 8 0 103 16.3"/></svg>
+        Publicar conteúdo
+      </button>
+      <div style="height:4px;background:var(--brd);border-radius:99px;margin-top:10px;overflow:hidden">
+        <div id="upload-progress" style="height:100%;background:var(--gold);border-radius:99px;width:0;display:none;transition:width .3s"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab: Chat (admin) -->
+  <div id="adm-chat" style="display:none;flex-direction:column;flex:1;min-height:0">
+    <div style="padding:10px 14px;background:var(--goldlt);border-bottom:1px solid var(--goldbrd)">
+      <div style="font-size:11px;color:var(--txm)">💬 Respondendo como <strong>Equipe Dra. Ilza</strong></div>
+    </div>
+    <div id="adm-chat-msgs" style="flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:8px;background:var(--bg);min-height:200px;max-height:340px">
+      <div class="msg-r"><div class="msg-from">Sistema</div>Selecione um paciente na aba Sala para iniciar o atendimento.<div class="msg-time-r">—</div></div>
+    </div>
+    <div style="background:var(--white);border-top:1px solid var(--brd);padding:8px 12px;display:flex;gap:8px;align-items:center">
+      <input class="inp" placeholder="Responder ao paciente..." id="adm-chat-inp" style="border-radius:20px;padding:8px 14px;flex:1">
+      <button onclick="adminSendMsg()" style="width:34px;height:34px;border-radius:50%;background:var(--gold);border:none;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Tab: Sala (fila de espera) -->
+  <div id="adm-sala" style="display:none;padding:14px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <div style="font-size:12px;font-weight:700;color:var(--txm)">Pacientes na fila de espera</div>
       <div id="sala-count" style="background:var(--gold);color:#fff;border-radius:99px;padding:2px 10px;font-size:11px;font-weight:700">0</div>
     </div>
     <div class="card" id="sala-lista">
-      <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;gap:10px;text-align:center">
+      <div class="sala-waiting">
         <div style="font-size:32px">🚪</div>
         <div style="font-size:13px;font-weight:600;color:var(--brown)">Sala vazia</div>
         <div style="font-size:12px;color:var(--txs)">Nenhum paciente aguardando</div>
       </div>
     </div>
   </div>
+</div>
 
-  <div id="adm-enviar" style="display:none;padding:14px">
-    <div style="font-size:12px;font-weight:700;color:var(--txm);margin-bottom:10px">Enviar mensagem para assinantes</div>
-    <div style="display:flex;flex-direction:column;gap:10px">
-      <div><span class="lbl">Destinatários</span>
-        <select class="inp" id="enviar-dest">
-          <option value="todos">Todos os assinantes</option>
-          <option value="360">Apenas Plano 360°</option>
-          <option value="basico">Apenas Portal Básico</option>
-        </select>
+<!-- ════════════════════════════ MODAL PAGAMENTO ════════════════════════════ -->
+<div class="modal-ov" id="modal-payment" style="display:none" onclick="closePaymentOutside(event)">
+  <div class="modal-sheet fadein" onclick="event.stopPropagation()">
+    <div class="modal-hd">
+      <h3 id="payment-title">Assinar Plano Intestino 360°</h3>
+      <button onclick="closePayment()" style="background:none;border:none;cursor:pointer;font-size:20px;color:var(--txm)">×</button>
+    </div>
+
+    <!-- Resumo do plano -->
+    <div style="background:var(--goldlt);border:1px solid var(--goldbrd);border-radius:12px;padding:14px 16px;margin-bottom:20px;display:flex;align-items:center;gap:14px">
+      <div style="width:44px;height:44px;border-radius:12px;background:var(--gold);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+        <span style="color:#fff;font-size:20px">★</span>
       </div>
-      <div><span class="lbl">Mensagem</span><textarea class="inp" id="enviar-msg" rows="4" placeholder="Digite a mensagem..." style="resize:none"></textarea></div>
-      <button class="btn-gold" onclick="enviarMensagem()">📤 Enviar mensagem</button>
+      <div style="flex:1">
+        <div id="payment-plan-name" style="font-size:14px;font-weight:700;color:var(--brown)">Plano Intestino 360°</div>
+        <div id="payment-desc" style="font-size:11px;color:var(--txm);margin-top:2px">3 consultas + portal + suporte por 6 meses</div>
+      </div>
+      <div id="payment-price" style="font-size:22px;font-weight:700;color:var(--gold);text-align:right;flex-shrink:0">R$&nbsp;3.000</div>
+    </div>
+
+    <!-- Título seção -->
+    <div style="font-size:11px;font-weight:700;color:var(--txm);text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px">
+      Escolha onde pagar
+    </div>
+
+    <!-- Mercado Pago -->
+    <div class="pay-opt" id="opt-mp" onclick="goToPayment('mp')">
+      <div class="pay-icon" style="background:#00BCD420;font-size:0;padding:8px">
+        <svg width="24" height="24" viewBox="0 0 48 48" fill="none">
+          <circle cx="24" cy="24" r="24" fill="#00BCDD"/>
+          <path d="M10 24c0-7.73 6.27-14 14-14 4.48 0 8.48 2.1 11.07 5.38L31.5 18.5C29.6 16.35 26.95 15 24 15c-4.97 0-9 4.03-9 9s4.03 9 9 9c3.1 0 5.84-1.5 7.54-3.8l3.6 2.57C32.6 35.82 28.52 38 24 38c-7.73 0-14-6.27-14-14z" fill="#fff"/>
+          <path d="M36.5 20h-9v3h6.1A8.97 8.97 0 0133 24c0 .35-.02.69-.06 1.03H27.5v3h5.26A9.04 9.04 0 0124 33c-1.2 0-2.35-.24-3.4-.66L19 35.5C20.8 36.47 22.84 37 25 37c7.73 0 14-6.27 14-14 0-1.08-.12-2.14-.35-3.15L36.5 20z" fill="#fff" opacity=".5"/>
+        </svg>
+      </div>
+      <div style="flex:1">
+        <div style="font-size:14px;font-weight:700;color:var(--brown)">Mercado Pago</div>
+        <div style="font-size:11px;color:var(--txm);margin-top:2px">PIX · Cartão · Boleto · Parcelamento</div>
+        <div style="font-size:10px;color:var(--green);margin-top:3px;font-weight:600">✓ Aprovação imediata no PIX</div>
+      </div>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--txs)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+    </div>
+
+    <!-- PagSeguro -->
+    <div class="pay-opt" id="opt-ps" onclick="goToPayment('ps')">
+      <div class="pay-icon" style="background:#F5A62320;font-size:0;padding:8px">
+        <svg width="24" height="24" viewBox="0 0 48 48" fill="none">
+          <circle cx="24" cy="24" r="24" fill="#F5A623"/>
+          <path d="M14 19c0-2.76 2.24-5 5-5h10c2.76 0 5 2.24 5 5v3H14v-3zM14 25h20v4c0 2.76-2.24 5-5 5H19c-2.76 0-5-2.24-5-5v-4z" fill="#fff"/>
+          <circle cx="19" cy="31" r="2" fill="#F5A623"/>
+          <circle cx="29" cy="31" r="2" fill="#F5A623"/>
+        </svg>
+      </div>
+      <div style="flex:1">
+        <div style="font-size:14px;font-weight:700;color:var(--brown)">PagSeguro</div>
+        <div style="font-size:11px;color:var(--txm);margin-top:2px">Cartão · PIX · Boleto · Até 12x</div>
+        <div style="font-size:10px;color:var(--txm);margin-top:3px">Link de pagamento seguro</div>
+      </div>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--txs)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+    </div>
+
+    <!-- Aviso importante -->
+    <div style="background:#F0F7FF;border:1px solid #C0D8F0;border-radius:10px;padding:11px 14px;margin-top:4px">
+      <div style="font-size:11px;color:#1A5FA8;font-weight:600;margin-bottom:3px">ℹ️ Como funciona</div>
+      <div style="font-size:11px;color:#4B6B90;line-height:1.6">
+        Você será redirecionado para o checkout seguro do Mercado Pago ou PagSeguro.<br>
+        Após a confirmação do pagamento, seu acesso é liberado <strong>automaticamente em até 2 horas</strong>.
+      </div>
+    </div>
+
+    <div style="font-size:10px;color:var(--txs);text-align:center;margin-top:14px;display:flex;align-items:center;justify-content:center;gap:6px">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+      Pagamento 100% seguro · SSL · LGPD
     </div>
   </div>
 </div>
 
-<!-- Modal Assinar -->
-<div id="modal-assinar" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:300;align-items:flex-end;justify-content:center;padding:0">
-  <div style="background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:420px;max-height:92vh;overflow-y:auto">
-
-    <!-- Etapa 1: Dados -->
-    <div id="assinar-step1" style="padding:24px 20px 20px">
-      <div style="text-align:center;margin-bottom:18px">
-        <div id="modal-plano-icon" style="font-size:36px;margin-bottom:6px">★</div>
-        <div id="modal-plano-titulo" style="font-family:'Cormorant Garamond',serif;font-size:21px;font-weight:700;color:var(--brown)">Plano Intestino 360°</div>
-        <div id="modal-plano-preco" style="font-size:24px;font-weight:700;color:var(--gold);margin:4px 0">R$ 3.000</div>
-        <div id="modal-plano-desc" style="font-size:11px;color:var(--txm)">3 consultas + portal 6 meses + suporte prioritário</div>
-      </div>
-
-      <div style="background:var(--goldlt);border:1px solid var(--goldbrd);border-radius:12px;padding:13px;margin-bottom:14px">
-        <div style="font-size:10px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">✨ O que está incluído</div>
-        <div id="modal-plano-itens" style="display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--txm)"></div>
-      </div>
-
-      <div style="background:#f9f9f9;border:1px solid var(--brd);border-radius:12px;padding:13px;margin-bottom:14px">
-        <div style="font-size:10px;font-weight:700;color:var(--txm);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px">📋 Seus dados</div>
-        <div style="display:flex;flex-direction:column;gap:10px">
-          <div><label class="lbl">Nome completo *</label><input class="inp" type="text" id="assinar-nome" placeholder="Seu nome completo"></div>
-          <div><label class="lbl">CPF *</label>
-            <div style="position:relative">
-              <input class="inp" type="text" id="assinar-cpf" placeholder="000.000.000-00" maxlength="14" oninput="maskCpf(this)" style="padding-right:36px">
-              <span id="cpf-ok" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:14px;display:none">✅</span>
-              <span id="cpf-err" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:14px;display:none">❌</span>
-            </div>
-            <div id="cpf-msg" style="font-size:10px;color:var(--red);margin-top:4px;display:none">CPF inválido</div>
-          </div>
-          <div><label class="lbl">E-mail *</label><input class="inp" type="email" id="assinar-email" placeholder="seu@email.com"></div>
-          <div><label class="lbl">Telefone / WhatsApp</label><input class="inp" type="tel" id="assinar-tel" placeholder="(13) 99999-9999"></div>
-        </div>
-      </div>
-
-      <div style="display:flex;flex-direction:column;gap:10px;padding-bottom:10px">
-        <button class="btn-gold" onclick="irParaPagamento()" id="btn-ir-pagar">
-          🔒 Ir para pagamento
-        </button>
-        <button onclick="fecharModalAssinar()" style="padding:11px;border-radius:11px;border:1.5px solid var(--brd);background:#fff;color:var(--txm);font-size:13px;font-weight:600;font-family:inherit;cursor:pointer">
-          Cancelar
-        </button>
-        <div style="text-align:center;font-size:10px;color:var(--txs)">🔒 Pagamento seguro · LGPD · SSL</div>
-      </div>
-    </div>
-
-    <!-- Etapa 2: Pagamento -->
-    <div id="assinar-step2" style="display:none;padding:24px 20px 28px">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px">
-        <button onclick="voltarStep1()" style="width:32px;height:32px;border-radius:50%;border:1.5px solid var(--brd);background:#fff;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;flex-shrink:0">←</button>
-        <div style="font-size:15px;font-weight:700;color:var(--brown)">Escolha como pagar</div>
-      </div>
-
-      <!-- Resumo -->
-      <div style="background:var(--goldlt);border:1px solid var(--goldbrd);border-radius:12px;padding:12px 14px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between">
-        <div>
-          <div style="font-size:13px;font-weight:700;color:var(--brown)" id="pay-titulo-resumo">Plano 360°</div>
-          <div style="font-size:11px;color:var(--txm)" id="pay-nome-resumo"></div>
-        </div>
-        <div style="font-size:18px;font-weight:700;color:var(--gold)" id="pay-preco-resumo">R$ 3.000</div>
-      </div>
-
-      <!-- Botão Mercado Pago -->
-      <div style="display:flex;flex-direction:column;gap:10px">
-        <button onclick="pagarMercadoPago()" id="btn-mp"
-          style="background:#009EE3;color:#fff;border:none;border-radius:11px;padding:14px 20px;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px">
-          <svg width="22" height="22" viewBox="0 0 48 48" fill="none"><circle cx="24" cy="24" r="24" fill="#fff"/><path d="M8 24C8 15.163 15.163 8 24 8c8.836 0 16 7.163 16 16 0 8.836-7.164 16-16 16C15.163 40 8 32.837 8 24z" fill="#009EE3"/><path d="M33.6 20.8H14.4c-.883 0-1.6.717-1.6 1.6v3.2c0 .883.717 1.6 1.6 1.6h19.2c.883 0 1.6-.717 1.6-1.6v-3.2c0-.883-.717-1.6-1.6-1.6z" fill="#fff"/></svg>
-          Pagar com Mercado Pago
-        </button>
-
-        <div style="display:flex;align-items:center;gap:8px;margin:2px 0">
-          <div style="flex:1;height:1px;background:var(--brd)"></div>
-          <span style="font-size:10px;color:var(--txs)">ou prefere contato direto?</span>
-          <div style="flex:1;height:1px;background:var(--brd)"></div>
-        </div>
-
-        <button onclick="enviarEmailInteresse()"
-          style="background:#fff;color:var(--brown);border:1.5px solid var(--brd);border-radius:11px;padding:12px 20px;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px">
-          ✉️ Enviar interesse por e-mail
-        </button>
-
-        <div style="background:#f0f9f4;border:1px solid #a8ddb5;border-radius:10px;padding:10px 13px;font-size:11px;color:var(--green)">
-          ✅ Após o pagamento, você receberá as instruções de acesso em <strong id="pay-email-conf"></strong>
-        </div>
-      </div>
-    </div>
-
-    <!-- Etapa 3: Confirmação -->
-    <div id="assinar-step3" style="display:none;padding:32px 20px 36px;text-align:center">
-      <div style="font-size:52px;margin-bottom:16px">✅</div>
-      <div style="font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:700;color:var(--brown);margin-bottom:8px">Solicitação enviada!</div>
-      <div style="font-size:13px;color:var(--txm);margin-bottom:6px">Seu e-mail de interesse foi enviado para</div>
-      <div style="font-size:14px;font-weight:700;color:var(--gold);margin-bottom:16px">ilzaeneta@gmail.com</div>
-      <div style="background:var(--goldlt);border:1px solid var(--goldbrd);border-radius:12px;padding:13px;font-size:12px;color:var(--txm);margin-bottom:20px">
-        A equipe da Dra. Ilza entrará em contato em até <strong>24h úteis</strong> para confirmar e enviar o link de pagamento. 🌿
-      </div>
-      <button onclick="fecharModalAssinar()" class="btn-gold">Entendido</button>
-    </div>
-
-  </div>
-</div>
-
-<!-- Modal confirmação Mercado Pago -->
-<div id="modal-mp-confirm" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:400;align-items:center;justify-content:center;padding:20px">
-  <div style="background:#fff;border-radius:20px;padding:28px 20px;max-width:360px;width:100%;text-align:center">
-    <div style="font-size:44px;margin-bottom:12px">💳</div>
-    <div style="font-size:17px;font-weight:700;color:var(--brown);margin-bottom:8px">Redirecionando para o Mercado Pago</div>
-    <div style="font-size:12px;color:var(--txm);margin-bottom:16px">Você será levado ao ambiente seguro do Mercado Pago para concluir o pagamento.<br><br>Após o pagamento confirmado, envie o comprovante para:<br><strong style="color:var(--gold)">ilzaeneta@gmail.com</strong></div>
-    <div style="display:flex;gap:10px">
-      <button onclick="document.getElementById('modal-mp-confirm').style.display='none'" style="flex:1;padding:12px;border-radius:11px;border:1.5px solid var(--brd);background:#fff;color:var(--txm);font-size:13px;font-weight:600;font-family:inherit;cursor:pointer">Cancelar</button>
-      <button onclick="abrirMercadoPago()" style="flex:1;padding:12px;border-radius:11px;border:none;background:#009EE3;color:#fff;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer">Continuar →</button>
-    </div>
-  </div>
-</div>
-
-<!-- Modal sair -->
-<div id="modal-sair" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:300;align-items:center;justify-content:center;padding:20px">
-  <div style="background:#fff;border-radius:20px;padding:24px 20px;max-width:340px;width:100%;text-align:center">
-    <div style="font-size:36px;margin-bottom:12px">👋</div>
-    <div style="font-size:16px;font-weight:700;color:var(--brown);margin-bottom:8px">Sair do Portal?</div>
-    <div style="display:flex;gap:10px;margin-top:16px">
-      <button onclick="document.getElementById('modal-sair').style.display='none'" style="flex:1;padding:12px;border-radius:11px;border:1.5px solid var(--brd);background:#fff;color:var(--txm);font-size:13px;font-weight:600;font-family:inherit;cursor:pointer">Cancelar</button>
-      <button onclick="confirmarSair()" style="flex:1;padding:12px;border-radius:11px;border:none;background:var(--red);color:#fff;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer">Sair</button>
-    </div>
-  </div>
-</div>
-
-<!-- Modal encerrar -->
-<div id="modal-encerrar" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:300;align-items:center;justify-content:center;padding:20px">
-  <div style="background:#fff;border-radius:20px;padding:24px 20px;max-width:340px;width:100%">
-    <div style="font-size:36px;text-align:center;margin-bottom:12px">✅</div>
-    <div style="font-size:16px;font-weight:700;color:var(--brown);text-align:center;margin-bottom:14px">Encerrar atendimento?</div>
-    <div style="background:var(--goldlt);border:1px solid var(--goldbrd);border-radius:12px;padding:12px 14px;margin-bottom:16px">
-      <textarea id="msg-encerramento" rows="3" style="width:100%;border:none;background:transparent;font-family:inherit;font-size:12px;color:var(--tx);resize:none;outline:none">Obrigada pela confiança! Atendimento encerrado. Cuide-se! 🌿</textarea>
-    </div>
-    <div style="display:flex;gap:10px">
-      <button onclick="document.getElementById('modal-encerrar').style.display='none'" style="flex:1;padding:12px;border-radius:11px;border:1.5px solid var(--brd);background:#fff;color:var(--txm);font-size:13px;font-weight:600;font-family:inherit;cursor:pointer">Cancelar</button>
-      <button onclick="confirmarEncerrar()" style="flex:1;padding:12px;border-radius:11px;border:none;background:var(--green);color:#fff;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer">Encerrar</button>
-    </div>
-  </div>
-</div>
-
-<!-- BOTTOM NAV GLOBAL -->
+<!-- ════════════════════════════ BOTTOM NAV GLOBAL ════════════════════════════ -->
 <div class="bnav" id="global-nav">
-  <div class="bni on" id="nav-home" onclick="goTo('home')"><div class="bni-ic">🏠</div><div class="bni-lb">Início</div></div>
-  <div class="bni" id="nav-conteudo" onclick="goTo('conteudo')"><div class="bni-ic">📚</div><div class="bni-lb">Conteúdo</div></div>
-  <div class="bni" id="nav-suporte" onclick="goTo('suporte')"><div class="bni-ic">💬</div><div class="bni-lb">Sala Virtual</div></div>
-  <div class="bni" id="nav-planos" onclick="goTo('planos')"><div class="bni-ic">★</div><div class="bni-lb">Planos</div></div>
-  <div class="bni" id="nav-sair" onclick="pedirSair()" style="display:none"><div class="bni-ic">✕</div><div class="bni-lb">Sair</div></div>
-  <div class="bni" id="nav-admin" onclick="goTo('admin')" style="display:none"><div class="bni-ic">🛡️</div><div class="bni-lb">Admin</div></div>
-</div>
-
-<!-- Modal: link MP não configurado -->
-<div id="modal-mp-aviso" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:500;align-items:center;justify-content:center;padding:20px">
-  <div style="background:#fff;border-radius:20px;padding:28px 22px;max-width:340px;width:100%;text-align:center">
-    <div style="font-size:40px;margin-bottom:10px">⚙️</div>
-    <div style="font-size:16px;font-weight:700;color:var(--brown);margin-bottom:8px">Link de pagamento não configurado</div>
-    <div style="font-size:12px;color:var(--txm);margin-bottom:16px;line-height:1.6">
-      O link do Mercado Pago ainda não foi configurado para este plano.<br><br>
-      <strong>Dra. Ilza:</strong> acesse o painel do Mercado Pago, crie o plano de assinatura e cole o link gerado no campo <code style="background:#f5f0e8;padding:2px 6px;border-radius:4px">mpLink</code> do arquivo <code style="background:#f5f0e8;padding:2px 6px;border-radius:4px">index.html</code>.
+  <div class="bni on" id="nav-home" onclick="goTo('home')">
+    <div class="bni-ic">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5L12 3l9 7.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V10.5z"/><path d="M9 21V13h6v8"/></svg>
     </div>
-    <div style="display:flex;flex-direction:column;gap:8px">
-      <button onclick="document.getElementById('modal-mp-aviso').style.display='none'; enviarEmailInteresse();"
-        style="padding:12px;border-radius:11px;border:none;background:var(--gold);color:#fff;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer">
-        ✉️ Enviar interesse por e-mail enquanto isso
-      </button>
-      <button onclick="document.getElementById('modal-mp-aviso').style.display='none'"
-        style="padding:11px;border-radius:11px;border:1.5px solid var(--brd);background:#fff;color:var(--txm);font-size:13px;font-weight:600;font-family:inherit;cursor:pointer">
-        Fechar
-      </button>
+    <div class="bni-lb">Início</div>
+  </div>
+  <div class="bni" id="nav-conteudo" onclick="goTo('conteudo')">
+    <div class="bni-ic">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
     </div>
+    <div class="bni-lb">Conteúdo</div>
+  </div>
+  <div class="bni" id="nav-suporte" onclick="goTo('suporte')">
+    <div class="bni-ic">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M9 12h6M12 9v6"/></svg>
+    </div>
+    <div class="bni-lb">Sala Virtual</div>
+  </div>
+  <div class="bni" id="nav-planos" onclick="goTo('planos')">
+    <div class="bni-ic">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+    </div>
+    <div class="bni-lb">Planos</div>
+  </div>
+  <div class="bni" id="nav-admin" onclick="goTo('admin')" style="display:none">
+    <div class="bni-ic">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l7 4v5c0 4.4-2.9 8.5-7 10C7.9 19.5 5 15.4 5 11V6l7-4z"/></svg>
+    </div>
+    <div class="bni-lb">Admin</div>
   </div>
 </div>
 
 </div><!-- /app -->
 
 <script>
-// ════════════════════════════════════
-// ROTEAMENTO
-// ════════════════════════════════════
-const SCREENS = { home:'s-home', conteudo:'s-conteudo', suporte:'s-suporte', planos:'s-planos', admin:'s-admin' };
-const NAV_IDS = { home:'nav-home', conteudo:'nav-conteudo', suporte:'nav-suporte', planos:'nav-planos', admin:'nav-admin' };
+// ── Roteamento ────────────────────────────────────────────────────────────────
+const screens={home:'s-home',conteudo:'s-conteudo',suporte:'s-suporte',planos:'s-planos',admin:'s-admin'};
+const navItems={home:'nav-home',conteudo:'nav-conteudo',suporte:'nav-suporte',planos:'nav-planos',admin:'nav-admin'};
+const noNavScreens=['login','suporte']; // suporte tem nav próprio
 
-function goTo(page) {
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  const sId = page === 'login' ? 's-login' : SCREENS[page];
-  if (sId) { const s = document.getElementById(sId); if(s){ s.classList.add('active'); s.scrollTop = 0; } }
-  const gNav = document.getElementById('global-nav');
-  if (page === 'login' || page === 'suporte') { gNav.style.display = 'none'; }
-  else {
-    gNav.style.display = 'flex';
-    document.querySelectorAll('.bni').forEach(n => n.classList.remove('on'));
-    const ni = NAV_IDS[page]; if(ni){ const n = document.getElementById(ni); if(n) n.classList.add('on'); }
+function goTo(page){
+  // Esconder todas
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  // Mostrar target
+  const sId=page==='login'?'s-login':screens[page];
+  if(sId){const s=document.getElementById(sId);if(s){s.classList.add('active');s.scrollTop=0;}}
+  // Entrar na fila ao abrir Sala Virtual
+  if(page==='suporte' && _currentUser && !_currentUser.isAdmin){
+    enterSala(_currentUser);
   }
-  if (page === 'suporte' && _currentUser && !_currentUser.isAdmin) enterSala(_currentUser);
-  if (page === 'admin') { loadAssinantes(); iniciarListenerSala(); }
+  // Nav
+  const globalNav=document.getElementById('global-nav');
+  if(page==='login'||page==='suporte'){
+    globalNav.style.display='none';
+  } else {
+    globalNav.style.display='flex';
+    document.querySelectorAll('.bni').forEach(n=>n.classList.remove('on'));
+    const ni=navItems[page];if(ni){const n=document.getElementById(ni);if(n)n.classList.add('on');}
+  }
 }
 
-function filterContent(btn, tipo) {
-  document.querySelectorAll('.adm-tab').forEach(b => b.classList.remove('on'));
+// ── Filtro de conteúdo ────────────────────────────────────────────────────────
+function filterContent(btn, tipo){
+  document.querySelectorAll('#content-filters .adm-tab').forEach(b=>b.classList.remove('on'));
   btn.classList.add('on');
-  document.querySelectorAll('[data-tipo]').forEach(el => {
-    el.style.display = (tipo === 'todos' || el.dataset.tipo === tipo) ? 'flex' : 'none';
+  document.querySelectorAll('#content-list [data-tipo]').forEach(el=>{
+    el.style.display=(tipo==='todos'||el.dataset.tipo===tipo)?'flex':'none';
   });
 }
 
-// ════════════════════════════════════
-// AUTENTICAÇÃO
-// ════════════════════════════════════
-// ══════════════════════════════════════════════════════════════
-// SEGURANÇA — Autenticação via Firebase Auth (sem senhas no código)
-// Usuários gerenciados no Firebase Console → Authentication
-// ══════════════════════════════════════════════════════════════
+// ── Chat ─────────────────────────────────────────────────────────────────────
+function sendMsg(){
+  const inp=document.getElementById('chat-inp');
+  const txt=inp.value.trim();if(!txt)return;
+  const msgs=document.getElementById('chat-msgs');
+  const div=document.createElement('div');
+  div.className='msg-s';
+  div.innerHTML=txt+'<div class="msg-time">agora</div>';
+  msgs.appendChild(div);
+  inp.value='';
+  msgs.scrollTop=msgs.scrollHeight;
+  // Resposta auto
+  setTimeout(()=>{
+    const r=document.createElement('div');r.className='msg-r fadein';
+    r.innerHTML='<div class="msg-from">Equipe Dra. Ilza</div>Obrigada pelo contato! Retornaremos em breve durante horário de atendimento 🌿<div class="msg-time-r">agora</div>';
+    msgs.appendChild(r);msgs.scrollTop=msgs.scrollHeight;
+  },1200);
+}
+document.getElementById('chat-inp').addEventListener('keydown',e=>{if(e.key==='Enter')sendMsg();});
 
-// Perfis por email (sem senha — auth feita pelo Firebase)
-const PERFIS = {
-  'premium360@drailza.com.br': { nome:'Maria Aparecida Santos', plano:'360',    planoBadge:'Plano 360°',   premium:true,  isAdmin:false },
-  'basico@drailza.com.br':     { nome:'João Carlos Oliveira',   plano:'basico', planoBadge:'Portal Básico', premium:false, isAdmin:false },
-  'admin@drailza.com.br':      { nome:'Dra. Ilza Ezequiel',     plano:'admin',  planoBadge:'Admin',         premium:true,  isAdmin:true  },
-};
-
-// Rate limiting: 5 tentativas → 15min bloqueio
-const _loginTentativas = {};
-function checkRateLimit(email) {
-  const r = _loginTentativas[email];
-  if(!r) return null;
-  if(r.count >= 5 && (Date.now()-r.ts) < 15*60*1000) {
-    const min = Math.ceil((15*60*1000-(Date.now()-r.ts))/60000);
-    return `Muitas tentativas. Aguarde ${min} minuto${min>1?'s':''}.`;
+// ── Admin tabs ────────────────────────────────────────────────────────────────
+function adminTab(btn, tab){
+  btn.closest('div').querySelectorAll('.adm-tab').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  ['conteudos','assinantes','upload','chat','sala'].forEach(t=>{
+    const el=document.getElementById('adm-'+t);
+    if(el)el.style.display='none';
+  });
+  const target = document.getElementById('adm-'+tab);
+  if(target){
+    target.style.display = tab === 'chat' ? 'flex' : 'block';
   }
-  if((Date.now()-r.ts) >= 15*60*1000) { delete _loginTentativas[email]; return null; }
-  return null;
+  if(tab==='conteudos') loadConteudosAdmin();
+  if(tab==='assinantes') loadAssinantes();
+  if(tab==='sala') renderSalaQueue();
 }
-function registrarFalha(email) {
-  if(!_loginTentativas[email]) _loginTentativas[email]={count:0,ts:Date.now()};
-  _loginTentativas[email].count++;
-  _loginTentativas[email].ts = Date.now();
-  const r = 5-_loginTentativas[email].count;
-  return r>0 ? ` (${r} tentativa${r>1?'s':''} restante${r>1?'s':''})` : '';
+function setAcesso(tipo,btn){
+  btn.closest('div').querySelectorAll('.adm-tab').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+}
+function handleUpload(input){
+  if(!input.files[0])return;
+  const name=input.files[0].name;
+  document.getElementById('upload-titulo').value=name.replace(/\.[^.]+$/,'').replace(/_/g,' ');
+  alert('📁 Arquivo selecionado: '+name+'\n\nPreencha o título e clique em Publicar.\n\n(Em produção: arquivo enviado ao Supabase Storage)');
+}
+function publicarConteudo(){
+  const t=document.getElementById('upload-titulo').value;
+  if(!t.trim()){alert('Informe o título do conteúdo');return;}
+  alert('✅ Conteúdo "'+t+'" publicado!\n\nDisponível para todos os assinantes premium.\n\n(Em produção: salvo no Supabase e notificação push enviada)');
+  document.getElementById('upload-titulo').value='';
+}
+function renovarAcesso(){
+  alert('✅ Acesso renovado para Rosa Lima!\nNotificação enviada via WhatsApp.');
 }
 
-// Session timeout: 30min sem atividade
-let _sessionTimer = null;
-function iniciarSessionTimer() {
-  if(_sessionTimer) clearTimeout(_sessionTimer);
-  _sessionTimer = setTimeout(()=>{
-    alert('⚠️ Sessão encerrada por inatividade.');
-    confirmarSair();
-  }, 30*60*1000);
-}
-['mousedown','keydown','touchstart'].forEach(ev=>{
-  document.addEventListener(ev, ()=>{ if(_currentUser) iniciarSessionTimer(); }, {passive:true});
-});
-
+// ── Fila da Sala Virtual ──────────────────────────────────────────────────────
+const SALA_QUEUE = [
+  { id:1, nome:'Ana Paula Ferreira', plano:'360', premium:true,  hora:'08:32', iniciais:'AF', status:'aguardando' },
+  { id:2, nome:'Carlos Henrique Melo', plano:'basico', premium:false, hora:'08:47', iniciais:'CM', status:'aguardando' },
+];
 let _currentUser = null;
 
-// ════════════════════════════════════
-// CPF — MÁSCARA E VALIDAÇÃO
-// ════════════════════════════════════
-function maskCpf(input) {
-  let v = input.value.replace(/\D/g,'').slice(0,11);
-  if (v.length > 9) v = v.replace(/(\d{3})(\d{3})(\d{3})(\d{1,2})/,'$1.$2.$3-$4');
-  else if (v.length > 6) v = v.replace(/(\d{3})(\d{3})(\d{1,3})/,'$1.$2.$3');
-  else if (v.length > 3) v = v.replace(/(\d{3})(\d{1,3})/,'$1.$2');
-  input.value = v;
-  if (v.length === 14) validarCpfVisual(v.replace(/\D/g,''));
-  else { document.getElementById('cpf-ok').style.display='none'; document.getElementById('cpf-err').style.display='none'; document.getElementById('cpf-msg').style.display='none'; }
+function getHoraAtual(){
+  const n = new Date();
+  return String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0');
 }
 
-function calcDigCpf(cpf, len) {
-  let sum = 0;
-  for (let i=0; i<len; i++) sum += parseInt(cpf[i]) * (len+1-i);
-  const r = (sum*10)%11; return r===10||r===11 ? 0 : r;
-}
-
-function cpfValido(cpf) {
-  cpf = cpf.replace(/\D/g,'');
-  if (cpf.length!==11 || /^(\d)\1{10}$/.test(cpf)) return false;
-  return calcDigCpf(cpf,9)===parseInt(cpf[9]) && calcDigCpf(cpf,10)===parseInt(cpf[10]);
-}
-
-function validarCpfVisual(cpf) {
-  const ok  = document.getElementById('cpf-ok');
-  const err = document.getElementById('cpf-err');
-  const msg = document.getElementById('cpf-msg');
-  if (cpfValido(cpf)) {
-    ok.style.display='inline'; err.style.display='none'; msg.style.display='none';
-  } else {
-    ok.style.display='none'; err.style.display='inline'; msg.style.display='block';
+function enterSala(user){
+  // Verifica se já está na fila
+  const exists = SALA_QUEUE.find(p => p.nome === user.nome);
+  if(!exists){
+    const initials = user.nome.split(' ').map(x=>x[0]).slice(0,2).join('');
+    SALA_QUEUE.push({
+      id: SALA_QUEUE.length + 1,
+      nome: user.nome,
+      plano: user.plano,
+      premium: user.premium,
+      hora: getHoraAtual(),
+      iniciais: initials,
+      status: 'aguardando'
+    });
   }
+  // Atualizar badge de posição na tela do paciente
+  const pos = SALA_QUEUE.findIndex(p => p.nome === user.nome) + 1;
+  const badge = document.getElementById('fila-badge');
+  const posEl = document.getElementById('fila-pos');
+  if(badge){ badge.style.display = 'block'; }
+  if(posEl){ posEl.textContent = pos + 'º'; }
 }
 
-// fillLogin removido por segurança
-
-async function doLogin() {
-  const email = document.getElementById('login-email').value.trim().toLowerCase();
-  const senha = document.getElementById('login-senha').value;
-  const btn   = document.querySelector('#s-login .btn-gold');
-
-  if(!email || !senha) {
-    showLoginErr(btn, 'Preencha e-mail e senha.');
+function renderSalaQueue(){
+  const lista = document.getElementById('sala-lista');
+  const count = document.getElementById('sala-count');
+  if(!lista) return;
+  const ativos = SALA_QUEUE.filter(p => p.status === 'aguardando');
+  if(count) count.textContent = ativos.length;
+  if(ativos.length === 0){
+    lista.innerHTML = '<div class="sala-waiting"><div style="font-size:32px">🚪</div><div style="font-size:13px;font-weight:600;color:var(--brown)">Sala vazia</div><div style="font-size:12px;color:var(--txs)">Nenhum paciente aguardando</div></div>';
     return;
   }
+  lista.innerHTML = ativos.map((p,i) => `
+    <div class="sala-row">
+      <div class="fila-num">${i+1}</div>
+      <div class="sala-avatar" style="background:${p.premium?'var(--goldlt)':'#F0F0F0'};color:${p.premium?'var(--gold)':'#888'}">${p.iniciais}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:600;color:var(--brown);display:flex;align-items:center;gap:5px;flex-wrap:wrap">
+          ${p.nome}
+          ${p.premium
+            ? '<span class="badge-prem-mini">★ Premium</span>'
+            : '<span class="badge-normal">Normal</span>'}
+        </div>
+        <div style="font-size:10px;color:var(--txs);margin-top:2px">Entrou às ${p.hora}</div>
+      </div>
+      <button class="btn-sm" style="background:var(--goldlt);color:var(--gold);border:1px solid var(--goldbrd);cursor:pointer" onclick="atenderPaciente(${p.id},'${p.nome}')">Atender</button>
+    </div>
+  `).join('');
+}
 
-  // Rate limit check
-  const bloq = checkRateLimit(email);
-  if(bloq) { showLoginErr(btn, bloq); return; }
+function atenderPaciente(id, nome){
+  // Marcar como em atendimento
+  const p = SALA_QUEUE.find(x => x.id === id);
+  if(p) p.status = 'atendendo';
+  renderSalaQueue();
+  // Abrir aba Chat com contexto do paciente
+  const tabs = document.querySelectorAll('#s-admin .adm-tab');
+  tabs.forEach(t => t.classList.remove('on'));
+  const chatTab = Array.from(tabs).find(t => t.textContent.includes('Chat'));
+  if(chatTab) chatTab.classList.add('on');
+  ['conteudos','assinantes','upload','sala'].forEach(t=>{
+    const el=document.getElementById('adm-'+t); if(el) el.style.display='none';
+  });
+  const chatEl = document.getElementById('adm-chat');
+  if(chatEl) chatEl.style.display = 'flex';
+  // Mensagem de contexto no chat admin
+  const msgs = document.getElementById('adm-chat-msgs');
+  if(msgs){
+    msgs.innerHTML = '';
+    const ctx = document.createElement('div');
+    ctx.className = 'msg-r fadein';
+    ctx.innerHTML = `<div class="msg-from">Sistema</div>Atendendo: <strong>${nome}</strong> — ${p && p.premium ? '★ Plano 360°' : 'Portal Básico'}<div class="msg-time-r">${getHoraAtual()}</div>`;
+    msgs.appendChild(ctx);
+    const greet = document.createElement('div');
+    greet.className = 'msg-r fadein';
+    greet.innerHTML = `<div class="msg-from">Sugestão</div>Olá, ${nome.split(' ')[0]}! Em que posso ajudá-la hoje? 🌿<div class="msg-time-r">${getHoraAtual()}</div>`;
+    msgs.appendChild(greet);
+  }
+}
 
-  btn.textContent = '🔐 Verificando...';
+function adminSendMsg(){
+  const inp = document.getElementById('adm-chat-inp');
+  const txt = inp.value.trim(); if(!txt) return;
+  const msgs = document.getElementById('adm-chat-msgs');
+  const div = document.createElement('div');
+  div.className = 'msg-s fadein';
+  div.innerHTML = txt + '<div class="msg-time">agora</div>';
+  msgs.appendChild(div);
+  inp.value = '';
+  msgs.scrollTop = msgs.scrollHeight;
+}
+document.getElementById('adm-chat-inp') && document.getElementById('adm-chat-inp').addEventListener('keydown',e=>{if(e.key==='Enter')adminSendMsg();});
+
+// ── Pagamento ────────────────────────────────────────────────────────────────
+// ── LINKS DE PAGAMENTO (configure com seus links reais) ──────────────────────
+// Como criar:
+// Mercado Pago: https://www.mercadopago.com.br/cobrar → Criar link de pagamento
+// PagSeguro:    https://pagseguro.uol.com.br → Cobrança → Link de pagamento
+const PAYMENT_LINKS = {
+  mp_360:    "https://mpago.la/SEU_LINK_PLANO360",    // ← cole aqui seu link MP
+  mp_basico: "https://mpago.la/SEU_LINK_BASICO",      // ← cole aqui seu link MP
+  ps_360:    "https://pag.ae/SEU_LINK_PLANO360",      // ← cole aqui seu link PS
+  ps_basico: "https://pag.ae/SEU_LINK_BASICO",        // ← cole aqui seu link PS
+};
+
+// ── Pagamento — redireciona direto para MP ou PagSeguro ──────────────────────
+let _paymentPlan = null;
+
+function openPayment(plano) {
+  _paymentPlan = plano;
+  const titles = { '360': 'Plano Intestino 360°', basico: 'Portal Básico' };
+  const prices = { '360': 'R$ 3.000', basico: 'R$ 49/mês' };
+  const descs  = { '360': '3 consultas + portal + suporte por 6 meses', basico: 'Acesso mensal renovável' };
+  document.getElementById('payment-plan-name').textContent = titles[plano] || 'Plano';
+  document.getElementById('payment-price').textContent    = prices[plano]  || '';
+  document.getElementById('payment-desc').textContent     = descs[plano]   || '';
+  document.getElementById('modal-payment').style.display  = 'flex';
+}
+
+function goToPayment(gateway) {
+  const key   = gateway + '_' + _paymentPlan;
+  const url   = PAYMENT_LINKS[key];
+  const names = { mp: 'Mercado Pago', ps: 'PagSeguro' };
+  if (!url || url.includes('SEU_LINK')) {
+    // Demo: mostra instruções de configuração
+    alert(
+      '📋 CONFIGURAÇÃO NECESSÁRIA\n\n' +
+      '1. Acesse ' + (gateway === 'mp' ? 'mercadopago.com.br/cobrar' : 'pagseguro.uol.com.br') + '\n' +
+      '2. Crie um link de pagamento para "' + (_paymentPlan === '360' ? 'Plano 360° — R$ 3.000' : 'Portal Básico — R$ 49/mês') + '"\n' +
+      '3. Cole o link gerado em PAYMENT_LINKS.' + key + ' no código\n\n' +
+      'Em produção, o paciente seria redirecionado direto para o checkout do ' + names[gateway] + '.'
+    );
+    return;
+  }
+  // Produção: abre o checkout do gateway em nova aba
+  closePayment();
+  window.open(url, '_blank');
+}
+
+function closePayment()  { document.getElementById('modal-payment').style.display = 'none'; }
+function closePaymentOutside(e) { if (e.target === document.getElementById('modal-payment')) closePayment(); }
+
+// ── UPLOAD FIREBASE STORAGE ──────────────────────────────────────────────────
+let _uploadFile = null;
+
+function handleUpload(input) {
+  if (!input.files[0]) return;
+  _uploadFile = input.files[0];
+  const name = _uploadFile.name.replace(/\.[^.]+$/, '').replace(/_/g, ' ');
+  document.getElementById('upload-titulo').value = name;
+  // Detectar tipo automaticamente
+  const tipo = _uploadFile.type.startsWith('video') ? 'video'
+    : _uploadFile.type.startsWith('audio') ? 'audio'
+    : _uploadFile.name.endsWith('.pdf')     ? 'pdf'
+    : 'artigo';
+  document.getElementById('upload-tipo').value = tipo;
+  const size = (_uploadFile.size / 1024 / 1024).toFixed(1);
+  showUploadPreview(name, size, tipo);
+}
+
+function showUploadPreview(name, size, tipo) {
+  const prev = document.getElementById('upload-preview');
+  if (prev) prev.remove();
+  const emojis = { video:'🎬', audio:'🎙️', pdf:'📄', artigo:'📝' };
+  const div = document.createElement('div');
+  div.id = 'upload-preview';
+  div.style.cssText = 'display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--goldlt);border:1px solid var(--goldbrd);border-radius:10px;margin-bottom:10px';
+  div.innerHTML = `
+    <span style="font-size:22px">${emojis[tipo]||'📁'}</span>
+    <div style="flex:1;min-width:0">
+      <div style="font-size:12px;font-weight:600;color:var(--brown);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${name}</div>
+      <div style="font-size:10px;color:var(--txm)">${size} MB · Pronto para enviar</div>
+    </div>
+    <span style="font-size:18px;cursor:pointer;color:var(--txm)" onclick="clearUpload()">×</span>`;
+  document.getElementById('upload-titulo').parentNode.insertBefore(div, document.getElementById('upload-titulo').parentNode.firstChild.nextSibling);
+}
+
+function clearUpload() {
+  _uploadFile = null;
+  document.getElementById('file-input').value = '';
+  document.getElementById('upload-titulo').value = '';
+  const prev = document.getElementById('upload-preview');
+  if (prev) prev.remove();
+}
+
+async function publicarConteudo() {
+  const titulo = document.getElementById('upload-titulo').value.trim();
+  const tipo   = document.getElementById('upload-tipo').value;
+  const acesso = document.getElementById('acesso-premium').classList.contains('on') ? 'premium' : 'todos';
+
+  if (!titulo) { alert('Informe o título do conteúdo'); return; }
+  if (!_uploadFile) { alert('Selecione um arquivo para enviar'); return; }
+
+  const btn = document.getElementById('upload-btn');
   btn.disabled = true;
+  btn.innerHTML = '⏳ Enviando...';
 
   try {
     const fb = window._fb;
-    if(!fb || !fb.auth) throw new Error('Firebase não disponível');
+    if (!fb) throw new Error('Firebase não inicializado');
 
-    // Firebase Authentication — senha nunca fica no código
-    const cred = await fb.signInWithEmailAndPassword(fb.auth, email, senha);
-    const firebaseUser = cred.user;
+    // 1. Upload para Firebase Storage
+    const path = `conteudos/${tipo}/${Date.now()}_${_uploadFile.name}`;
+    const storageRef = fb.ref(fb.storage, path);
+    const uploadTask = fb.uploadBytesResumable(storageRef, _uploadFile);
 
-    // Busca perfil local (plano, nome, etc)
-    const perfil = PERFIS[email] || {
-      nome: firebaseUser.displayName || email.split('@')[0],
-      plano: 'basico', planoBadge: 'Portal Básico',
-      premium: false, isAdmin: false
-    };
+    // Progress bar
+    const progress = document.getElementById('upload-progress');
+    if (progress) progress.style.display = 'block';
 
-    _currentUser = { ...perfil, email, uid: firebaseUser.uid };
-    delete _loginTentativas[email]; // limpa tentativas
-    iniciarSessionTimer();
-    applySession(_currentUser);
-    if(_currentUser.isAdmin) goTo('admin');
-    else goTo('home');
+    await new Promise((resolve, reject) => {
+      uploadTask.on('state_changed',
+        snap => {
+          const pct = Math.round(snap.bytesTransferred / snap.totalBytes * 100);
+          if (progress) progress.style.width = pct + '%';
+          btn.innerHTML = `⏳ Enviando ${pct}%...`;
+        },
+        reject,
+        resolve
+      );
+    });
 
-  } catch(err) {
-    console.error('[Portal] Erro login — code:', err.code, '| msg:', err.message);
-    const aviso = registrarFalha(email);
-    let msg;
-    switch(err.code) {
-      case 'auth/invalid-credential':
-      case 'auth/wrong-password':
-      case 'auth/user-not-found':
-        msg = 'E-mail ou senha incorretos.' + aviso;
-        break;
-      case 'auth/operation-not-allowed':
-        msg = 'Login por e-mail não está ativo. Contate o suporte.';
-        break;
-      case 'auth/user-disabled':
-        msg = 'Conta desativada. Contate o suporte.';
-        break;
-      case 'auth/too-many-requests':
-        msg = 'Muitas tentativas. Aguarde alguns minutos.';
-        break;
-      case 'auth/network-request-failed':
-        msg = 'Sem conexão. Verifique sua internet.';
-        break;
-      case 'auth/invalid-email':
-        msg = 'E-mail inválido.';
-        break;
-      default:
-        msg = 'Erro ao entrar. Tente novamente. (' + (err.code || 'desconhecido') + ')';
-    }
-    showLoginErr(btn, msg);
+    // 2. Pegar URL pública
+    const downloadURL = await fb.getDownloadURL(uploadTask.snapshot.ref);
+
+    // 3. Salvar metadados no Firestore
+    await fb.addDoc(fb.collection(fb.db, 'conteudos'), {
+      titulo, tipo, acesso, url: downloadURL,
+      tamanho: (_uploadFile.size / 1024 / 1024).toFixed(1) + ' MB',
+      criadoEm: fb.serverTimestamp(),
+    });
+
+    btn.innerHTML = '✅ Publicado com sucesso!';
+    btn.style.background = 'var(--green)';
+    setTimeout(() => {
+      btn.disabled = false;
+      btn.innerHTML = '⬆️ Publicar conteúdo';
+      btn.style.background = '';
+      clearUpload();
+      if (progress) { progress.style.width = '0'; progress.style.display = 'none'; }
+      loadConteudosAdmin();
+    }, 2000);
+
+  } catch (err) {
+    console.error(err);
+    // Fallback demo (Firebase não configurado)
+    btn.disabled = false;
+    btn.innerHTML = '⬆️ Publicar conteúdo';
+    btn.style.background = '';
+    alert(
+      '✅ DEMO — Em produção o arquivo seria enviado para:\n\n' +
+      '📦 Firebase Storage → conteudos/' + tipo + '/\n' +
+      '📋 Firestore → coleção "conteudos"\n\n' +
+      'Título: ' + titulo + '\n' +
+      'Tipo: ' + tipo + ' · Acesso: ' + acesso + '\n\n' +
+      'Configure o firebaseConfig no código para ativar.'
+    );
   }
 }
 
-function showLoginErr(btn, msg) {
-  btn.disabled = false;
-  btn.style.background = 'var(--red)';
-  btn.textContent = msg;
-  setTimeout(() => {
-    btn.style.background = '';
-    btn.textContent = '→ Entrar no Portal';
-    btn.disabled = false;
-  }, 4500);
+// ── Carregar conteúdos do Firestore no painel admin ──────────────────────────
+async function loadConteudosAdmin() {
+  try {
+    const fb = window._fb;
+    if (!fb) return;
+    const snap = await fb.getDocs(fb.collection(fb.db, 'conteudos'));
+    const list = document.getElementById('admin-content-list');
+    if (!list) return;
+    list.innerHTML = '';
+    snap.forEach(d => {
+      const c = d.data();
+      const emojis = { video:'🎬', audio:'🎙️', pdf:'📄', artigo:'📝' };
+      const row = document.createElement('div');
+      row.className = 'content-row';
+      row.style.cssText = 'display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--brd)';
+      row.innerHTML = `
+        <div class="content-type-ic" style="background:var(--goldlt);font-size:16px;width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0">${emojis[c.tipo]||'📁'}</div>
+        <div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:600;color:var(--brown);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.titulo}</div><div style="font-size:10px;color:var(--txs)">${c.tipo} · ${c.tamanho||''} · ${c.acesso==='premium'?'🔒 Premium':'Todos'}</div></div>
+        <button class="btn-sm" style="background:var(--redbg);color:var(--red);border:none;cursor:pointer" onclick="deletarConteudo('${d.id}',this)">Remover</button>`;
+      list.appendChild(row);
+    });
+  } catch(e) { /* Firebase não configurado ainda */ }
 }
 
-function applySession(user) {
-  document.getElementById('home-nome').textContent = user.nome.split(' ').slice(0,2).join(' ');
-  document.getElementById('home-plano-badge').textContent = user.planoBadge;
-  document.getElementById('nav-admin').style.display = user.isAdmin ? 'flex' : 'none';
-  document.getElementById('nav-sair').style.display  = 'flex';
+async function deletarConteudo(id, btn) {
+  if (!confirm('Remover este conteúdo?')) return;
+  try {
+    const fb = window._fb;
+    await fb.deleteDoc(fb.doc(fb.db, 'conteudos', id));
+    btn.closest('.content-row').remove();
+  } catch(e) { alert('Erro ao remover. Verifique o Firebase.'); }
 }
 
-function pedirSair() { document.getElementById('modal-sair').style.display = 'flex'; }
-function confirmarSair() {
-  document.getElementById('modal-sair').style.display = 'none';
-  if(_sessionTimer) clearTimeout(_sessionTimer);
-  const fb = window._fb;
-  if(fb && fb.auth) fb.signOut(fb.auth).catch(()=>{});
-  if (fb && _chatRef)    { fb.off(_chatRef);    _chatRef = null; }
-  if (fb && _admChatRef) { fb.off(_admChatRef); _admChatRef = null; }
-  if (fb && _salaListener) { fb.off(fb.ref(fb.rtdb,'salas_index')); _salaListener = null; }
+// ── Carregar assinantes do Firestore ─────────────────────────────────────────
+async function loadAssinantes() {
+  try {
+    const fb = window._fb;
+    if (!fb) return;
+    const snap = await fb.getDocs(fb.collection(fb.db, 'assinantes'));
+    const list = document.getElementById('assinantes-list');
+    if (!list) return;
+    list.innerHTML = '';
+    snap.forEach(d => {
+      const a = d.data();
+      const initials = a.nome.split(' ').map(x=>x[0]).slice(0,2).join('');
+      const isPremium = a.plano === '360';
+      const row = document.createElement('div');
+      row.className = 'assinante-row';
+      row.innerHTML = `
+        <div style="width:32px;height:32px;border-radius:50%;background:var(--goldlt);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--gold);flex-shrink:0">${initials}</div>
+        <div style="flex:1"><div style="font-size:13px;font-weight:600;color:var(--brown);display:flex;align-items:center;gap:5px">${a.nome}${isPremium?'<span style="color:#D4A825">★</span>':''}</div><div style="font-size:10px;color:var(--txs)">${isPremium?'Plano 360°':'Portal Básico'} · ${a.status}</div></div>
+        <button class="btn-sm" style="background:${a.status==='Ativo'?'var(--greenbg)':'var(--redbg)'};color:${a.status==='Ativo'?'var(--green)':'var(--red)'};border:none;cursor:pointer">${a.status==='Ativo'?'Ativo':'Renovar'}</button>`;
+      list.appendChild(row);
+    });
+  } catch(e) { /* Firebase não configurado */ }
+}
+
+// ── Usuários de demonstração ──────────────────────────────────────────────────
+const USUARIOS = {
+  'premium360@drailza.com.br': {
+    senha: 'Ilza@360',
+    nome: 'Maria Aparecida Santos',
+    plano: '360',
+    planoBadge: 'Plano 360°',
+    premium: true,
+    validade: 'Ativo até 10/2026',
+  },
+  'basico@drailza.com.br': {
+    senha: 'Ilza@49',
+    nome: 'João Carlos Oliveira',
+    plano: 'basico',
+    planoBadge: 'Portal Básico',
+    premium: false,
+    validade: 'Mensal · R$ 49,90',
+  },
+  'admin@drailza.com.br': {
+    senha: 'Ilza@Admin2026',
+    nome: 'Dra. Ilza Ezequiel',
+    plano: 'admin',
+    planoBadge: 'Admin',
+    premium: true,
+    isAdmin: true,
+    validade: 'Acesso total',
+  },
+};
+
+function doLogout() {
   _currentUser = null;
+  // Resetar campos de login
   document.getElementById('login-email').value = '';
   document.getElementById('login-senha').value = '';
+  // Esconder Admin no nav
+  const navAdmin = document.getElementById('nav-admin');
+  if(navAdmin) navAdmin.style.display = 'none';
+  // Remover banner de upgrade se existir
+  const banner = document.getElementById('home-upgrade-banner');
+  if (banner) banner.style.display = 'none';
+  // Remover aviso de upgrade no conteúdo se existir
+  const notice = document.getElementById('upgrade-notice');
+  if (notice) notice.remove();
+  // Restaurar opacidade dos conteúdos
+  document.querySelectorAll('[data-tipo]').forEach(el => {
+    el.style.opacity = '';
+    el.style.pointerEvents = '';
+  });
   goTo('login');
 }
 
-// ════════════════════════════════════
-// CHAT PACIENTE
-// Caminhos: /salas/{chatId}/msgs  e  /salas_index/{chatId}
-// Campo de texto: "txt"  (igual ao CRM)
-// ════════════════════════════════════
-let _chatRef  = null;
-let _chatId   = null;
-
-function getChatId(user) {
-  return (user.email || user.nome).replace(/[^a-z0-9]/gi,'_').toLowerCase();
+function fillLogin(email, senha) {
+  document.getElementById('login-email').value = email;
+  document.getElementById('login-senha').value = senha;
+  document.getElementById('login-email').dispatchEvent(new Event('input'));
 }
 
-function getHora() {
-  const n = new Date();
-  return String(n.getHours()).padStart(2,'0') + ':' + String(n.getMinutes()).padStart(2,'0');
-}
+function doLogin() {
+  const email = document.getElementById('login-email').value.trim().toLowerCase();
+  const senha = document.getElementById('login-senha').value;
+  const user  = USUARIOS[email];
 
-function _esc(t) {
-  return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
+  if (!user || user.senha !== senha) {
+    // Shake no botão
+    const btn = document.querySelector('#s-login .btn-gold');
+    btn.style.background = 'var(--red)';
+    btn.textContent = 'E-mail ou senha incorretos';
+    setTimeout(() => { btn.style.background = ''; btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4M10 17l5-5-5-5M15 12H3"/></svg> Entrar no Portal'; }, 2000);
+    return;
+  }
 
-function appendMsg(container, texto, tipo, nome, hora) {
-  const div = document.createElement('div');
-  if (tipo === 'pac') {
-    div.className = 'msg-s';
-    div.innerHTML = _esc(texto) + '<div class="msg-time">' + hora + '</div>';
-  } else if (tipo === 'adm' || tipo === 'dra') {
-    div.className = 'msg-r fadein';
-    div.innerHTML = '<div class="msg-from">Equipe Dra. Ilza</div>' + _esc(texto) + '<div class="msg-time-r">' + hora + '</div>';
-  } else if (tipo === 'pac_adm') {
-    div.className = 'msg-r fadein';
-    div.innerHTML = '<div class="msg-from">' + _esc(nome||'Paciente') + '</div>' + _esc(texto) + '<div class="msg-time-r">' + hora + '</div>';
+  // Personalizar home com dados do usuário logado
+  applyUserSession(user);
+  if (user.isAdmin) {
+    goTo('admin');
   } else {
-    div.className = 'msg-r fadein';
-    div.style.cssText = 'background:var(--goldlt);border-color:var(--goldbrd);font-size:10px;color:var(--txm);align-self:center;max-width:90%';
-    div.innerHTML = '<div class="msg-from">Sistema</div>' + _esc(texto);
+    goTo('home');
   }
-  container.appendChild(div);
-  container.scrollTop = container.scrollHeight;
 }
 
-// Paciente entra → registra em /salas_index/ e escuta /salas/{chatId}/msgs
-function enterSala(user) {
-  _chatId = getChatId(user);
-  const fb = window._fb;
-  if (!fb) return;
+function applyUserSession(user) {
+  _currentUser = user;
 
-  // Registra na fila (salas_index)
-  fb.set(fb.ref(fb.rtdb, 'salas_index/' + _chatId), {
-    id:        _chatId,
-    nm:        user.nome,
-    plano:     user.planoBadge || user.plano,
-    premium:   user.premium,
-    iniciais:  user.nome.split(' ').map(x=>x[0]).slice(0,2).join('').toUpperCase(),
-    ultimaTxt: '',
-    ultimaTs:  getHora(),
-    tsNum:     Date.now(),
-    status:    'aguardando',
-  });
+  // Mostrar/ocultar Admin no nav
+  const navAdmin = document.getElementById('nav-admin');
+  if(navAdmin) navAdmin.style.display = user.isAdmin ? 'flex' : 'none';
 
-  // Escuta mensagens em tempo real
-  if (_chatRef) fb.off(_chatRef);
-  _chatRef = fb.ref(fb.rtdb, 'salas/' + _chatId + '/msgs');
-  const msgs = document.getElementById('chat-msgs');
-  msgs.innerHTML = '';
+  // Para admin, não precisamos customizar a home
+  if(user.isAdmin) return;
 
-  fb.onValue(_chatRef, snap => {
-    msgs.innerHTML = '';
-    const data = snap.val();
-    if (!data) {
-      appendMsg(msgs, 'Olá! Como posso ajudar você hoje? 🌿', 'adm', 'Equipe', '—');
-      return;
+  // Nome na home
+  const nameEl = document.querySelector('#s-home .cormorant-name');
+  if (nameEl) nameEl.textContent = user.nome.split(' ')[0] + ' ' + (user.nome.split(' ')[1]||'');
+
+  // Badge de plano
+  const badgeEl = document.querySelector('#s-home .badge-premium span:last-child');
+  if (badgeEl) badgeEl.textContent = user.planoBadge;
+
+  // Estrela — só para premium
+  const starEl = document.querySelector('#s-home .nome-star');
+  if (starEl) starEl.style.display = user.premium ? 'inline' : 'none';
+
+  // Banner upgrade na home — exibir para plano básico
+  const upgradeBanner = document.getElementById('home-upgrade-banner');
+  if (upgradeBanner) upgradeBanner.style.display = user.premium ? 'none' : 'block';
+
+  // Conteúdo premium — bloquear se não for premium
+  if (!user.premium) {
+    document.querySelectorAll('.badge-premium').forEach(el => {
+      el.style.background = '#F0F0F0';
+      el.style.color = '#AAA';
+      el.style.borderColor = '#DDD';
+    });
+    document.querySelectorAll('[data-tipo]').forEach(el => {
+      el.style.opacity = '.5';
+      el.style.pointerEvents = 'none';
+    });
+    // Aviso na aba de conteúdo
+    const cl = document.getElementById('content-list');
+    if (cl && !document.getElementById('upgrade-notice')) {
+      const notice = document.createElement('div');
+      notice.id = 'upgrade-notice';
+      notice.style.cssText = 'background:var(--goldlt);border:1px solid var(--goldbrd);border-radius:12px;padding:14px 16px;text-align:center;margin-bottom:10px';
+      notice.innerHTML = '<div style="font-size:13px;font-weight:700;color:var(--brown);margin-bottom:4px">Upgrade para Plano 360°</div><div style="font-size:12px;color:var(--txm);margin-bottom:10px">Acesse todo o conteúdo premium com o Plano 360°</div><button class="btn-gold" style="width:auto;padding:8px 20px;font-size:12px" onclick="goTo(\'planos\')">★ Ver planos</button>';
+      cl.insertBefore(notice, cl.firstChild);
     }
-    Object.values(data)
-      .sort((a,b) => (a.tsNum||0)-(b.tsNum||0))
-      .forEach(m => { appendMsg(msgs, m.txt, m.de, m.nome, m.ts); });
-  });
-}
-
-// Paciente envia → /salas/{chatId}/msgs (campo: "txt")
-function sendMsg() {
-  const inp = document.getElementById('chat-inp');
-  const txt = inp.value.trim(); if (!txt) return;
-  inp.value = '';
-  const fb = window._fb;
-  if (!fb || !_chatId) return;
-  const ts = getHora();
-  fb.push(fb.ref(fb.rtdb, 'salas/' + _chatId + '/msgs'), {
-    txt, de: 'pac', nome: _currentUser.nome, ts, tsNum: Date.now(), lida: false
-  });
-  fb.update(fb.ref(fb.rtdb, 'salas_index/' + _chatId), {
-    ultimaTxt: txt.substring(0,60), ultimaTs: ts, tsNum: Date.now()
-  });
-}
-document.getElementById('chat-inp').addEventListener('keydown', e => { if(e.key==='Enter') sendMsg(); });
-
-// ════════════════════════════════════
-// ADMIN — SALA em tempo real via /salas_index/
-// ════════════════════════════════════
-const SALA_LOCAL = [];
-let _salaListener = null;
-let _pacAtual = null;
-let _admChatRef = null;
-
-function iniciarListenerSala() {
-  const fb = window._fb;
-  if (!fb) return;
-  if (_salaListener) { fb.off(fb.ref(fb.rtdb,'salas_index')); }
-
-  _salaListener = fb.onValue(fb.ref(fb.rtdb, 'salas_index'), snap => {
-    const data = snap.val() || {};
-    SALA_LOCAL.length = 0;
-    Object.values(data).forEach(p => SALA_LOCAL.push(p));
-    SALA_LOCAL.sort((a,b) => (a.tsNum||0)-(b.tsNum||0));
-    renderSala();
-    const n = SALA_LOCAL.filter(p => p.status !== 'encerrado').length;
-    const tabSala = document.getElementById('tab-sala');
-    if (tabSala) tabSala.innerHTML = n > 0
-      ? '🚪 Sala <span style="background:var(--red);color:#fff;border-radius:99px;padding:1px 6px;font-size:9px;margin-left:3px">' + n + '</span>'
-      : '🚪 Sala';
-  });
-}
-
-function renderSala() {
-  const lista    = document.getElementById('sala-lista');
-  const atenLista= document.getElementById('sala-atendendo-lista');
-  const atenWrap = document.getElementById('sala-atendendo-wrap');
-  const count    = document.getElementById('sala-count');
-  if (!lista) return;
-
-  const aguardando = SALA_LOCAL.filter(p => p.status === 'aguardando');
-  const atendendo  = SALA_LOCAL.filter(p => p.status === 'atendendo');
-  if (count) count.textContent = aguardando.length;
-
-  if (atendendo.length > 0) {
-    atenWrap.style.display = 'block';
-    atenLista.innerHTML = atendendo.map(p => `
-      <div class="sala-row">
-        <div class="sala-avatar" style="background:${p.premium?'var(--goldlt)':'#F0F0F0'};color:${p.premium?'var(--gold)':'#888'}">${p.iniciais||'?'}</div>
-        <div style="flex:1"><div style="font-size:13px;font-weight:600;color:var(--brown)">${_esc(p.nm)} ${p.premium?'<span class="badge-prem-mini">★</span>':''}</div><div style="font-size:10px;color:var(--green)">● Em atendimento</div></div>
-        <div style="display:flex;gap:5px">
-          <button class="btn-sm" style="background:var(--goldlt);color:var(--gold);border:1px solid var(--goldbrd)" onclick="abrirChatAdmin('${p.id}','${_esc(p.nm)}',${!!p.premium})">Chat</button>
-          <button class="btn-sm" style="background:var(--redbg);color:var(--red);border:1px solid #e0b0b0" onclick="_pacAtual='${p.id}';document.getElementById('modal-encerrar').style.display='flex'">Encerrar</button>
-        </div>
-      </div>`).join('');
-  } else { atenWrap.style.display = 'none'; }
-
-  if (aguardando.length === 0) {
-    lista.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;gap:10px;text-align:center"><div style="font-size:32px">🚪</div><div style="font-size:13px;font-weight:600;color:var(--brown)">Fila vazia</div><div style="font-size:12px;color:var(--txs)">Nenhum paciente aguardando</div></div>';
-    return;
   }
-  lista.innerHTML = aguardando.map((p, i) => `
-    <div class="sala-row">
-      <div class="fila-num">${i+1}</div>
-      <div class="sala-avatar" style="background:${p.premium?'var(--goldlt)':'#F0F0F0'};color:${p.premium?'var(--gold)':'#888'}">${p.iniciais||'?'}</div>
-      <div style="flex:1">
-        <div style="font-size:13px;font-weight:600;color:var(--brown)">${_esc(p.nm)} ${p.premium?'<span class="badge-prem-mini">★</span>':''}</div>
-        <div style="font-size:10px;color:var(--txs)">${p.ultimaTxt?'"'+_esc(p.ultimaTxt.substring(0,40))+'"':'Aguardando...'} · ${p.ultimaTs||''}</div>
-      </div>
-      <button class="btn-sm" style="background:var(--goldlt);color:var(--gold);border:1px solid var(--goldbrd)" onclick="atenderPaciente('${p.id}','${_esc(p.nm)}',${!!p.premium})">Atender</button>
-    </div>`).join('');
 }
 
-function atenderPaciente(chatId, nome, premium) {
-  const fb = window._fb;
-  fb.update(fb.ref(fb.rtdb, 'salas_index/' + chatId), { status: 'atendendo' });
-  abrirChatAdmin(chatId, nome, premium);
-}
-
-// Admin abre chat → lê /salas/{chatId}/msgs
-function abrirChatAdmin(chatId, nome, premium) {
-  _pacAtual = chatId;
-  document.getElementById('adm-assinantes').style.display = 'none';
-  document.getElementById('adm-sala').style.display = 'none';
-  document.getElementById('adm-enviar').style.display = 'none';
-  document.getElementById('adm-chat').style.display = 'flex';
-  document.querySelectorAll('#s-admin .adm-tab').forEach(t => t.classList.remove('on'));
-  document.getElementById('adm-chat-paciente').textContent = (premium?'★ ':'') + nome;
-  document.getElementById('btn-encerrar').style.display = 'flex';
-
-  const fb = window._fb;
-  if (_admChatRef) fb.off(_admChatRef);
-  _admChatRef = fb.ref(fb.rtdb, 'salas/' + chatId + '/msgs');
-
-  const msgs = document.getElementById('adm-chat-msgs');
-  msgs.innerHTML = '';
-  appendMsg(msgs, 'Atendendo: ' + nome + (premium?' · ★ Plano 360°':' · Portal Básico'), 'sis', '', getHora());
-
-  fb.onValue(_admChatRef, snap => {
-    const sysHtml = msgs.children[0] ? msgs.children[0].outerHTML : '';
-    msgs.innerHTML = sysHtml;
-    const data = snap.val();
-    if (!data) { msgs.scrollTop = msgs.scrollHeight; return; }
-    Object.values(data).sort((a,b) => (a.tsNum||0)-(b.tsNum||0)).forEach(m => {
-      appendMsg(msgs, m.txt, m.de === 'pac' ? 'pac_adm' : 'adm', m.nome, m.ts);
-    });
-    msgs.scrollTop = msgs.scrollHeight;
-  });
-}
-
-// Admin envia → /salas/{chatId}/msgs (campo: "txt", de: "dra")
-function adminSendMsg() {
-  const inp = document.getElementById('adm-chat-inp');
-  const txt = inp.value.trim(); if (!txt || !_pacAtual) return;
-  inp.value = '';
-  const fb = window._fb;
-  const ts = getHora();
-  fb.push(fb.ref(fb.rtdb, 'salas/' + _pacAtual + '/msgs'), {
-    txt, de: 'dra', nome: 'Equipe Dra. Ilza', ts, tsNum: Date.now(), lida: true
-  });
-  fb.update(fb.ref(fb.rtdb, 'salas_index/' + _pacAtual), {
-    ultimaTxt: '← ' + txt.substring(0,50), ultimaTs: ts, tsNum: Date.now()
-  });
-}
-document.getElementById('adm-chat-inp').addEventListener('keydown', e => { if(e.key==='Enter') adminSendMsg(); });
-
-function voltarParaSala() {
-  if (_admChatRef) { const fb = window._fb; fb.off(_admChatRef); _admChatRef = null; }
-  document.getElementById('adm-chat').style.display = 'none';
-  document.getElementById('adm-sala').style.display = 'block';
-  document.getElementById('btn-encerrar').style.display = 'none';
-  document.getElementById('adm-chat-paciente').textContent = '—';
-  renderSala();
-}
-
-function pedirEncerrar() { document.getElementById('modal-encerrar').style.display = 'flex'; }
-
-// Encerrar: envia msg de encerramento e remove de /salas_index/
-function confirmarEncerrar() {
-  document.getElementById('modal-encerrar').style.display = 'none';
-  if (!_pacAtual) return;
-  const txt = document.getElementById('msg-encerramento').value.trim();
-  const fb = window._fb;
-  const ts = getHora();
-  if (txt) {
-    fb.push(fb.ref(fb.rtdb, 'salas/' + _pacAtual + '/msgs'), {
-      txt, de: 'dra', nome: 'Equipe Dra. Ilza', ts, tsNum: Date.now(), lida: true
-    });
-  }
-  setTimeout(() => fb.remove(fb.ref(fb.rtdb, 'salas_index/' + _pacAtual)), 800);
-  if (_admChatRef) { fb.off(_admChatRef); _admChatRef = null; }
-  _pacAtual = null;
-  voltarParaSala();
-}
-
-// ════════════════════════════════════
-// ADMIN TABS
-// ════════════════════════════════════
-function adminTab(btn, tab) {
-  document.querySelectorAll('#s-admin .adm-tab').forEach(b => b.classList.remove('on'));
-  btn.classList.add('on');
-  ['assinantes','chat','sala','enviar'].forEach(t => {
-    const el = document.getElementById('adm-'+t);
-    if (el) el.style.display = 'none';
-  });
-  const target = document.getElementById('adm-'+tab);
-  if (target) target.style.display = tab === 'chat' ? 'flex' : 'block';
-  if (tab === 'assinantes') loadAssinantes();
-  if (tab === 'sala') renderSala();
-}
-
-// ════════════════════════════════════
-// ASSINANTES
-// ════════════════════════════════════
-function loadAssinantes() {
-  const list = document.getElementById('assinantes-list');
-  if (!list) return;
-  const pacs = Object.entries(PERFIS).filter(([,u]) => !u.isAdmin).map(([email,u]) => ({...u,email}));
-  list.innerHTML = pacs.map(p => `
-    <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--brd)">
-      <div style="width:32px;height:32px;border-radius:50%;background:${p.premium?'var(--goldlt)':'#f0f0f0'};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:${p.premium?'var(--gold)':'#aaa'};flex-shrink:0">${p.nome.split(' ').map(x=>x[0]).slice(0,2).join('')}</div>
-      <div style="flex:1"><div style="font-size:13px;font-weight:600;color:var(--brown)">${p.nome} ${p.premium?'★':''}</div><div style="font-size:10px;color:var(--txs)">${p.planoBadge} · ${p.email}</div></div>
-      <span class="badge-ativo">✓ Ativo</span>
-    </div>`).join('');
-}
-
-function enviarMensagem() {
-  const msg = document.getElementById('enviar-msg').value.trim();
-  if (!msg) { alert('Digite uma mensagem'); return; }
-  alert('✅ Mensagem enviada!\n\n"' + msg.substring(0,80) + '"');
-  document.getElementById('enviar-msg').value = '';
-}
-
-// ════════════════════════════════════
-// MODAL ASSINAR — escopo global
-// ════════════════════════════════════
-const PLANOS_CONFIG = {
-  '360': {
-    icon: '★',
-    titulo: 'Plano Intestino 360°',
-    preco: 'R$ 3.000',
-    desc: '3 consultas + portal 6 meses + suporte prioritário',
-    valorCentavos: 300000,
-    mpLink: '',
-    itens: [
-      '✅ 3 consultas presenciais com Dra. Ilza',
-      '✅ Acesso ao portal por 6 meses',
-      '✅ Suporte prioritário via Sala Virtual',
-      '✅ Conteúdo exclusivo premium',
-      '✅ Acompanhamento personalizado',
-    ],
-  },
-  'basico': {
-    icon: '☆',
-    titulo: 'Portal Básico',
-    preco: 'R$ 49/mês',
-    desc: 'Acesso ao conteúdo exclusivo e Sala Virtual',
-    valorCentavos: 4900,
-    mpLink: '',
-    itens: [
-      '✅ Acesso ao conteúdo exclusivo',
-      '✅ Lives e webinars gravados',
-      '✅ Protocolos clínicos em PDF',
-      '✅ Sala Virtual (chat com equipe)',
-      '✅ Cancele quando quiser',
-    ],
-  },
-};
-let _planoAtual = null;
-
-function abrirModalAssinar(plano) {
-  _planoAtual = plano;
-  const cfg = PLANOS_CONFIG[plano];
-  document.getElementById('modal-plano-icon').textContent = cfg.icon;
-  document.getElementById('modal-plano-titulo').textContent = cfg.titulo;
-  document.getElementById('modal-plano-preco').textContent = cfg.preco;
-  document.getElementById('modal-plano-desc').textContent = cfg.desc;
-  document.getElementById('modal-plano-itens').innerHTML = cfg.itens.map(i =>
-    '<div style="display:flex;align-items:flex-start;gap:6px">' + i + '</div>'
-  ).join('');
-  document.getElementById('assinar-nome').value = '';
-  document.getElementById('assinar-cpf').value = '';
-  document.getElementById('assinar-tel').value = '';
-  document.getElementById('assinar-email').value = '';
-  document.getElementById('cpf-ok').style.display = 'none';
-  document.getElementById('cpf-err').style.display = 'none';
-  document.getElementById('cpf-msg').style.display = 'none';
-  // Reset steps
-  document.getElementById('assinar-step1').style.display = 'block';
-  document.getElementById('assinar-step2').style.display = 'none';
-  document.getElementById('assinar-step3').style.display = 'none';
-  document.getElementById('modal-assinar').style.display = 'flex';
-}
-
-function fecharModalAssinar() {
-  document.getElementById('modal-assinar').style.display = 'none';
-  _planoAtual = null;
-}
-
-function voltarStep1() {
-  document.getElementById('assinar-step2').style.display = 'none';
-  document.getElementById('assinar-step1').style.display = 'block';
-}
-
-function irParaPagamento() {
-  const nome  = document.getElementById('assinar-nome').value.trim();
-  const email = document.getElementById('assinar-email').value.trim();
-  const cpf = document.getElementById('assinar-cpf').value.trim();
-  if (!nome)  { document.getElementById('assinar-nome').focus();  alert('Por favor informe seu nome.'); return; }
-  if (!cpf || !cpfValido(cpf)) { document.getElementById('assinar-cpf').focus(); alert('Por favor informe um CPF válido.'); return; }
-  if (!email) { document.getElementById('assinar-email').focus(); alert('Por favor informe seu e-mail.'); return; }
-  const cfg = PLANOS_CONFIG[_planoAtual];
-  document.getElementById('pay-titulo-resumo').textContent = cfg.titulo;
-  document.getElementById('pay-preco-resumo').textContent  = cfg.preco;
-  document.getElementById('pay-nome-resumo').textContent   = nome;
-  document.getElementById('pay-email-conf').textContent    = email;
-  document.getElementById('assinar-step1').style.display = 'none';
-  document.getElementById('assinar-step2').style.display = 'block';
-}
-
-function pagarMercadoPago() {
-  document.getElementById('modal-mp-confirm').style.display = 'flex';
-}
-
-function abrirMercadoPago() {
-  document.getElementById('modal-mp-confirm').style.display = 'none';
-  const cfg = PLANOS_CONFIG[_planoAtual];
-  const nome  = document.getElementById('assinar-nome').value.trim();
-  const cpf   = document.getElementById('assinar-cpf').value.trim();
-  const email = document.getElementById('assinar-email').value.trim();
-  const tel   = document.getElementById('assinar-tel').value.trim();
-  // Abre link do Mercado Pago
-  const link = cfg.mpLink;
-  if (!link || !link.startsWith('https://')) {
-    mostrarAvisoLinkMP();
-    return;
-  }
-  window.open(link, '_blank');
-  fecharModalAssinar();
-}
-
-function mostrarAvisoLinkMP() {
-  document.getElementById('modal-mp-aviso').style.display = 'flex';
-}
-
-function enviarEmailInteresse() {
-  const nome  = document.getElementById('assinar-nome').value.trim();
-  const cpf   = document.getElementById('assinar-cpf').value.trim();
-  const email = document.getElementById('assinar-email').value.trim();
-  const tel   = document.getElementById('assinar-tel').value.trim();
-  const cfg   = PLANOS_CONFIG[_planoAtual];
-  // Abre cliente de e-mail
-  const assunto = encodeURIComponent('Interesse: ' + cfg.titulo + ' - Portal Dra. Ilza');
-  const corpo = encodeURIComponent(
-    'Ola!\n\nTenho interesse em assinar o ' + cfg.titulo + ' (' + cfg.preco + ').\n\n' +
-    'Nome: ' + nome + '\n' +
-    'CPF: ' + cpf + '\n' +
-    (tel ? 'Telefone: ' + tel + '\n' : '') +
-    'E-mail retorno: ' + email + '\n\n' +
-    'Aguardo o contato da equipe. Obrigada!'
-  );
-  window.open('mailto:ilzaeneta@gmail.com?subject=' + assunto + '&body=' + corpo, '_blank');
-  // Mostra confirmação
-  document.getElementById('assinar-step2').style.display = 'none';
-  document.getElementById('assinar-step3').style.display = 'block';
-}
-
-document.addEventListener('DOMContentLoaded', function() {
-  var mo = document.getElementById('modal-assinar');
-  if (mo) mo.addEventListener('click', function(e) { if (e.target === this) fecharModalAssinar(); });
-});
-
+// Init
 goTo('login');
 </script>
 </body>
