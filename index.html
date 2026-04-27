@@ -210,7 +210,72 @@ body{height:100%;min-height:100vh;min-height:-webkit-fill-available;background:#
       <div style="font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:600;color:var(--brown)" id="home-nome">—</div>
     </div>
   </div>
-  <div class="sec-hd">Conteúdo exclusivo</div>
+  <!-- Ferramentas Admin (visíveis só para admin) -->
+  <div id="home-admin-tools" style="display:none;padding:0 14px;margin-bottom:4px">
+    <div style="font-size:10px;font-weight:700;color:var(--txs);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">Ferramentas</div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <!-- Chat -->
+      <button onclick="abrirAdminChat()" style="display:flex;align-items:center;gap:14px;background:var(--white);border:1.5px solid var(--goldbrd);border-radius:16px;padding:14px 16px;cursor:pointer;text-align:left;width:100%;position:relative">
+        <div style="width:46px;height:46px;border-radius:12px;background:linear-gradient(135deg,var(--goldlt),#fdefc8);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">💬</div>
+        <div style="flex:1">
+          <div style="font-size:14px;font-weight:700;color:var(--brown)">Chat — Sala Virtual</div>
+          <div style="font-size:11px;color:var(--txm);margin-top:2px">Atender pacientes em tempo real</div>
+        </div>
+        <div id="home-sala-badge" style="display:none;background:var(--red);color:#fff;border-radius:99px;padding:2px 8px;font-size:10px;font-weight:700;flex-shrink:0">0</div>
+        <div style="font-size:18px;color:var(--txs)">›</div>
+      </button>
+      <!-- Upload -->
+      <button onclick="abrirUploadHome()" style="display:flex;align-items:center;gap:14px;background:var(--white);border:1.5px solid var(--brd);border-radius:16px;padding:14px 16px;cursor:pointer;text-align:left;width:100%">
+        <div style="width:46px;height:46px;border-radius:12px;background:linear-gradient(135deg,#EBF2FB,#d0e5fa);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">📤</div>
+        <div style="flex:1">
+          <div style="font-size:14px;font-weight:700;color:var(--brown)">Upload de Arquivos</div>
+          <div style="font-size:11px;color:var(--txm);margin-top:2px">Enviar PDFs, vídeos e protocolos</div>
+        </div>
+        <div style="font-size:18px;color:var(--txs)">›</div>
+      </button>
+    </div>
+  </div>
+
+  <!-- Painel Upload (dropdown inline) -->
+  <div id="home-upload-panel" style="display:none;margin:0 14px 10px;border-radius:14px;background:var(--white);border:1.5px solid var(--brd);overflow:hidden">
+    <div style="padding:12px 14px;border-bottom:1px solid var(--brd);display:flex;align-items:center;justify-content:space-between">
+      <div style="font-size:13px;font-weight:700;color:var(--brown)">📤 Upload de Arquivo</div>
+      <button onclick="fecharUploadHome()" style="background:none;border:none;font-size:18px;color:var(--txs);cursor:pointer">✕</button>
+    </div>
+    <div style="padding:14px">
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div>
+          <label style="font-size:11px;font-weight:700;color:var(--txm);display:block;margin-bottom:6px">Título do arquivo</label>
+          <input class="inp" id="upload-titulo" type="text" placeholder="Ex: Protocolo SIBO atualizado">
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:700;color:var(--txm);display:block;margin-bottom:6px">Tipo</label>
+          <select class="inp" id="upload-tipo">
+            <option value="pdf">📄 PDF / Protocolo</option>
+            <option value="video">🎬 Vídeo / Live</option>
+            <option value="audio">🎙️ Áudio / Podcast</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:700;color:var(--txm);display:block;margin-bottom:6px">Arquivo</label>
+          <label style="display:flex;align-items:center;justify-content:center;gap:8px;background:var(--bg);border:2px dashed var(--goldbrd);border-radius:10px;padding:20px;cursor:pointer">
+            <span style="font-size:20px">📂</span>
+            <span id="upload-filename" style="font-size:12px;color:var(--txm)">Toque para selecionar</span>
+            <input type="file" id="upload-file" style="display:none" accept=".pdf,.mp4,.mp3,.m4a" onchange="uploadFileChanged(this)">
+          </label>
+        </div>
+        <div id="upload-progress-wrap" style="display:none">
+          <div style="font-size:11px;color:var(--txm);margin-bottom:4px" id="upload-progress-txt">Enviando...</div>
+          <div style="height:6px;background:var(--brd);border-radius:99px;overflow:hidden">
+            <div id="upload-progress-bar" style="height:100%;background:var(--gold);border-radius:99px;width:0%;transition:width .3s"></div>
+          </div>
+        </div>
+        <button class="btn-gold" onclick="iniciarUpload()" id="btn-upload-enviar">📤 Enviar arquivo</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec-hd" id="home-conteudo-hd">Conteúdo exclusivo</div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 14px">
     <div class="card" style="cursor:pointer" onclick="goTo('conteudo')">
       <div style="height:56px;overflow:hidden"><img src="https://static.wixstatic.com/media/1f0134_1e5f1dc566c64df888ce425e028eb99c~mv2.jpg/v1/fill/w_200,h_100,al_c,q_80,enc_avif,quality_auto/1f0134_1e5f1dc566c64df888ce425e028eb99c~mv2.jpg" style="width:100%;height:100%;object-fit:cover"></div>
@@ -289,16 +354,12 @@ body{height:100%;min-height:100vh;min-height:-webkit-fill-available;background:#
 <!-- PLANOS -->
 <div class="screen" id="s-planos" style="overflow-y:auto;background:var(--bg)">
   <div style="min-height:100dvh;display:flex;flex-direction:column;padding:0 0 100px">
-
-    <!-- Header -->
     <div style="text-align:center;padding:40px 24px 0">
       <img src="https://static.wixstatic.com/media/1f0134_5c378964392f45058ff834b96d82a578~mv2.png/v1/fill/w_488,h_269,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/1f0134_5c378964392f45058ff834b96d82a578~mv2.png" alt="Logo" style="height:38px;object-fit:contain;margin-bottom:16px">
       <div style="display:inline-block;background:linear-gradient(135deg,var(--gold),#b8892a);color:#fff;font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;padding:4px 14px;border-radius:99px;margin-bottom:14px">✦ Acesso Premium</div>
       <div style="font-family:'Cormorant Garamond',serif;font-size:28px;font-weight:700;color:var(--brown);line-height:1.2;margin-bottom:8px">Portal do Paciente</div>
       <div style="font-size:13px;color:var(--txm);max-width:280px;margin:0 auto">Acompanhamento personalizado com a Dra. Ilza</div>
     </div>
-
-    <!-- Card premium -->
     <div style="margin:28px 16px 0;border-radius:24px;overflow:hidden;box-shadow:0 8px 32px rgba(168,114,42,.18);border:1.5px solid var(--gold)">
       <div style="background:linear-gradient(135deg,var(--brown),#7a5018);padding:18px 20px 16px">
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
@@ -318,35 +379,20 @@ body{height:100%;min-height:100vh;min-height:-webkit-fill-available;background:#
       <div style="background:var(--white);padding:20px">
         <div style="font-size:11px;font-weight:700;color:var(--txm);text-transform:uppercase;letter-spacing:.08em;margin-bottom:14px">O que está incluído</div>
         <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:24px">
-          <div style="display:flex;align-items:center;gap:12px">
-            <div style="width:28px;height:28px;border-radius:8px;background:var(--goldlt);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">📚</div>
-            <div><div style="font-size:13px;font-weight:600;color:var(--brown)">Conteúdo exclusivo</div><div style="font-size:11px;color:var(--txs)">Artigos, guias e protocolos da Dra. Ilza</div></div>
-          </div>
-          <div style="display:flex;align-items:center;gap:12px">
-            <div style="width:28px;height:28px;border-radius:8px;background:var(--goldlt);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">💬</div>
-            <div><div style="font-size:13px;font-weight:600;color:var(--brown)">Sala Virtual</div><div style="font-size:11px;color:var(--txs)">Chat direto com a equipe toda quarta-feira</div></div>
-          </div>
-          <div style="display:flex;align-items:center;gap:12px">
-            <div style="width:28px;height:28px;border-radius:8px;background:var(--goldlt);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">🔔</div>
-            <div><div style="font-size:13px;font-weight:600;color:var(--brown)">Atualizações em primeira mão</div><div style="font-size:11px;color:var(--txs)">Novidades e dicas diretamente para você</div></div>
-          </div>
-          <div style="display:flex;align-items:center;gap:12px">
-            <div style="width:28px;height:28px;border-radius:8px;background:var(--goldlt);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">🌱</div>
-            <div><div style="font-size:13px;font-weight:600;color:var(--brown)">Acompanhamento contínuo</div><div style="font-size:11px;color:var(--txs)">Suporte ao longo do seu tratamento</div></div>
-          </div>
+          <div style="display:flex;align-items:center;gap:12px"><div style="width:28px;height:28px;border-radius:8px;background:var(--goldlt);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">📚</div><div><div style="font-size:13px;font-weight:600;color:var(--brown)">Conteúdo exclusivo</div><div style="font-size:11px;color:var(--txs)">Artigos, guias e protocolos da Dra. Ilza</div></div></div>
+          <div style="display:flex;align-items:center;gap:12px"><div style="width:28px;height:28px;border-radius:8px;background:var(--goldlt);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">💬</div><div><div style="font-size:13px;font-weight:600;color:var(--brown)">Sala Virtual</div><div style="font-size:11px;color:var(--txs)">Chat direto com a equipe toda quarta-feira</div></div></div>
+          <div style="display:flex;align-items:center;gap:12px"><div style="width:28px;height:28px;border-radius:8px;background:var(--goldlt);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">🔔</div><div><div style="font-size:13px;font-weight:600;color:var(--brown)">Atualizações em primeira mão</div><div style="font-size:11px;color:var(--txs)">Novidades e dicas diretamente para você</div></div></div>
+          <div style="display:flex;align-items:center;gap:12px"><div style="width:28px;height:28px;border-radius:8px;background:var(--goldlt);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">🌱</div><div><div style="font-size:13px;font-weight:600;color:var(--brown)">Acompanhamento contínuo</div><div style="font-size:11px;color:var(--txs)">Suporte ao longo do seu tratamento</div></div></div>
         </div>
         <button class="btn-gold" style="font-size:15px;padding:16px;border-radius:14px;letter-spacing:.03em" onclick="abrirModalAssinar('basico')">★ Assinar por R$ 49/mês</button>
         <div style="text-align:center;margin-top:12px;font-size:11px;color:var(--txs)">🔒 Pagamento seguro · Cancele a qualquer momento</div>
       </div>
     </div>
-
-    <!-- Depoimento -->
     <div style="margin:20px 16px 0;border-radius:16px;background:var(--white);border:1px solid var(--brd);padding:16px 18px">
       <div style="font-size:18px;text-align:center;margin-bottom:8px">🌟🌟🌟🌟🌟</div>
       <div style="font-size:12px;color:var(--txm);text-align:center;line-height:1.6;font-style:italic">"O portal mudou minha relação com o tratamento. Ter acesso direto à equipe da Dra. Ilza toda semana fez toda a diferença."</div>
       <div style="text-align:center;font-size:11px;font-weight:600;color:var(--brown);margin-top:10px">— Paciente do Portal</div>
     </div>
-
   </div>
 </div>
 
@@ -357,50 +403,72 @@ body{height:100%;min-height:100vh;min-height:-webkit-fill-available;background:#
       <div style="width:36px;height:36px;border-radius:9px;background:var(--gold);display:flex;align-items:center;justify-content:center;font-size:18px">🛡️</div>
       <div>
         <div style="font-size:15px;font-weight:700;color:#fff">Painel Admin</div>
-        <div style="font-size:11px;color:rgba(255,255,255,.5)">Portal · Sala Virtual</div>
+        <div style="font-size:11px;color:rgba(255,255,255,.5)">Portal Dra. Ilza</div>
       </div>
       <button onclick="pedirSair()" style="margin-left:auto;width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);cursor:pointer;color:#fff;font-size:16px">✕</button>
     </div>
   </div>
-  <div style="display:flex;gap:6px;padding:10px 12px;background:var(--white);border-bottom:1px solid var(--brd);overflow-x:auto">
+  <div style="display:flex;gap:6px;padding:10px 12px;background:var(--white);border-bottom:1px solid var(--brd)">
     <button class="adm-tab on" onclick="adminTab(this,'assinantes')">👤 Assinantes</button>
-    <button class="adm-tab" onclick="adminTab(this,'chat')">💬 Chat</button>
-    <button class="adm-tab" onclick="adminTab(this,'sala')" id="tab-sala">🚪 Sala</button>
-    <button class="adm-tab" onclick="adminTab(this,'enviar')">📤 Enviar</button>
+    <button class="adm-tab" onclick="adminTab(this,'senha')">🔑 Trocar Senha</button>
   </div>
 
+  <!-- Assinantes -->
   <div id="adm-assinantes" style="padding:14px">
-    <div style="font-size:12px;font-weight:700;color:var(--txm);margin-bottom:10px">Assinantes</div>
+    <div style="font-size:12px;font-weight:700;color:var(--txm);margin-bottom:10px">Assinantes ativos</div>
     <div class="card" id="assinantes-list"><div style="padding:20px;text-align:center;color:var(--txs);font-size:12px">Carregando...</div></div>
   </div>
 
-  <div id="adm-chat" style="display:none;flex-direction:column;height:calc(100dvh - 170px)">
-    <div style="padding:10px 14px;background:var(--goldlt);border-bottom:1px solid var(--goldbrd);display:flex;align-items:center;gap:8px;flex-shrink:0">
-      <button onclick="voltarParaSala()" style="width:30px;height:30px;border-radius:50%;background:var(--white);border:1px solid var(--goldbrd);color:var(--gold);cursor:pointer;font-size:16px">←</button>
-      <div style="flex:1">
-        <div style="font-size:11px;color:var(--txm)">💬 Respondendo como <strong>Equipe Dra. Ilza</strong></div>
-        <div id="adm-chat-paciente" style="font-size:12px;font-weight:700;color:var(--brown)">—</div>
+  <!-- Trocar Senha -->
+  <div id="adm-senha" style="display:none;padding:14px">
+    <div style="font-size:12px;font-weight:700;color:var(--txm);margin-bottom:14px">Alterar senha de acesso</div>
+    <div class="card" style="padding:16px">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div>
+          <label style="font-size:11px;font-weight:700;color:var(--txm);display:block;margin-bottom:6px">Senha atual</label>
+          <input class="inp" type="password" id="senha-atual" placeholder="Digite a senha atual">
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:700;color:var(--txm);display:block;margin-bottom:6px">Nova senha</label>
+          <input class="inp" type="password" id="senha-nova" placeholder="Mínimo 8 caracteres">
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:700;color:var(--txm);display:block;margin-bottom:6px">Confirmar nova senha</label>
+          <input class="inp" type="password" id="senha-confirmar" placeholder="Repita a nova senha">
+        </div>
+        <button class="btn-gold" onclick="trocarSenha()">🔑 Atualizar senha</button>
+        <div id="senha-msg" style="display:none;font-size:12px;text-align:center;border-radius:8px;padding:8px"></div>
       </div>
-      <button onclick="pedirEncerrar()" id="btn-encerrar" style="display:none;padding:6px 12px;border-radius:20px;background:var(--redbg);border:1px solid #e0b0b0;color:var(--red);font-size:11px;font-weight:700;font-family:inherit;cursor:pointer">✕ Encerrar</button>
     </div>
-    <div id="adm-chat-msgs" style="flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:8px;background:var(--bg)"></div>
-    <div style="background:var(--white);border-top:1px solid var(--brd);padding:8px 12px;display:flex;gap:8px;align-items:center;flex-shrink:0">
-      <input class="inp" placeholder="Responder ao paciente..." id="adm-chat-inp" style="border-radius:20px;padding:8px 14px;flex:1">
-      <button onclick="adminSendMsg()" style="width:34px;height:34px;border-radius:50%;background:var(--gold);border:none;color:#fff;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center">➤</button>
+  </div>
+</div>
+
+<!-- CHAT DA DRA (Sala Virtual — visão admin) -->
+<div class="screen" id="s-admin-sala" style="padding-bottom:0">
+  <div style="background:var(--white);padding:12px 14px;border-bottom:1px solid var(--brd);flex-shrink:0">
+    <div style="display:flex;align-items:center;gap:10px">
+      <button onclick="voltarHomeAdmin()" style="width:36px;height:36px;border-radius:50%;background:var(--goldlt);border:1.5px solid var(--goldbrd);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;cursor:pointer">←</button>
+      <div style="flex:1">
+        <div style="font-family:'Cormorant Garamond',serif;font-size:16px;font-weight:600;color:var(--brown)">Chat — Sala Virtual</div>
+        <div style="font-size:10px;color:var(--txm)" id="adm-sala-status">Carregando fila...</div>
+      </div>
     </div>
   </div>
 
-  <div id="adm-sala" style="display:none;padding:14px">
-    <div id="sala-atendendo-wrap" style="display:none;margin-bottom:14px">
+  <!-- Área da Sala: lista ou chat aberto -->
+  <div id="adm-sala-lista-wrap" style="flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px">
+    <!-- Em atendimento -->
+    <div id="adm2-atendendo-wrap" style="display:none">
       <div style="font-size:10px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">● Em atendimento</div>
-      <div class="card" id="sala-atendendo-lista"></div>
+      <div class="card" id="adm2-atendendo-lista"></div>
     </div>
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+    <!-- Aguardando -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px">
       <div style="font-size:10px;font-weight:700;color:var(--txs);text-transform:uppercase;letter-spacing:.08em">Aguardando</div>
-      <div id="sala-count" style="background:var(--gold);color:#fff;border-radius:99px;padding:2px 10px;font-size:11px;font-weight:700">0</div>
+      <div id="adm2-count" style="background:var(--gold);color:#fff;border-radius:99px;padding:2px 10px;font-size:11px;font-weight:700">0</div>
     </div>
-    <div class="card" id="sala-lista">
-      <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;gap:10px;text-align:center">
+    <div class="card" id="adm2-lista">
+      <div style="display:flex;flex-direction:column;align-items:center;padding:40px 20px;gap:10px;text-align:center">
         <div style="font-size:32px">🚪</div>
         <div style="font-size:13px;font-weight:600;color:var(--brown)">Sala vazia</div>
         <div style="font-size:12px;color:var(--txs)">Nenhum paciente aguardando</div>
@@ -408,18 +476,20 @@ body{height:100%;min-height:100vh;min-height:-webkit-fill-available;background:#
     </div>
   </div>
 
-  <div id="adm-enviar" style="display:none;padding:14px">
-    <div style="font-size:12px;font-weight:700;color:var(--txm);margin-bottom:10px">Enviar mensagem para assinantes</div>
-    <div style="display:flex;flex-direction:column;gap:10px">
-      <div><span class="lbl">Destinatários</span>
-        <select class="inp" id="enviar-dest">
-          <option value="todos">Todos os assinantes</option>
-          <option value="360">Apenas Plano 360°</option>
-          <option value="basico">Apenas Portal Básico</option>
-        </select>
+  <!-- Chat aberto com paciente (aparece sobre a lista) -->
+  <div id="adm2-chat-wrap" style="display:none;flex-direction:column;flex:1;overflow:hidden">
+    <div style="padding:10px 14px;background:var(--goldlt);border-bottom:1px solid var(--goldbrd);display:flex;align-items:center;gap:8px;flex-shrink:0">
+      <button onclick="voltarParaSala2()" style="width:30px;height:30px;border-radius:50%;background:var(--white);border:1px solid var(--goldbrd);color:var(--gold);cursor:pointer;font-size:16px">←</button>
+      <div style="flex:1">
+        <div style="font-size:11px;color:var(--txm)">💬 Respondendo como <strong>Equipe Dra. Ilza</strong></div>
+        <div id="adm2-chat-paciente" style="font-size:12px;font-weight:700;color:var(--brown)">—</div>
       </div>
-      <div><span class="lbl">Mensagem</span><textarea class="inp" id="enviar-msg" rows="4" placeholder="Digite a mensagem..." style="resize:none"></textarea></div>
-      <button class="btn-gold" onclick="enviarMensagem()">📤 Enviar mensagem</button>
+      <button onclick="pedirEncerrar()" id="btn2-encerrar" style="padding:6px 12px;border-radius:20px;background:var(--redbg);border:1px solid #e0b0b0;color:var(--red);font-size:11px;font-weight:700;font-family:inherit;cursor:pointer">✕ Encerrar</button>
+    </div>
+    <div id="adm2-chat-msgs" style="flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:8px;background:var(--bg)"></div>
+    <div style="background:var(--white);border-top:1px solid var(--brd);padding:8px 12px calc(8px + env(safe-area-inset-bottom,0px));display:flex;gap:8px;align-items:center;flex-shrink:0">
+      <input class="inp" placeholder="Responder ao paciente..." id="adm2-chat-inp" style="border-radius:20px;padding:8px 14px;flex:1">
+      <button onclick="admin2SendMsg()" style="width:34px;height:34px;border-radius:50%;background:var(--gold);border:none;color:#fff;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center">➤</button>
     </div>
   </div>
 </div>
@@ -604,7 +674,7 @@ body{height:100%;min-height:100vh;min-height:-webkit-fill-available;background:#
 // ════════════════════════════════════
 // ROTEAMENTO
 // ════════════════════════════════════
-const SCREENS = { home:'s-home', conteudo:'s-conteudo', suporte:'s-suporte', planos:'s-planos', admin:'s-admin' };
+const SCREENS = { home:'s-home', conteudo:'s-conteudo', suporte:'s-suporte', planos:'s-planos', admin:'s-admin', 'admin-sala':'s-admin-sala' };
 const NAV_IDS = { home:'nav-home', conteudo:'nav-conteudo', suporte:'nav-suporte', planos:'nav-planos', admin:'nav-admin' };
 
 function goTo(page) {
@@ -785,6 +855,14 @@ function applySession(user) {
   document.getElementById('home-plano-badge').textContent = user.planoBadge;
   document.getElementById('nav-admin').style.display = user.isAdmin ? 'flex' : 'none';
   document.getElementById('nav-sair').style.display  = 'flex';
+  // Mostrar ferramentas admin na home
+  const tools = document.getElementById('home-admin-tools');
+  if (tools) tools.style.display = user.isAdmin ? 'block' : 'none';
+  // Admin não acessa Sala Virtual pelo rodapé
+  if (user.isAdmin) {
+    const navSuporte = document.getElementById('nav-suporte');
+    if (navSuporte) navSuporte.style.display = 'none';
+  }
 }
 
 function pedirSair() { document.getElementById('modal-sair').style.display = 'flex'; }
@@ -1047,19 +1125,292 @@ function confirmarEncerrar() {
 }
 
 // ════════════════════════════════════
-// ADMIN TABS
+// FERRAMENTAS ADMIN — HOME
+// ════════════════════════════════════
+function abrirAdminChat() {
+  // Navegar para tela de sala virtual da Dra
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  const s = document.getElementById('s-admin-sala');
+  if (s) { s.classList.add('active'); s.scrollTop = 0; }
+  document.getElementById('global-nav').style.display = 'none';
+  // Iniciar listener da sala nessa tela
+  iniciarListenerSala2();
+}
+
+function voltarHomeAdmin() {
+  // Desligar listeners da sala
+  const fb = window._fb;
+  if (fb && _salaListener2) { fb.off(fb.ref(fb.rtdb,'salas_index')); _salaListener2 = null; }
+  if (fb && _admChatRef2) { fb.off(_admChatRef2); _admChatRef2 = null; }
+  goTo('home');
+}
+
+function abrirUploadHome() {
+  const panel = document.getElementById('home-upload-panel');
+  if (panel) panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+}
+
+function fecharUploadHome() {
+  const panel = document.getElementById('home-upload-panel');
+  if (panel) panel.style.display = 'none';
+}
+
+function uploadFileChanged(input) {
+  const label = document.getElementById('upload-filename');
+  if (input.files && input.files[0]) {
+    label.textContent = input.files[0].name;
+    label.style.color = 'var(--brown)';
+  }
+}
+
+function iniciarUpload() {
+  const titulo = document.getElementById('upload-titulo').value.trim();
+  const tipo   = document.getElementById('upload-tipo').value;
+  const file   = document.getElementById('upload-file').files[0];
+  const btn    = document.getElementById('btn-upload-enviar');
+
+  if (!titulo) { alert('Informe o título do arquivo.'); return; }
+  if (!file)   { alert('Selecione um arquivo.'); return; }
+
+  const fb = window._fb;
+  if (!fb || !fb.storage) { alert('Storage não configurado.'); return; }
+
+  const wrap = document.getElementById('upload-progress-wrap');
+  const bar  = document.getElementById('upload-progress-bar');
+  const txt  = document.getElementById('upload-progress-txt');
+  wrap.style.display = 'block';
+  btn.disabled = true;
+
+  const path = 'conteudo/' + tipo + '/' + Date.now() + '_' + file.name.replace(/\s/g,'_');
+  const storRef = fb.sRef(fb.storage, path);
+  const task = fb.uploadBytesResumable(storRef, file);
+
+  task.on('state_changed',
+    snap => {
+      const pct = Math.round((snap.bytesTransferred / snap.totalBytes) * 100);
+      bar.style.width = pct + '%';
+      txt.textContent = 'Enviando... ' + pct + '%';
+    },
+    err => {
+      txt.textContent = '❌ Erro: ' + err.message;
+      btn.disabled = false;
+    },
+    async () => {
+      const url = await fb.getDownloadURL(task.snapshot.ref);
+      // Salvar no Firestore
+      await fb.addDoc(fb.collection(fb.db,'conteudo'), {
+        titulo, tipo, url, path,
+        criadoEm: fb.serverTimestamp(),
+        ativo: true
+      });
+      txt.textContent = '✅ Enviado com sucesso!';
+      bar.style.width = '100%';
+      bar.style.background = 'var(--green)';
+      setTimeout(() => {
+        wrap.style.display = 'none';
+        bar.style.width = '0%';
+        bar.style.background = 'var(--gold)';
+        document.getElementById('upload-titulo').value = '';
+        document.getElementById('upload-filename').textContent = 'Toque para selecionar';
+        document.getElementById('upload-file').value = '';
+        btn.disabled = false;
+        fecharUploadHome();
+      }, 2000);
+    }
+  );
+}
+
+// ════════════════════════════════════
+// TROCAR SENHA ADMIN
+// ════════════════════════════════════
+async function trocarSenha() {
+  const atual     = document.getElementById('senha-atual').value;
+  const nova      = document.getElementById('senha-nova').value;
+  const confirmar = document.getElementById('senha-confirmar').value;
+  const msg       = document.getElementById('senha-msg');
+
+  function mostrarMsg(txt, ok) {
+    msg.style.display = 'block';
+    msg.textContent = txt;
+    msg.style.background = ok ? 'var(--greenbg)' : 'var(--redbg)';
+    msg.style.color = ok ? 'var(--green)' : 'var(--red)';
+  }
+
+  if (!atual || !nova || !confirmar) { mostrarMsg('Preencha todos os campos.', false); return; }
+  if (nova.length < 8) { mostrarMsg('A nova senha deve ter ao menos 8 caracteres.', false); return; }
+  if (nova !== confirmar) { mostrarMsg('As senhas não coincidem.', false); return; }
+
+  const hashAtual = await hashSenhaPortal(atual);
+  if (hashAtual !== ADMIN_CREDENTIALS['admin@drailza.com.br']) {
+    mostrarMsg('Senha atual incorreta.', false); return;
+  }
+
+  const hashNova = await hashSenhaPortal(nova);
+  ADMIN_CREDENTIALS['admin@drailza.com.br'] = hashNova;
+  mostrarMsg('✅ Senha atualizada com sucesso! (válida até recarregar a página)', true);
+  document.getElementById('senha-atual').value = '';
+  document.getElementById('senha-nova').value = '';
+  document.getElementById('senha-confirmar').value = '';
+}
+
+// ════════════════════════════════════
+// SALA VIRTUAL — VISÃO DRA (tela s-admin-sala)
+// ════════════════════════════════════
+let _salaListener2 = null;
+let _pacAtual2     = null;
+let _admChatRef2   = null;
+
+function iniciarListenerSala2() {
+  const fb = window._fb;
+  if (!fb) return;
+  if (_salaListener2) fb.off(fb.ref(fb.rtdb,'salas_index'));
+
+  _salaListener2 = fb.onValue(fb.ref(fb.rtdb,'salas_index'), snap => {
+    const data = snap.val() || {};
+    const todos = Object.values(data).sort((a,b) => (a.tsNum||0)-(b.tsNum||0));
+    const aguardando = todos.filter(p => p.status === 'aguardando');
+    const atendendo  = todos.filter(p => p.status === 'atendendo');
+
+    // Badge no botão da home
+    const badge = document.getElementById('home-sala-badge');
+    if (badge) {
+      const n = todos.filter(p => p.status !== 'encerrado').length;
+      badge.style.display = n > 0 ? 'block' : 'none';
+      badge.textContent = n;
+    }
+
+    const statusEl = document.getElementById('adm-sala-status');
+    if (statusEl) statusEl.textContent = aguardando.length === 0 && atendendo.length === 0
+      ? 'Sala vazia' : aguardando.length + ' aguardando · ' + atendendo.length + ' em atendimento';
+
+    // Renderizar lista
+    const atenLista = document.getElementById('adm2-atendendo-lista');
+    const atenWrap  = document.getElementById('adm2-atendendo-wrap');
+    const lista     = document.getElementById('adm2-lista');
+    const count     = document.getElementById('adm2-count');
+
+    if (count) count.textContent = aguardando.length;
+
+    if (atendendo.length > 0) {
+      atenWrap.style.display = 'block';
+      atenLista.innerHTML = atendendo.map(p => `
+        <div class="sala-row">
+          <div class="sala-avatar" style="background:${p.premium?'var(--goldlt)':'#F0F0F0'};color:${p.premium?'var(--gold)':'#888'}">${p.iniciais||'?'}</div>
+          <div style="flex:1"><div style="font-size:13px;font-weight:600;color:var(--brown)">${_esc(p.nm)}</div><div style="font-size:10px;color:var(--green)">● Em atendimento</div></div>
+          <div style="display:flex;gap:5px">
+            <button class="btn-sm" style="background:var(--goldlt);color:var(--gold);border:1px solid var(--goldbrd)" onclick="abrirChat2('${p.id}','${_esc(p.nm)}',${!!p.premium})">Chat</button>
+            <button class="btn-sm" style="background:var(--redbg);color:var(--red);border:1px solid #e0b0b0" onclick="_pacAtual2='${p.id}';document.getElementById('modal-encerrar').style.display='flex'">Encerrar</button>
+          </div>
+        </div>`).join('');
+    } else { atenWrap.style.display = 'none'; }
+
+    if (aguardando.length === 0) {
+      lista.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;padding:40px 20px;gap:10px;text-align:center"><div style="font-size:32px">🚪</div><div style="font-size:13px;font-weight:600;color:var(--brown)">Sala vazia</div><div style="font-size:12px;color:var(--txs)">Nenhum paciente aguardando</div></div>';
+    } else {
+      lista.innerHTML = aguardando.map((p,i) => `
+        <div class="sala-row">
+          <div class="fila-num">${i+1}</div>
+          <div class="sala-avatar" style="background:${p.premium?'var(--goldlt)':'#F0F0F0'};color:${p.premium?'var(--gold)':'#888'}">${p.iniciais||'?'}</div>
+          <div style="flex:1">
+            <div style="font-size:13px;font-weight:600;color:var(--brown)">${_esc(p.nm)}</div>
+            <div style="font-size:10px;color:var(--txs)">${p.ultimaTxt?'"'+_esc(p.ultimaTxt.substring(0,40))+'"':'Aguardando...'} · ${p.ultimaTs||''}</div>
+          </div>
+          <button class="btn-sm" style="background:var(--goldlt);color:var(--gold);border:1px solid var(--goldbrd)" onclick="atenderPaciente2('${p.id}','${_esc(p.nm)}',${!!p.premium})">Atender</button>
+        </div>`).join('');
+    }
+  });
+}
+
+function atenderPaciente2(chatId, nome, premium) {
+  const fb = window._fb;
+  fb.update(fb.ref(fb.rtdb,'salas_index/'+chatId), { status:'atendendo' });
+  abrirChat2(chatId, nome, premium);
+}
+
+function abrirChat2(chatId, nome, premium) {
+  _pacAtual2 = chatId;
+  document.getElementById('adm-sala-lista-wrap').style.display = 'none';
+  const wrap = document.getElementById('adm2-chat-wrap');
+  wrap.style.display = 'flex';
+  document.getElementById('adm2-chat-paciente').textContent = (premium?'★ ':'')+nome;
+
+  const fb = window._fb;
+  if (_admChatRef2) fb.off(_admChatRef2);
+  _admChatRef2 = fb.ref(fb.rtdb,'salas/'+chatId+'/msgs');
+  const msgs = document.getElementById('adm2-chat-msgs');
+  msgs.innerHTML = '';
+  appendMsg(msgs, 'Atendendo: '+nome+(premium?' · ★ Premium':' · Portal Básico'),'sis','',getHora());
+
+  fb.onValue(_admChatRef2, snap => {
+    const sysHtml = msgs.children[0] ? msgs.children[0].outerHTML : '';
+    msgs.innerHTML = sysHtml;
+    const data = snap.val();
+    if (!data) { msgs.scrollTop = msgs.scrollHeight; return; }
+    Object.values(data).sort((a,b)=>(a.tsNum||0)-(b.tsNum||0)).forEach(m => {
+      appendMsg(msgs, m.txt, m.de==='pac'?'pac_adm':'adm', m.nome, m.ts);
+    });
+    msgs.scrollTop = msgs.scrollHeight;
+  });
+}
+
+function admin2SendMsg() {
+  const inp = document.getElementById('adm2-chat-inp');
+  const txt = inp.value.trim(); if (!txt || !_pacAtual2) return;
+  inp.value = '';
+  const fb = window._fb;
+  const ts = getHora();
+  fb.push(fb.ref(fb.rtdb,'salas/'+_pacAtual2+'/msgs'), {
+    txt, de:'dra', nome:'Equipe Dra. Ilza', ts, tsNum:Date.now(), lida:true
+  });
+  fb.update(fb.ref(fb.rtdb,'salas_index/'+_pacAtual2), {
+    ultimaTxt:'← '+txt.substring(0,50), ultimaTs:ts, tsNum:Date.now()
+  });
+}
+document.getElementById('adm2-chat-inp').addEventListener('keydown', e => { if(e.key==='Enter') admin2SendMsg(); });
+
+function voltarParaSala2() {
+  if (_admChatRef2) { const fb = window._fb; fb.off(_admChatRef2); _admChatRef2 = null; }
+  _pacAtual2 = null;
+  document.getElementById('adm2-chat-wrap').style.display = 'none';
+  document.getElementById('adm-sala-lista-wrap').style.display = 'flex';
+}
+
+// Encerrar compatível com sala2
+const _origConfirmarEncerrar = typeof confirmarEncerrar === 'function' ? confirmarEncerrar : null;
+function confirmarEncerrar2() {
+  document.getElementById('modal-encerrar').style.display = 'none';
+  const pacId = _pacAtual2 || _pacAtual;
+  if (!pacId) return;
+  const txt = document.getElementById('msg-encerramento').value.trim();
+  const fb = window._fb;
+  const ts = getHora();
+  if (txt) {
+    fb.push(fb.ref(fb.rtdb,'salas/'+pacId+'/msgs'), {
+      txt, de:'dra', nome:'Equipe Dra. Ilza', ts, tsNum:Date.now(), lida:true
+    });
+  }
+  setTimeout(() => fb.remove(fb.ref(fb.rtdb,'salas_index/'+pacId)), 800);
+  if (_admChatRef2) { fb.off(_admChatRef2); _admChatRef2 = null; }
+  if (_admChatRef)  { fb.off(_admChatRef);  _admChatRef = null; }
+  _pacAtual2 = null; _pacAtual = null;
+  voltarParaSala2();
+}
+
+// Redirecionar botão de encerrar modal para versão correta
+document.getElementById('modal-encerrar').querySelector('button[onclick="confirmarEncerrar()"]')
+  .setAttribute('onclick','confirmarEncerrar2()');
+
 // ════════════════════════════════════
 function adminTab(btn, tab) {
   document.querySelectorAll('#s-admin .adm-tab').forEach(b => b.classList.remove('on'));
   btn.classList.add('on');
-  ['assinantes','chat','sala','enviar'].forEach(t => {
+  ['assinantes','senha'].forEach(t => {
     const el = document.getElementById('adm-'+t);
     if (el) el.style.display = 'none';
   });
   const target = document.getElementById('adm-'+tab);
-  if (target) target.style.display = tab === 'chat' ? 'flex' : 'block';
+  if (target) target.style.display = 'block';
   if (tab === 'assinantes') loadAssinantes();
-  if (tab === 'sala') renderSala();
 }
 
 // ════════════════════════════════════
