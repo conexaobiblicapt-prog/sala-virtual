@@ -1154,6 +1154,10 @@ function adminChat(pid,from='sala'){
 }
 
 function patEnterSala(){
+  // Bloquear paciente inativo
+  if(CU.plan==='inativo'||CU.plan==='erro'){
+    toast('⚠️ Seu plano está inativo. Entre em contato com a clínica para reativar.','error');return;
+  }
   // Registrar no Firebase para o CRM ver
   fbRegisterQueue();
   fbLastMsgTs=Date.now();
@@ -1169,22 +1173,29 @@ function patEnterSala(){
     <button class="btn btn-sm btn-danger" onclick="patEndChat()">⏹ Encerrar atendimento</button>
     <button class="btn btn-sm btn-gold" onclick="showRating()">⭐ Avaliar atendimento</button>
   `;
-  _nav('chat');renderMsgs(key);
-  // Carregar mensagens do Firebase
-  fbLoadPatMsgs();
+  // Montar área de chat Firebase dentro do chat-msgs
+  const chatMsgs=document.getElementById('chat-msgs');
+  chatMsgs.innerHTML='<div class="sys-msg">Início da conversa — mensagens sincronizadas via Firebase</div><div id="fb-msgs-area" style="display:flex;flex-direction:column;gap:8px;padding-top:8px"></div>';
+  _nav('chat');
+  // Carregar mensagens do Firebase imediatamente e iniciar polling
+  renderFbChat();
+  fbStartMsgPoll();
 }
 
-async function fbLoadPatMsgs(){
+async function renderFbChat(){
   if(!CU||CU.role!=='patient')return;
   const val=await fbGet(`salas/${CU.id}/msgs`);
-  if(!val)return;
+  const el=document.getElementById('fb-msgs-area');if(!el)return;
+  if(!val){el.innerHTML='';return;}
   const lista=Object.entries(val).map(([k,v])=>({id:k,...v})).sort((a,b)=>(a.tsNum||0)-(b.tsNum||0));
-  // Injetar no chat-msgs
-  const extra=document.getElementById('fb-msgs-area');if(extra)extra.remove();
-  const c=document.getElementById('chat-msgs');
-  const area=document.createElement('div');area.id='fb-msgs-area';area.style.cssText='display:flex;flex-direction:column;gap:8px;padding-top:8px';
   renderQWithFbMsgs(lista);
+  // Atualizar status da conexão
+  const inf=document.getElementById('c-inf');
+  const temDra=lista.some(m=>m.de==='dra');
+  if(inf)inf.textContent=temDra?'🟢 Dra. Ilza em atendimento':'🟡 Aguardando a Dra. iniciar o atendimento via CRM...';
 }
+
+// (fbLoadPatMsgs substituída por renderFbChat — ver patEnterSala)
 
 
 function chatBack(){
@@ -1213,15 +1224,23 @@ function renderMsgs(key){
 
 function sendMsg(){
   if(!chatId)return;
+  // Bloquear paciente inativo
+  if(CU.role==='patient'&&(CU.plan==='inativo'||CU.plan==='erro')){
+    toast('⚠️ Seu plano está inativo. Não é possível enviar mensagens.','error');return;
+  }
   const inp=document.getElementById('c-in');const text=inp.value.trim();
   if(!text&&!selFile)return;
   const chats=DB.get('sv_chats')||{};if(!chats[chatId])chats[chatId]=[];
   const msg={sender:CU.role==='admin'?'admin':CU.id,text,ts:Date.now()};
   if(selFile){msg.fileName=selFile.name;msg.fileData=true;}
   chats[chatId].push(msg);DB.set('sv_chats',chats);
-  inp.value='';inp.style.height='auto';clrFile();renderMsgs(chatId);
-  // Se for paciente, enviar também ao Firebase (CRM)
-  if(CU.role==='patient'&&text){fbSendMsg(text);}
+  inp.value='';inp.style.height='auto';clrFile();
+  // Se for paciente, enviar ao Firebase (CRM receberá)
+  if(CU.role==='patient'&&text){
+    fbSendMsg(text).then(()=>renderFbChat());
+  } else {
+    renderMsgs(chatId);
+  }
 }
 
 function cKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMsg();}}
@@ -1283,6 +1302,7 @@ function renderPats(filter=''){
         <td style="display:flex;gap:6px;flex-wrap:wrap">
           <button class="btn btn-primary btn-sm" onclick="chatFromPat('${u.id}')">💬 Chat</button>
           <button class="btn btn-outline btn-sm" onclick="cyclePlan('${u.id}')">🔄 Status</button>
+          <button class="btn btn-danger btn-sm" onclick="deletePat('${u.id}','${u.name.replace(/'/g,"\\'")}')">🗑 Excluir</button>
         </td>
       </tr>`;
     }).join('');
@@ -1295,6 +1315,21 @@ function cyclePlan(uid){
   if(u.plan==='erro')u.planError='Erro simulado para teste';else delete u.planError;
   DB.set('sv_users',users);renderPats(document.getElementById('pat-s').value);
   toast(`Status de ${u.name}: "${u.plan}"`,'success');
+}
+function deletePat(uid,name){
+  showModal('Excluir paciente',`Tem certeza que deseja excluir o cadastro de <strong>${name}</strong>? Esta ação não pode ser desfeita.`,()=>{
+    let users=DB.get('sv_users')||[];
+    users=users.filter(x=>x.id!==uid);
+    DB.set('sv_users',users);
+    // Remover chats e fila
+    const chats=DB.get('sv_chats')||{};delete chats[`admin_${uid}`];DB.set('sv_chats',chats);
+    let q=DB.get('sv_queue')||[];q=q.filter(x=>x!==uid);DB.set('sv_queue',q);
+    // Remover do Firebase também
+    fbDel(`salas_index/${uid}`);fbDel(`salas/${uid}`);
+    renderPats(document.getElementById('pat-s').value);
+    fillPatSel();
+    toast(`Cadastro de ${name} excluído.`,'success');
+  });
 }
 
 // ══════════════════════════════════════════
@@ -1534,9 +1569,13 @@ function fbStartMsgPoll(){
         }
       }
     });
-    // Re-renderizar chat se estiver na sala
-    if(document.getElementById('page-sala').classList.contains('active')){
+    // Re-renderizar chat Firebase se estiver no chat
+    if(document.getElementById('page-chat').classList.contains('active')){
       renderQWithFbMsgs(lista);
+      // Atualizar status da conexão
+      const inf=document.getElementById('c-inf');
+      const temDra=lista.some(m=>m.de==='dra');
+      if(inf)inf.textContent=temDra?'🟢 Dra. Ilza em atendimento':'🟡 Aguardando a Dra. iniciar o atendimento via CRM...';
     }
   },3000);
 }
