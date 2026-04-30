@@ -2,7 +2,11 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0D1B2A">
 <title>Sala Virtual · Dra. Ilza Ezequiel</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Nunito+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -479,8 +483,28 @@ select.fc{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns=
 @media(max-width:600px){
   .hero-banner{flex-direction:column;text-align:center}
   .msg{max-width:88%}
-  .chat-frame{height:calc(100vh - 120px)}
+  .chat-frame{height:calc(100dvh - 120px)}
+  .content-area{padding:14px 12px}
+  .ph{flex-direction:column;gap:10px;align-items:flex-start}
+  .data-card{overflow-x:auto}
+  .chat-footer{padding:10px 12px}
+  .chat-ta{font-size:14px}
+  .cards-grid{grid-template-columns:1fr 1fr!important;gap:10px!important}
 }
+@media(max-width:420px){
+  .sidebar{width:54px}
+  .cards-grid{grid-template-columns:1fr!important}
+  .chat-hdr h3{font-size:14px}
+  .mbox{padding:22px 18px}
+  .hero-banner h2{font-size:20px}
+}
+/* Smooth scrolling & touch improvements */
+.content-area{-webkit-overflow-scrolling:touch;scroll-behavior:smooth}
+.chat-msgs{-webkit-overflow-scrolling:touch}
+.chat-ta{touch-action:manipulation}
+/* Nav badge dot */
+.nav-badge-dot{width:8px;height:8px;border-radius:50%;background:#E53935;position:absolute;top:6px;right:6px;border:2px solid var(--navy);animation:pulseBadge 1.5s infinite}
+@keyframes pulseBadge{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.3);opacity:.8}}
 </style>
 </head>
 <body>
@@ -678,7 +702,12 @@ select.fc{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns=
   </aside>
 
   <!-- MAIN -->
-  <div class="main-content">
+  <div class="main-content" style="position:relative">
+    <!-- Logo watermark background -->
+    <div style="position:fixed;bottom:20px;right:20px;pointer-events:none;z-index:0;opacity:.07">
+      <img src="https://static.wixstatic.com/media/1f0134_5c378964392f45058ff834b96d82a578~mv2.png/v1/fill/w_488,h_269,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/1f0134_5c378964392f45058ff834b96d82a578~mv2.png"
+           alt="" style="width:220px;filter:grayscale(1)" onerror="this.style.display='none'">
+    </div>
     <header class="topbar">
       <div class="tb-breadcrumb">
         <span>Sala Virtual</span>
@@ -988,14 +1017,26 @@ function simulateEmail(email,name,token,paid){
 }
 function cmpReg(paid){
   const users=DB.get('sv_users')||[];
+  // Limite de 50 pacientes
+  const pacientes=users.filter(u=>u.role==='patient');
+  if(pacientes.length>=50){
+    showAlrt('⚠️ Limite de 50 pacientes atingido. Entre em contato com a clínica para liberar vagas.');return;
+  }
   const id='p'+Date.now();
   const exp=new Date();exp.setMonth(exp.getMonth()+1);
   const nu={id,name:rTemp.nm,cpf:rTemp.cpf,dob:rTemp.dob,phone:rTemp.tel,
     email:rTemp.em,password:rTemp.pw,role:'patient',
-    plan:paid?'ativo':'inativo',planExpiry:exp.toLocaleDateString('pt-BR')};
+    plan:paid?'ativo':'inativo',planExpiry:exp.toLocaleDateString('pt-BR'),
+    registeredAt:new Date().toISOString()};
   users.push(nu);DB.set('sv_users',users);
   let q=DB.get('sv_queue')||[];q.push(id);DB.set('sv_queue',q);
   if(paid){const p=DB.get('sv_payments')||{};p[id]=[{date:new Date().toLocaleDateString('pt-BR'),desc:'Plano Mensal',value:'R$ 49,99',status:'pago'}];DB.set('sv_payments',p);}
+  // Backup robusto no Firebase (sem senha)
+  fbPut(`pacientes_cadastro/${id}`,{
+    id, name:rTemp.nm, cpf:rTemp.cpf, dob:rTemp.dob, phone:rTemp.tel,
+    email:rTemp.em, role:'patient', plan:nu.plan,
+    planExpiry:nu.planExpiry, registeredAt:nu.registeredAt
+  });
   showConfirmScreen(rTemp.em,paid);
 }
 function showConfirmScreen(email,paid){
@@ -1053,9 +1094,26 @@ function buildNav(){
   document.getElementById('side-nav').innerHTML=
     `<div class="nav-section">Menu</div>`+
     items.map(([id,icon,lbl])=>
-      `<button class="nav-item" id="ni-${id}" onclick="nav('${id}')"><span class="nav-icon">${icon}</span><span>${lbl}</span></button>`
+      `<button class="nav-item" id="ni-${id}" onclick="nav('${id}')" style="position:relative">
+        <span class="nav-icon">${icon}</span><span>${lbl}</span>
+        ${id==='sala'?`<span id="nav-sala-badge" style="display:none;position:absolute;top:6px;right:8px;min-width:18px;height:18px;border-radius:9px;background:#E53935;color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0 4px">0</span>`:''}
+      </button>`
     ).join('');
+  updateNavSalaBadge();
   buildHomeCards();
+}
+
+function updateNavSalaBadge(){
+  const el=document.getElementById('nav-sala-badge');
+  if(!el)return;
+  // Contar mensagens não lidas da Dra no Firebase para paciente logado
+  if(CU&&CU.role==='patient'){
+    fbGet(`salas/${CU.id}/msgs`).then(val=>{
+      if(!val){el.style.display='none';return;}
+      const novas=Object.values(val).filter(m=>m.de==='dra'&&!m.lida&&(m.tsNum||0)>fbLastMsgTs).length;
+      if(novas>0){el.textContent=novas;el.style.display='flex';}else{el.style.display='none';}
+    });
+  } else {el.style.display='none';}
 }
 
 function buildHomeCards(){
@@ -1234,10 +1292,12 @@ function sendMsg(){
   const msg={sender:CU.role==='admin'?'admin':CU.id,text,ts:Date.now()};
   if(selFile){msg.fileName=selFile.name;msg.fileData=true;}
   chats[chatId].push(msg);DB.set('sv_chats',chats);
-  inp.value='';inp.style.height='auto';clrFile();
+  inp.value='';inp.style.height='auto';
+  const fileToSend=selFile;
+  clrFile();
   // Se for paciente, enviar ao Firebase (CRM receberá)
-  if(CU.role==='patient'&&text){
-    fbSendMsg(text).then(()=>renderFbChat());
+  if(CU.role==='patient'){
+    fbSendMsg(text,fileToSend).then(()=>renderFbChat());
   } else {
     renderMsgs(chatId);
   }
@@ -1533,16 +1593,34 @@ async function fbUnregisterQueue(){
   await fbDel(`salas_index/${CU.id}`);
 }
 
-// Enviar mensagem via Firebase
-async function fbSendMsg(texto){
-  if(!CU||!texto.trim())return;
+// Enviar mensagem via Firebase (com suporte a arquivo em base64)
+async function fbSendMsg(texto, fileObj){
+  if(!CU)return;
   const ts=new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
   const key='m'+Date.now();
-  await fbPut(`salas/${CU.id}/msgs/${key}`,{
-    txt:texto.trim(), de:'pac', nome:CU.name, ts, tsNum:Date.now(), lida:false
-  });
+  const payload={txt:texto||'', de:'pac', nome:CU.name, ts, tsNum:Date.now(), lida:false};
+  // Se tem arquivo: converter para base64 e guardar no Firebase
+  if(fileObj){
+    payload.fileName=fileObj.name;
+    try{
+      const b64=await new Promise((res,rej)=>{
+        const r=new FileReader();
+        r.onload=()=>res(r.result);
+        r.onerror=rej;
+        r.readAsDataURL(fileObj);
+      });
+      // Máx ~1MB base64 no RTDB — para laudos PDF/imagens pequenas
+      if(b64.length<1200000){
+        payload.fileUrl=b64;
+      } else {
+        payload.fileBig=true; // Sinaliza que arquivo é grande demais
+      }
+    }catch(e){payload.fileErr=true;}
+  }
+  await fbPut(`salas/${CU.id}/msgs/${key}`,payload);
   // Atualizar última mensagem no index
-  await fbPut(`salas_index/${CU.id}/ultimaTxt`,texto.trim().substring(0,50));
+  const preview=fileObj?`📎 ${fileObj.name}`:(texto||'').substring(0,50);
+  await fbPut(`salas_index/${CU.id}/ultimaTxt`,preview);
   await fbPut(`salas_index/${CU.id}/ultimaTs`,ts);
 }
 
@@ -1577,21 +1655,36 @@ function fbStartMsgPoll(){
       const temDra=lista.some(m=>m.de==='dra');
       if(inf)inf.textContent=temDra?'🟢 Dra. Ilza em atendimento':'🟡 Aguardando a Dra. iniciar o atendimento via CRM...';
     }
+    // Atualizar badge do nav
+    updateNavSalaBadge();
   },3000);
 }
 
 function renderQWithFbMsgs(msgs){
-  // Exibir msgs da Dra na seção de sala do paciente
   const el=document.getElementById('fb-msgs-area');
   if(!el)return;
   el.innerHTML=msgs.map(m=>{
     const isDra=m.de==='dra';
+    let content='';
+    if(m.fileUrl){
+      if(m.fileUrl.startsWith('data:image')||m.fileUrl.match(/\.(png|jpg|jpeg|gif|webp)/i)){
+        content+=`<div style="margin-bottom:${m.txt?'6px':'0'}"><img src="${m.fileUrl}" alt="${m.fileName||'imagem'}" style="max-width:100%;max-height:200px;border-radius:8px;display:block;cursor:pointer" onclick="window.open(this.src,'_blank')"></div>`;
+      } else {
+        content+=`<div style="margin-bottom:${m.txt?'6px':'0'}"><a href="${m.fileUrl}" download="${m.fileName||'arquivo'}" style="display:flex;align-items:center;gap:8px;text-decoration:none;color:${isDra?'#fff':'#1A5FA8'};font-weight:600;font-size:12px">
+          <span style="font-size:20px">${m.fileName?.endsWith('.pdf')?'📕':m.fileName?.match(/\.docx?$/i)?'📘':'📎'}</span>
+          <div><div style="font-weight:700">${m.fileName||'Arquivo'}</div><div style="font-size:10px;opacity:.7">Clique para baixar</div></div>
+        </a></div>`;
+      }
+    } else if(m.fileName&&!m.fileUrl){
+      content+=`<div style="display:flex;align-items:center;gap:6px;font-size:11px;opacity:.75;margin-bottom:${m.txt?'4px':'0'}"><span>📎</span>${m.fileName}</div>`;
+    }
+    if(m.txt) content+=`<div>${m.txt}</div>`;
     return `<div style="display:flex;justify-content:${isDra?'flex-end':'flex-start'};margin-bottom:6px">
       <div style="max-width:78%;background:${isDra?'#1A8C82':'#fff'};color:${isDra?'#fff':'#1E293B'};
         border-radius:${isDra?'14px 14px 4px 14px':'14px 14px 14px 4px'};
         padding:8px 13px;font-size:13px;box-shadow:0 1px 3px rgba(0,0,0,.08)">
         ${!isDra?`<div style="font-size:10px;font-weight:700;color:#94a3b8;margin-bottom:2px">${m.nome||'Você'}</div>`:''}
-        ${m.txt}
+        ${content}
         <div style="font-size:10px;opacity:.6;text-align:right;margin-top:3px">${m.ts||''}</div>
       </div>
     </div>`;
