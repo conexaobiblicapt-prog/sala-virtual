@@ -722,6 +722,12 @@ select.fc{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns=
             <div class="tb-role" id="tb-rl">—</div>
           </div>
         </div>
+        <button onclick="doLogout()" title="Sair do sistema"
+          style="margin-left:10px;padding:7px 14px;border-radius:8px;border:1.5px solid rgba(255,255,255,.2);
+                 background:rgba(255,255,255,.08);color:#fff;cursor:pointer;font-size:12px;font-weight:600;
+                 display:flex;align-items:center;gap:6px;white-space:nowrap">
+          ⎋ <span class="tb-logout-txt">Sair</span>
+        </button>
       </div>
     </header>
 
@@ -1208,7 +1214,62 @@ function adminChat(pid,from='sala'){
   document.getElementById('c-bacts').innerHTML=`
     <button class="btn btn-sm btn-gold" onclick="sendThx('${pid}')">🙏 Enviar mensagem de agradecimento</button>
   `;
-  _nav('chat');renderMsgs(key);
+  // Montar área Firebase para admin também ver/receber mensagens do paciente
+  const chatMsgs=document.getElementById('chat-msgs');
+  chatMsgs.innerHTML='<div class="sys-msg">Mensagens Firebase sincronizadas em tempo real</div><div id="fb-msgs-area" style="display:flex;flex-direction:column;gap:8px;padding-top:8px"></div>';
+  adminChatPid=pid;
+  _nav('chat');
+  // Carregar Firebase imediatamente
+  renderFbChatAdmin(pid);
+  adminFbStartPoll(pid);
+}
+
+let adminChatPid=null;
+let adminFbT=null;
+
+async function renderFbChatAdmin(pid){
+  const val=await fbGet(`salas/${pid}/msgs`);
+  const el=document.getElementById('fb-msgs-area');if(!el)return;
+  if(!val){el.innerHTML='<div style="padding:20px;text-align:center;color:#888;font-size:13px">Nenhuma mensagem ainda</div>';return;}
+  const lista=Object.entries(val).map(([k,v])=>({id:k,...v})).sort((a,b)=>(a.tsNum||0)-(b.tsNum||0));
+  el.innerHTML=lista.map(m=>{
+    const isDra=m.de==='dra';
+    let content='';
+    if(m.fileUrl){
+      const isImg=m.fileUrl.startsWith('data:image')||/\.(png|jpg|jpeg|gif|webp)$/i.test(m.fileName||'');
+      if(isImg){
+        content+=`<div style="margin-bottom:${m.txt?'6px':'0'}"><img src="${m.fileUrl}" alt="${m.fileName||'img'}" style="max-width:100%;max-height:200px;border-radius:8px;display:block;cursor:pointer" onclick="window.open(this.src,'_blank')"></div>`;
+      } else {
+        content+=`<div style="margin-bottom:${m.txt?'6px':'0'}"><a href="${m.fileUrl}" download="${m.fileName||'arquivo'}" style="display:flex;align-items:center;gap:8px;text-decoration:none;color:${isDra?'#fff':'#1A5FA8'};font-weight:600;font-size:12px">
+          <span style="font-size:20px">${m.fileName?.endsWith('.pdf')?'📕':m.fileName?.match(/\.docx?$/i)?'📘':'📎'}</span>
+          <div><div style="font-weight:700">${m.fileName||'Arquivo'}</div><div style="font-size:10px;opacity:.7">Baixar</div></div>
+        </a></div>`;
+      }
+    } else if(m.fileName){
+      content+=`<div style="display:flex;align-items:center;gap:6px;font-size:11px;opacity:.7;margin-bottom:${m.txt?'4px':'0'}"><span>📎</span>${m.fileName}</div>`;
+    }
+    if(m.txt) content+=`<div>${m.txt}</div>`;
+    return `<div style="display:flex;justify-content:${isDra?'flex-end':'flex-start'};margin-bottom:6px">
+      <div style="max-width:78%;background:${isDra?'linear-gradient(135deg,#A8722A,#7A5018)':'#fff'};color:${isDra?'#fff':'#1E293B'};
+        border-radius:${isDra?'14px 14px 4px 14px':'14px 14px 14px 4px'};
+        padding:8px 13px;font-size:13px;box-shadow:0 1px 3px rgba(0,0,0,.08);overflow:hidden">
+        ${!isDra?`<div style="font-size:10px;font-weight:700;color:#94a3b8;margin-bottom:2px">${m.nome||'Paciente'}</div>`:''}
+        ${content}
+        <div style="font-size:10px;opacity:.6;text-align:right;margin-top:3px">${isDra?'Dra. Ilza · ':''}${m.ts||''}</div>
+      </div>
+    </div>`;
+  }).join('');
+  el.scrollTop=el.scrollHeight;
+}
+
+function adminFbStartPoll(pid){
+  clearInterval(adminFbT);
+  if(!pid)return;
+  adminFbT=setInterval(async()=>{
+    if(!document.getElementById('page-chat').classList.contains('active'))return;
+    if(adminChatPid!==pid)return;
+    await renderFbChatAdmin(pid);
+  },3000);
 }
 
 function patEnterSala(){
@@ -1295,9 +1356,16 @@ function sendMsg(){
   inp.value='';inp.style.height='auto';
   const fileToSend=selFile;
   clrFile();
-  // Se for paciente, enviar ao Firebase (CRM receberá)
+  // Enviar ao Firebase (paciente ou admin)
   if(CU.role==='patient'){
     fbSendMsg(text,fileToSend).then(()=>renderFbChat());
+  } else if(CU.role==='admin'&&adminChatPid&&text){
+    // Admin envia via Firebase também
+    const ts=new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+    const key='m'+Date.now();
+    fbPut(`salas/${adminChatPid}/msgs/${key}`,{
+      txt:text, de:'dra', nome:'Equipe Dra. Ilza', ts, tsNum:Date.now(), lida:true
+    }).then(()=>renderFbChatAdmin(adminChatPid));
   } else {
     renderMsgs(chatId);
   }
