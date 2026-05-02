@@ -286,7 +286,7 @@ select.fc{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns=
 .cards-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px}
 .hcard{background:var(--white);border-radius:var(--r);padding:28px 24px;cursor:pointer;border:1.5px solid transparent;transition:var(--trans);box-shadow:var(--shadow-xs);position:relative;overflow:hidden}
 .hcard::before{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--teal),var(--sage));transform:scaleX(0);transition:var(--trans);transform-origin:left}
-.hcard:hover{border-color:var(--gray-200);box-shadow:var(--shadow-md);transform:translateY(-3px)}.hcard:hover::before{transform:scaleX(1)}
+.hcard:hover{border-color:var(--gray-200);box-shadow:var(--shadow-md);transform:translateY(-3px)}.hcard:hover::before{transform:scaleX(1)}.hcard-sala-cta:hover{border-color:var(--teal)!important;box-shadow:0 8px 32px rgba(26,140,130,.2)!important}
 .hcard-icon{width:52px;height:52px;border-radius:var(--r-sm);background:linear-gradient(135deg,var(--teal-glass),rgba(74,155,142,.08));display:flex;align-items:center;justify-content:center;font-size:24px;margin-bottom:16px;border:1px solid rgba(26,140,130,.12)}
 .hcard h3{font-family:'Playfair Display',serif;font-size:17px;color:var(--navy);margin-bottom:5px}
 .hcard p{font-size:12px;color:var(--gray-400);line-height:1.6}
@@ -765,11 +765,11 @@ select.fc{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns=
         <button class="btn-back" onclick="nav('home')">◀ Voltar</button>
         <div class="ph">
           <div class="ph-left">
-            <h2>Sala Virtual</h2>
-            <p>Pacientes aguardando atendimento</p>
+            <h2 id="sala-title">Sala Virtual</h2>
+            <p id="sala-subtitle">Aguarde o chamado da Dra. Ilza</p>
           </div>
           <div class="ph-right">
-            <div class="stat-chips">
+            <div class="stat-chips" id="admin-chips" style="display:none">
               <div class="stat-chip"><div class="n" id="s-on">0</div><div class="l">Online</div></div>
               <div class="stat-chip"><div class="n" id="s-w">0</div><div class="l">Na fila</div></div>
             </div>
@@ -1162,7 +1162,20 @@ function buildHomeCards(){
     const plCls=CU.plan==='ativo'?'ativo':CU.plan==='inativo'?'inativo':'erro';
     const plLbl=CU.plan==='ativo'?'Ativo ✅':CU.plan==='inativo'?'Inativo ⚠️':'Erro no Cartão ❌';
     document.getElementById('home-cards').innerHTML=`
-      <div class="hcard" onclick="nav('sala')"><div class="hcard-icon">📹</div><h3>Sala Virtual</h3><p>Entrar na sala de espera</p><div class="sala-schedule">📅 Sala aberta somente às<br><strong>4ªfeiras — 08h às 18h</strong><br><small>Somente para os pacientes</small></div></div>
+      <div class="hcard hcard-sala-cta" onclick="nav('sala')" style="border:2px solid rgba(26,140,130,.35);background:linear-gradient(135deg,rgba(26,140,130,.06),rgba(74,155,142,.03))">
+        <div class="hcard-icon" style="background:linear-gradient(135deg,var(--teal),var(--sage));border:none">
+          <span style="font-size:26px">💬</span>
+        </div>
+        <h3 style="color:var(--teal)">Chat com a Dra. Ilza</h3>
+        <p style="color:var(--navy);font-weight:500;font-size:13px;margin-bottom:10px">Atendimento online em tempo real</p>
+        <div class="sala-schedule" style="background:rgba(26,140,130,.08);border:1px solid rgba(26,140,130,.2);border-radius:8px;padding:8px 12px;margin-bottom:14px">
+          📅 Sala aberta somente às<br><strong>4ªfeiras — 08h às 18h</strong>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:center;gap:8px;background:linear-gradient(135deg,var(--teal),var(--sage));color:#fff;border-radius:8px;padding:10px 16px;font-size:13px;font-weight:700;letter-spacing:.01em;box-shadow:0 4px 14px rgba(26,140,130,.35)">
+          <span style="font-size:16px">💬</span>
+          Clique aqui para acessar o chat
+        </div>
+      </div>
       <div class="hcard" onclick="nav('cadastro')"><div class="hcard-icon">👤</div><h3>Meu Cadastro</h3><p>Dados pessoais e senha</p></div>
       <div class="hcard" onclick="nav('pagamento')"><div class="hcard-icon">💳</div><h3>Pagamentos</h3><p><span class="badge ${plCls}">${plLbl}</span></p></div>`;
   }
@@ -1197,21 +1210,67 @@ async function renderQ(){
   const users=users_raw?Object.values(users_raw):[];
   const isAdmin=CU.role==='admin';
   const fila=data?Object.entries(data).map(([id,info])=>({id,...info})).filter(p=>p.status==='aguardando'||p.status==='atendendo').sort((a,b)=>(a.tsNum||0)-(b.tsNum||0)):[];
-  document.getElementById('s-on').textContent=fila.length;
-  document.getElementById('s-w').textContent=fila.length;
+  // Admin: mostrar chips com totais; Paciente: esconder
+  const adminChips = document.getElementById('admin-chips');
+  const salaSubtitle = document.getElementById('sala-subtitle');
+  if(isAdmin){
+    if(adminChips) adminChips.style.display='flex';
+    if(salaSubtitle) salaSubtitle.textContent='Painel de atendimento — todos os pacientes';
+    document.getElementById('s-on').textContent=fila.length;
+    document.getElementById('s-w').textContent=fila.length;
+  } else {
+    if(adminChips) adminChips.style.display='none';
+    if(salaSubtitle) salaSubtitle.textContent='Sua posição na sala de espera';
+  }
   const el=document.getElementById('queue-list');
-  if(!fila.length){el.innerHTML='<div style="text-align:center;padding:56px;color:var(--gray-400);font-size:14px">Nenhum paciente aguardando no momento</div>';return;}
-  el.innerHTML=fila.map((p,i)=>{
+
+  if(isAdmin){
+    // ── ADMIN: vê toda a fila com nomes e botão de iniciar ──
+    if(!fila.length){el.innerHTML='<div style="text-align:center;padding:56px;color:var(--gray-400);font-size:14px">Nenhum paciente aguardando no momento</div>';return;}
+    el.innerHTML=fila.map((p,i)=>{
+      const sc=p.premium?'ativo':'inativo';const sl=p.premium?'Plano Ativo':'Inativo';
+      const adm=`<button class="btn btn-primary btn-sm" onclick="adminChatFb('${p.id}','${(p.nm||'').replace(/'/g,"\\'")}')">💬 Iniciar</button>`;
+      return `<div class="qi">
+        <div class="qi-num">${i+1}</div>
+        <div class="qi-info"><h4>${p.nm||p.id}</h4><p>Aguardando atendimento</p></div>
+        <span class="badge ${sc}">${sl}</span>
+        <div class="qi-actions">${adm}</div>
+      </div>`;
+    }).join('');
+  } else {
+    // ── PACIENTE: vê apenas sua própria posição ──
+    const myPos=fila.findIndex(p=>p.id===CU.id);
+    if(myPos===-1){
+      // Não está na fila ainda
+      el.innerHTML=`<div style="text-align:center;padding:48px 24px">
+        <div style="font-size:48px;margin-bottom:12px">👋</div>
+        <div style="font-size:15px;font-weight:700;color:var(--navy);margin-bottom:6px">Você ainda não está na fila</div>
+        <div style="font-size:13px;color:var(--gray-400)">Quando a Dra. Ilza iniciar o atendimento, você entrará automaticamente.</div>
+      </div>`;
+      return;
+    }
+    const p=fila[myPos];
+    const totalFila=fila.length;
+    const posicao=myPos+1;
     const sc=p.premium?'ativo':'inativo';const sl=p.premium?'Plano Ativo':'Inativo';
-    const adm=isAdmin?`<button class="btn btn-primary btn-sm" onclick="adminChatFb('${p.id}','${(p.nm||'').replace(/'/g,"\\'")}')">💬 Iniciar</button>`:'';
-    const me=!isAdmin&&p.id===CU.id;
-    return `<div class="qi ${sc==='erro'?'error':sc==='inativo'?'inactive':''}">
-      <div class="qi-num">${i+1}</div>
-      <div class="qi-info"><h4>${p.nm||p.id}</h4><p>${me?'Você está aguardando':'Paciente na fila'}</p></div>
-      <span class="badge ${sc}">${sl}</span>
-      <div class="qi-actions">${adm}${me?`<span class="badge ativo">Você</span>`:''}</div>
-    </div>`;
-  }).join('');
+    const msgEspera = posicao===1
+      ? '🟢 Você é o próximo! A Dra. Ilza chamará em instantes.'
+      : `⏳ Há ${posicao-1} paciente${posicao-1>1?'s':''} na sua frente. Por favor, aguarde.`;
+
+    el.innerHTML=`
+      <div class="qi" style="border:2px solid var(--teal);background:linear-gradient(135deg,rgba(26,140,130,.04),rgba(74,155,142,.02))">
+        <div class="qi-num" style="background:linear-gradient(135deg,var(--teal),var(--sage));font-size:16px">${posicao}</div>
+        <div class="qi-info">
+          <h4 style="color:var(--navy)">Sua posição na fila</h4>
+          <p style="color:var(--teal);font-weight:600">${msgEspera}</p>
+        </div>
+        <span class="badge ${sc}" style="margin-left:auto">${sl}</span>
+        <span class="badge ativo" style="margin-left:8px">Você</span>
+      </div>
+      <div style="text-align:center;padding:16px 0 0;font-size:12px;color:var(--gray-400)">
+        Fila total: <strong style="color:var(--teal)">${totalFila}</strong> paciente${totalFila!==1?'s':''} · Sua posição: <strong style="color:var(--teal)">${posicao}º</strong>
+      </div>`;
+  }
 }
 
 // ══════════════════════════════════════════
