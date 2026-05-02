@@ -1,4 +1,17 @@
 <!DOCTYPE html>
+<!-- ══════════════════════════════════════════════════════════
+     index.html — Sala Virtual · Dra. Ilza Ezequiel · MERGED
+     Gerado em: 2026-05-02 17:04
+     Origem: index__17_.html + index_novo.html
+     Base: index_novo (versão Firebase completa)
+       · Área de mensagens Firebase (#fb-msgs-area)
+       · Sessão via localStorage (persiste entre abas)
+       · Navegação com confirmação ao sair do chat
+       · Botão de avaliação de atendimento ⭐
+       · Recuperação de senha com exibição no modal
+       · Cards redesenhados com agenda da sala virtual
+══════════════════════════════════════════════════════════ -->
+
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -775,7 +788,7 @@ select.fc{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns=
             <div style="flex:1"><h3 id="c-nm">—</h3><div class="chat-hdr-info" id="c-inf">—</div></div>
             <div class="chat-hdr-acts" id="c-acts"></div>
           </div>
-          <div class="chat-msgs" id="chat-msgs"><div class="sys-msg">Início da conversa</div></div>
+          <div class="chat-msgs" id="chat-msgs"><div class="sys-msg">Início da conversa</div><div id="fb-msgs-area" style="display:flex;flex-direction:column;gap:8px;padding-top:8px"></div></div>
           <div class="chat-footer">
             <div class="chat-row">
               <button class="chat-attach" onclick="trigFile()" title="Anexar arquivo (máx. 2MB)">📎</button>
@@ -878,80 +891,93 @@ select.fc{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns=
 
 <script>
 // ══════════════════════════════════════════
-//  STORAGE
+//  FIREBASE — fonte única da verdade (PC ↔ Mobile)
 // ══════════════════════════════════════════
-const DB={
-  get(k){try{return JSON.parse(localStorage.getItem(k))}catch{return null}},
-  set(k,v){localStorage.setItem(k,JSON.stringify(v))},
-  del(k){localStorage.removeItem(k)}
-};
-function seed(){
-  if(!DB.get('sv_users')) DB.set('sv_users',[
-    {id:'admin',name:'Dra. Ilza Ezequiel',email:'admin@drailza.com',password:'admin123',role:'admin',cpf:''},
-    {id:'p1',name:'Ana Carolina Silva',email:'ana@email.com',password:'123456',role:'patient',cpf:'529.982.247-25',phone:'(13) 99001-1111',plan:'ativo',planExpiry:'30/07/2025'},
-    {id:'p2',name:'Bruno Oliveira',email:'bruno@email.com',password:'123456',role:'patient',cpf:'987.654.321-00',phone:'(13) 99002-2222',plan:'inativo',planExpiry:'10/01/2025'},
-    {id:'p3',name:'Carla Mendes',email:'carla@email.com',password:'123456',role:'patient',cpf:'111.444.777-35',phone:'(13) 99003-3333',plan:'ativo',planExpiry:'15/08/2025'},
-    {id:'p4',name:'Diego Fernandes',email:'diego@email.com',password:'123456',role:'patient',cpf:'275.274.330-04',phone:'(13) 99004-4444',plan:'erro',planExpiry:'01/05/2025',planError:'Cartão recusado – tente novamente'},
-    {id:'p5',name:'Eduarda Lima',email:'edu@email.com',password:'123456',role:'patient',cpf:'853.801.537-27',phone:'(13) 99005-5555',plan:'ativo',planExpiry:'20/09/2025'},
-  ]);
-  if(!DB.get('sv_queue')) DB.set('sv_queue',['p1','p3','p5']);
-  if(!DB.get('sv_chats')) DB.set('sv_chats',{});
-  if(!DB.get('sv_payments')) DB.set('sv_payments',{
-    p1:[{date:'01/04/2025',desc:'Plano Mensal',value:'R$ 150,00',status:'pago'},
-        {date:'01/03/2025',desc:'Plano Mensal',value:'R$ 150,00',status:'pago'}],
-    p4:[{date:'01/04/2025',desc:'Plano Mensal',value:'R$ 150,00',status:'erro',error:'Cartão recusado'}],
-  });
+const FB_URL='https://crm-dra-ilza-default-rtdb.firebaseio.com';
+let fbPollT=null,fbMsgT=null,fbQueueT=null;
+
+async function fbPut(path,val){
+  try{await fetch(`${FB_URL}/${path}.json`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(val)});}
+  catch(e){console.warn('[FB put]',e);}
 }
-seed();
+async function fbPatch(path,val){
+  try{await fetch(`${FB_URL}/${path}.json`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(val)});}
+  catch(e){console.warn('[FB patch]',e);}
+}
+async function fbDel(path){
+  try{await fetch(`${FB_URL}/${path}.json`,{method:'DELETE'});}
+  catch(e){console.warn('[FB del]',e);}
+}
+async function fbGet(path){
+  try{const r=await fetch(`${FB_URL}/${path}.json`);if(!r.ok)return null;return await r.json();}
+  catch(e){return null;}
+}
+
+// ── Sessão local (só ID — dado sensível nunca vai pro Firebase) ──
+const SS={
+  get(){try{return localStorage.getItem('sv_sess');}catch{return null;}},
+  set(id){try{localStorage.setItem('sv_sess',id);}catch{}},
+  del(){try{localStorage.removeItem('sv_sess');}catch{}}
+};
+
+// ── Variáveis globais de runtime ──
+let CU=null,chatId=null,chatWith=null,chatOrig='sala',syncT=null,selFile=null;
+let fbLastMsgTs=0;
+let _pendingToken='',_pendingPaid=false,rTemp={};
 
 // ══════════════════════════════════════════
-//  CPF
+//  SEED — dados iniciais no Firebase (só se vazio)
+// ══════════════════════════════════════════
+async function seed(){
+  const users=await fbGet('sv_portal/users');
+  if(users&&Object.keys(users).length>0) return; // já tem dados
+  const initial={
+    admin:{id:'admin',name:'Dra. Ilza Ezequiel',email:'admin@drailza.com',password:'admin123',role:'admin',cpf:''},
+    p1:{id:'p1',name:'Ana Carolina Silva',email:'ana@email.com',password:'123456',role:'patient',cpf:'529.982.247-25',phone:'(13) 99001-1111',plan:'ativo',planExpiry:'30/07/2025'},
+    p2:{id:'p2',name:'Bruno Oliveira',email:'bruno@email.com',password:'123456',role:'patient',cpf:'987.654.321-00',phone:'(13) 99002-2222',plan:'inativo',planExpiry:'10/01/2025'},
+    p3:{id:'p3',name:'Carla Mendes',email:'carla@email.com',password:'123456',role:'patient',cpf:'111.444.777-35',phone:'(13) 99003-3333',plan:'ativo',planExpiry:'15/08/2025'},
+    p4:{id:'p4',name:'Diego Fernandes',email:'diego@email.com',password:'123456',role:'patient',cpf:'275.274.330-04',phone:'(13) 99004-4444',plan:'erro',planExpiry:'01/05/2025',planError:'Cartão recusado – tente novamente'},
+    p5:{id:'p5',name:'Eduarda Lima',email:'edu@email.com',password:'123456',role:'patient',cpf:'853.801.537-27',phone:'(13) 99005-5555',plan:'ativo',planExpiry:'20/09/2025'},
+  };
+  await fbPut('sv_portal/users',initial);
+  await fbPut('sv_portal/payments',{
+    p1:[{date:'01/04/2025',desc:'Plano Mensal',value:'R$ 150,00',status:'pago'},{date:'01/03/2025',desc:'Plano Mensal',value:'R$ 150,00',status:'pago'}],
+    p4:[{date:'01/04/2025',desc:'Plano Mensal',value:'R$ 150,00',status:'erro',error:'Cartão recusado'}],
+  });
+  console.log('[Portal] Dados iniciais gravados no Firebase.');
+}
+
+// ══════════════════════════════════════════
+//  HELPERS — CPF / PHONE / TABS
 // ══════════════════════════════════════════
 function mCPF(el){
-  let v=el.value.replace(/\D/g,'').slice(0,11);
-  if(v.length>9) v=v.replace(/(\d{3})(\d{3})(\d{3})(\d{0,2})/,'$1.$2.$3-$4');
-  else if(v.length>6) v=v.replace(/(\d{3})(\d{3})(\d{0,3})/,'$1.$2.$3');
-  else if(v.length>3) v=v.replace(/(\d{3})(\d{0,3})/,'$1.$2');
+  let v=el.value.replace(/\D/g,'').substring(0,11);
+  v=v.replace(/(\d{3})(\d)/,'$1.$2').replace(/(\d{3})(\d)/,'$1.$2').replace(/(\d{3})(\d{1,2})$/,'$1-$2');
   el.value=v;
 }
 function mPhone(el){
-  let v=el.value.replace(/\D/g,'').slice(0,11);
-  if(v.length>10) v=v.replace(/(\d{2})(\d{5})(\d{4})/,'($1) $2-$3');
-  else if(v.length>6) v=v.replace(/(\d{2})(\d{4,5})(\d{0,4})/,'($1) $2-$3');
-  else if(v.length>2) v=v.replace(/(\d{2})(\d{0,5})/,'($1) $2');
+  let v=el.value.replace(/\D/g,'').substring(0,11);
+  v=v.length>10?v.replace(/(\d{2})(\d{5})(\d{4})/,'($1) $2-$3'):v.replace(/(\d{2})(\d{4})(\d{4})/,'($1) $2-$3');
   el.value=v;
 }
 function valCPF(c){
-  c=c.replace(/\D/g,'');
-  if(c.length!==11||/^(\d)\1+$/.test(c)) return false;
-  let s=0;
-  for(let i=0;i<9;i++) s+=+c[i]*(10-i);
-  let r=11-s%11;if(r>=10)r=0;
-  if(r!==+c[9]) return false;
-  s=0;
-  for(let i=0;i<10;i++) s+=+c[i]*(11-i);
-  r=11-s%11;if(r>=10)r=0;
-  return r===+c[10];
+  c=c.replace(/\D/g,'');if(c.length!==11||/^(\d)\1+$/.test(c))return false;
+  let s=0;for(let i=0;i<9;i++)s+=+c[i]*(10-i);let r=11-(s%11);let d1=r>=10?0:r;
+  s=0;for(let i=0;i<10;i++)s+=+c[i]*(11-i);r=11-(s%11);let d2=r>=10?0:r;
+  return d1===+c[9]&&d2===+c[10];
 }
-
-// ══════════════════════════════════════════
-//  PASSWORD TOGGLE
-// ══════════════════════════════════════════
 function tp(id,btn){
+  // toggle password visibility
   const el=document.getElementById(id);if(!el)return;
   const show=el.type==='password';el.type=show?'text':'password';
   btn.textContent=show?'🙈':'👁';
 }
-
-// ══════════════════════════════════════════
-//  LOGIN STATE
-// ══════════════════════════════════════════
-let CU=null,chatId=null,chatWith=null,chatOrig='home',selFile=null,syncT=null,rTemp={};
-
+function togglePw(id,btn){tp(id,btn);}
 function setTab(t){
-  document.querySelectorAll('.lc-tab').forEach((el,i)=>el.classList.toggle('active',['login','register'][i]===t));
-  document.getElementById('f-login').classList.toggle('hidden',t!=='login');
-  if(t==='register') srs(1); else hideReg();
+  document.querySelectorAll('.lc-tab').forEach((b,i)=>b.classList.toggle('active',['login','register'][i]===t));
+  const isLogin=t==='login';
+  document.getElementById('f-login').classList.toggle('hidden',!isLogin);
+  if(!isLogin){hideReg();srs(1);}else{hideReg();}
   clrAlrt();
 }
 function hideReg(){['f-r1','f-r2','f-r3','f-r4'].forEach(id=>document.getElementById(id).classList.add('hidden'));}
@@ -960,16 +986,27 @@ function showAlrt(msg,type='err'){const el=document.getElementById('l-alrt');el.
 function clrAlrt(){document.getElementById('l-alrt').style.display='none';}
 function enterLogin(e){if(e.key==='Enter')doLogin();}
 
-function doLogin(){
+// ══════════════════════════════════════════
+//  LOGIN
+// ══════════════════════════════════════════
+async function doLogin(){
   const em=document.getElementById('l-em').value.trim();
   const pw=document.getElementById('l-pw').value;
-  const u=(DB.get('sv_users')||[]).find(x=>x.email===em&&x.password===pw);
+  if(!em||!pw){showAlrt('Preencha e-mail e senha.');return;}
+  showAlrt('Verificando...','info');
+  const users=await fbGet('sv_portal/users');
+  if(!users){showAlrt('Erro de conexão. Tente novamente.');return;}
+  const u=Object.values(users).find(x=>x.email===em&&x.password===pw);
   if(!u){showAlrt('E-mail ou senha incorretos.');return;}
-  CU=u;DB.set('sv_sess',u.id);
-  if(u.role==='patient'){let q=DB.get('sv_queue')||[];if(!q.includes(u.id)){q.push(u.id);DB.set('sv_queue',q);}}
-  startApp();
+  CU=u;SS.set(u.id);
+  // Paciente entra na fila Firebase automaticamente
+  if(u.role==='patient') await fbRegisterQueue();
+  clrAlrt();startApp();
 }
 
+// ══════════════════════════════════════════
+//  CADASTRO
+// ══════════════════════════════════════════
 function rs1(){
   const nm=document.getElementById('r-nm').value.trim();
   const cpf=document.getElementById('r-cpf').value;
@@ -979,23 +1016,20 @@ function rs1(){
   const ce=document.getElementById('cpf-e');
   if(!valCPF(cpf)){ce.textContent='CPF inválido. Verifique os dígitos.';ce.classList.remove('hidden');document.getElementById('r-cpf').classList.add('err');return;}
   ce.classList.add('hidden');document.getElementById('r-cpf').classList.remove('err');
-  const users=DB.get('sv_users')||[];
-  if(users.find(u=>u.cpf&&u.cpf.replace(/\D/g,'')===cpf.replace(/\D/g,''))){showAlrt('CPF já cadastrado.');return;}
   rTemp={nm,cpf,dob,tel};srs(2);
 }
-
-function rs2(){
+async function rs2(){
   const em=document.getElementById('r-em').value.trim();
   const pw=document.getElementById('r-pw').value;
   const pw2=document.getElementById('r-pw2').value;
-  if(!em){showAlrt('Digite seu e-mail.');return;}
-  if(pw.length<6){showAlrt('Senha deve ter ao menos 6 caracteres.');return;}
+  if(!em||!pw){showAlrt('Preencha e-mail e senha.');return;}
   if(pw!==pw2){showAlrt('As senhas não conferem.');return;}
-  if((DB.get('sv_users')||[]).find(u=>u.email===em)){showAlrt('E-mail já cadastrado.');return;}
+  if(pw.length<6){showAlrt('Senha deve ter ao menos 6 caracteres.');return;}
+  // Verificar e-mail único no Firebase
+  const users=await fbGet('sv_portal/users')||{};
+  if(Object.values(users).find(u=>u.email===em)){showAlrt('E-mail já cadastrado.');return;}
   rTemp={...rTemp,em,pw};srs(3);
 }
-
-let _pendingToken='',_pendingPaid=false;
 function goMP(){
   _pendingToken=String(Math.floor(100000+Math.random()*900000));
   _pendingPaid=true;
@@ -1021,52 +1055,51 @@ function resendToken(){
 function simulateEmail(email,name,token,paid){
   console.log(`[EMAIL SIMULADO]\nPara: ${email}\nOlá, ${name}!\nToken de validação: ${token}\n${paid?'Pagamento R$ 49,99 – APROVADO ✅':''}\nDra. Ilza Ezequiel – Sala Virtual`);
 }
-function cmpReg(paid){
-  const users=DB.get('sv_users')||[];
-  // Limite de 50 pacientes
-  const pacientes=users.filter(u=>u.role==='patient');
-  if(pacientes.length>=50){
-    showAlrt('⚠️ Limite de 50 pacientes atingido. Entre em contato com a clínica para liberar vagas.');return;
-  }
+async function cmpReg(paid){
+  const users=await fbGet('sv_portal/users')||{};
+  const pacientes=Object.values(users).filter(u=>u.role==='patient');
+  if(pacientes.length>=50){showAlrt('⚠️ Limite de 50 pacientes atingido. Entre em contato com a clínica para liberar vagas.');return;}
   const id='p'+Date.now();
   const exp=new Date();exp.setMonth(exp.getMonth()+1);
-  const nu={id,name:rTemp.nm,cpf:rTemp.cpf,dob:rTemp.dob,phone:rTemp.tel,
+  const nu={id,name:rTemp.nm,cpf:rTemp.cpf,dob:rTemp.dob||'',phone:rTemp.tel||'',
     email:rTemp.em,password:rTemp.pw,role:'patient',
     plan:paid?'ativo':'inativo',planExpiry:exp.toLocaleDateString('pt-BR'),
     registeredAt:new Date().toISOString()};
-  users.push(nu);DB.set('sv_users',users);
-  let q=DB.get('sv_queue')||[];q.push(id);DB.set('sv_queue',q);
-  if(paid){const p=DB.get('sv_payments')||{};p[id]=[{date:new Date().toLocaleDateString('pt-BR'),desc:'Plano Mensal',value:'R$ 49,99',status:'pago'}];DB.set('sv_payments',p);}
-  // Backup robusto no Firebase (sem senha)
-  fbPut(`pacientes_cadastro/${id}`,{
-    id, name:rTemp.nm, cpf:rTemp.cpf, dob:rTemp.dob, phone:rTemp.tel,
-    email:rTemp.em, role:'patient', plan:nu.plan,
-    planExpiry:nu.planExpiry, registeredAt:nu.registeredAt
-  });
+  // Gravar usuário no Firebase
+  await fbPut(`sv_portal/users/${id}`,nu);
+  // Gravar pagamento inicial se pago
+  if(paid){
+    await fbPut(`sv_portal/payments/${id}`,[{date:new Date().toLocaleDateString('pt-BR'),desc:'Plano Mensal',value:'R$ 49,99',status:'pago'}]);
+  }
+  // Backup no path de cadastro de pacientes (CRM lê daqui)
+  await fbPut(`pacientes_cadastro/${id}`,{id,name:nu.name,cpf:nu.cpf,dob:nu.dob,phone:nu.phone,email:nu.em,role:'patient',plan:nu.plan,planExpiry:nu.planExpiry,registeredAt:nu.registeredAt});
   showConfirmScreen(rTemp.em,paid);
 }
 function showConfirmScreen(email,paid){
-  document.getElementById('screen-login').style.display='none';
-  document.getElementById('screen-confirm').classList.remove('hidden');
-  document.getElementById('conf-email').textContent=email;
+  hideReg();
+  document.getElementById('screen-login').innerHTML=`
+    <div style="background:#fff;border-radius:20px;padding:48px 40px;max-width:420px;width:90%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.12)">
+      <div style="font-size:56px;margin-bottom:16px">${paid?'✅':'📋'}</div>
+      <h2 style="color:#0d2137;margin-bottom:8px">${paid?'Cadastro realizado!':'Cadastro enviado!'}</h2>
+      <p style="color:#64748b;font-size:14px;margin-bottom:24px">
+        ${paid?`Plano ativo! Acesse com o e-mail <strong>${email}</strong>`:`Cadastro realizado. Acesse com o e-mail <strong>${email}</strong>`}
+      </p>
+      <button class="btn btn-primary" onclick="goToLogin()">Ir para o Login</button>
+    </div>`;
 }
-function goToLogin(){
-  document.getElementById('screen-confirm').classList.add('hidden');
-  document.getElementById('screen-login').style.display='flex';
-  document.getElementById('l-em').value=rTemp.em||'';
-  setTab('login');
-  toast('Conta criada! Faça login com seu e-mail e senha.','success');
-  rTemp={};
-}
+function goToLogin(){location.reload();}
 
-
+// ══════════════════════════════════════════
+//  LOGOUT
+// ══════════════════════════════════════════
 function doLogout(){
   if(chatId){showModal('Sair','Você tem uma conversa ativa. Deseja realmente sair?',_logout);return;}
   _logout();
 }
-function _logout(){
-  if(CU&&CU.role==='patient'){let q=DB.get('sv_queue')||[];q=q.filter(x=>x!==CU.id);DB.set('sv_queue',q);}
-  CU=null;chatId=null;DB.del('sv_sess');clearInterval(syncT);
+async function _logout(){
+  if(CU&&CU.role==='patient') await fbUnregisterQueue();
+  clearInterval(syncT);clearInterval(fbMsgT);clearInterval(fbPollT);
+  CU=null;chatId=null;chatWith=null;SS.del();
   document.getElementById('app-shell').classList.add('hidden');
   document.getElementById('screen-login').style.display='flex';
   document.getElementById('l-em').value='';document.getElementById('l-pw').value='';
@@ -1074,7 +1107,7 @@ function _logout(){
 }
 
 // ══════════════════════════════════════════
-//  APP
+//  APP SHELL
 // ══════════════════════════════════════════
 function startApp(){
   document.getElementById('screen-login').style.display='none';
@@ -1091,102 +1124,90 @@ function startApp(){
   if(CU.role==='admin'){fillPatSel();fbStartQueuePoll();}
   nav('home');startSync();
 }
-
 function buildNav(){
   const isAdmin=CU.role==='admin';
   const items=isAdmin
-    ?[['home','🏠','Início'],['sala','🏥','Sala Virtual'],['patients','👥','Pacientes'],['admin','⚙️','Administração']]
-    :[['home','🏠','Início'],['sala','📹','Sala Virtual'],['cadastro','📋','Meu Cadastro'],['pagamento','💳','Pagamentos']];
-  document.getElementById('side-nav').innerHTML=
-    `<div class="nav-section">Menu</div>`+
-    items.map(([id,icon,lbl])=>
-      `<button class="nav-item" id="ni-${id}" onclick="nav('${id}')" style="position:relative">
-        <span class="nav-icon">${icon}</span><span>${lbl}</span>
-        ${id==='sala'?`<span id="nav-sala-badge" style="display:none;position:absolute;top:6px;right:8px;min-width:18px;height:18px;border-radius:9px;background:#E53935;color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0 4px">0</span>`:''}
-      </button>`
-    ).join('');
-  updateNavSalaBadge();
-  buildHomeCards();
+    ?[{id:'home',icon:'🏠',label:'Início'},{id:'sala',icon:'📹',label:'Sala Virtual'},{id:'patients',icon:'👥',label:'Pacientes'},{id:'admin',icon:'⚙️',label:'Admin'}]
+    :[{id:'home',icon:'🏠',label:'Início'},{id:'sala',icon:'📹',label:'Sala Virtual',badge:true},{id:'cadastro',icon:'👤',label:'Meu Cadastro'},{id:'payment',icon:'💳',label:'Plano & Pagamento'}];
+  document.getElementById('side-nav').innerHTML='<div class="nav-section">Menu</div>'+items.map(it=>`
+    <button class="nav-item nav-btn" onclick="nav('${it.id}')" id="ni-${it.id}" style="position:relative">
+      <span class="nav-icon">${it.icon}</span>
+      <span>${it.label}</span>
+      ${it.badge?'<span class="nav-notif" id="nav-sala-badge" style="display:none;position:absolute;top:8px;right:10px"></span>':''}
+    </button>`).join('');
 }
-
 function updateNavSalaBadge(){
-  const el=document.getElementById('nav-sala-badge');
-  if(!el)return;
-  // Contar mensagens não lidas da Dra no Firebase para paciente logado
+  const el=document.getElementById('nav-sala-badge');if(!el)return;
   if(CU&&CU.role==='patient'){
     fbGet(`salas/${CU.id}/msgs`).then(val=>{
       if(!val){el.style.display='none';return;}
       const novas=Object.values(val).filter(m=>m.de==='dra'&&!m.lida&&(m.tsNum||0)>fbLastMsgTs).length;
       if(novas>0){el.textContent=novas;el.style.display='flex';}else{el.style.display='none';}
     });
-  } else {el.style.display='none';}
+  }else{el.style.display='none';}
 }
-
 function buildHomeCards(){
-  const isAdmin=CU.role==='admin';
-  const fn=CU.name.split(' ')[0];
+  const isAdmin=CU.role==='admin';const fn=CU.name.split(' ')[0];
   document.getElementById('hero-h').innerHTML=`Olá, <em>${fn}</em>!`;
   document.getElementById('hero-p').textContent=isAdmin?'Painel de administração da Sala Virtual.':'Bem-vindo ao espaço de atendimento online com Dra Ilza.';
-  const q=(DB.get('sv_queue')||[]).length;
   if(isAdmin){
-    document.getElementById('home-cards').innerHTML=`
-      <div class="hcard" onclick="nav('sala')"><div class="hcard-icon">🏥</div><h3>Sala Virtual</h3><p>Fila de atendimento em tempo real</p><div class="hcard-badge" id="hc-q">${q} na fila</div></div>
-      <div class="hcard" onclick="nav('patients')"><div class="hcard-icon">👥</div><h3>Pacientes</h3><p>Lista completa por ordem alfabética</p></div>
-      <div class="hcard" onclick="nav('admin')"><div class="hcard-icon">⚙️</div><h3>Administração</h3><p>Gerenciar senhas e configurações</p></div>
-    `;
-  } else {
-    const sl={ativo:'✅ Plano ativo',inativo:'⚠️ Plano vencido',erro:'❌ Erro no plano'}[CU.plan]||'—';
+    fbGet('salas_index').then(data=>{
+      const q=data?Object.keys(data).length:0;
+      document.getElementById('home-cards').innerHTML=`
+        <div class="hcard" onclick="nav('sala')"><div class="hcard-icon">📹</div><h3>Sala Virtual</h3><p>Fila em tempo real</p><div class="hcard-badge" id="hc-q">${q} na fila</div></div>
+        <div class="hcard" onclick="nav('patients')"><div class="hcard-icon">👥</div><h3>Pacientes</h3><p>Gerenciar cadastros</p></div>
+        <div class="hcard" onclick="nav('admin')"><div class="hcard-icon">⚙️</div><h3>Administração</h3><p>Configurações e senhas</p></div>`;
+    });
+  }else{
+    const plCls=CU.plan==='ativo'?'ativo':CU.plan==='inativo'?'inativo':'erro';
+    const plLbl=CU.plan==='ativo'?'Ativo ✅':CU.plan==='inativo'?'Inativo ⚠️':'Erro no Cartão ❌';
     document.getElementById('home-cards').innerHTML=`
       <div class="hcard" onclick="nav('sala')"><div class="hcard-icon">📹</div><h3>Sala Virtual</h3><p>Entrar na sala de espera</p><div class="sala-schedule">📅 Sala aberta somente às<br><strong>4ªfeiras — 08h às 18h</strong><br><small>Somente para os pacientes</small></div></div>
-      <div class="hcard" onclick="nav('cadastro')"><div class="hcard-icon">📋</div><h3>Meu Cadastro</h3><p>Dados pessoais e senha</p></div>
-      <div class="hcard" onclick="nav('pagamento')"><div class="hcard-icon">💳</div><h3>Pagamentos</h3><p>${sl}</p></div>
-    `;
+      <div class="hcard" onclick="nav('cadastro')"><div class="hcard-icon">👤</div><h3>Meu Cadastro</h3><p>Dados pessoais e senha</p></div>
+      <div class="hcard" onclick="nav('pagamento')"><div class="hcard-icon">💳</div><h3>Pagamentos</h3><p><span class="badge ${plCls}">${plLbl}</span></p></div>`;
   }
 }
 
 // ══════════════════════════════════════════
-//  NAVIGATION
+//  NAVEGAÇÃO
 // ══════════════════════════════════════════
-const pageLabels={home:'Início',sala:'Sala Virtual',chat:'Chat',patients:'Pacientes',admin:'Administração',cadastro:'Meu Cadastro',pagamento:'Pagamentos'};
-
 function nav(page,force=false){
-  if(chatId&&document.getElementById('page-chat').classList.contains('active')&&page!=='chat'&&!force){
+  if(page==='sala'&&CU&&CU.role==='patient'){patEnterSala();return;}
+  if(!force&&chatId&&document.getElementById('page-chat')?.classList.contains('active')&&page!=='chat'){
     showModal('Sair da conversa','A conversa será preservada. Retorne quando quiser.',()=>_nav(page));return;
   }
-  if(page==='sala'&&CU&&CU.role==='patient'){patEnterSala();return;}
   _nav(page);
 }
 function _nav(page){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-  document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('active'));
-  const pe=document.getElementById('page-'+page);if(pe)pe.classList.add('active');
-  const ne=document.getElementById('ni-'+page);if(ne)ne.classList.add('active');
-  document.getElementById('tb-page').textContent=pageLabels[page]||page;
+  document.querySelectorAll('.nav-item,.nav-btn').forEach(b=>b.classList.remove('active'));
+  const pg=document.getElementById('page-'+page);if(pg)pg.classList.add('active');
+  const nb=document.getElementById('ni-'+page);if(nb)nb.classList.add('active');
+  if(page==='home')buildHomeCards();
   if(page==='sala')renderQ();
   if(page==='patients')renderPats();
-  if(page==='admin')fillPatSel();
 }
 
 // ══════════════════════════════════════════
-//  QUEUE
+//  FILA — Firebase
 // ══════════════════════════════════════════
-function renderQ(){
-  const q=DB.get('sv_queue')||[];const users=DB.get('sv_users')||[];const isAdmin=CU.role==='admin';
-  document.getElementById('s-on').textContent=q.length;document.getElementById('s-w').textContent=q.length;
+async function renderQ(){
+  const data=await fbGet('salas_index');
+  const users_raw=await fbGet('sv_portal/users');
+  const users=users_raw?Object.values(users_raw):[];
+  const isAdmin=CU.role==='admin';
+  const fila=data?Object.entries(data).map(([id,info])=>({id,...info})).filter(p=>p.status==='aguardando'||p.status==='atendendo').sort((a,b)=>(a.tsNum||0)-(b.tsNum||0)):[];
+  document.getElementById('s-on').textContent=fila.length;
+  document.getElementById('s-w').textContent=fila.length;
   const el=document.getElementById('queue-list');
-  if(!q.length){el.innerHTML='<div style="text-align:center;padding:56px;color:var(--gray-400);font-size:14px">Nenhum paciente aguardando no momento</div>';return;}
-  el.innerHTML=q.map((uid,i)=>{
-    const u=users.find(x=>x.id===uid);if(!u)return '';
-    const sc=u.plan||'ativo';const sl=sc==='ativo'?'Ativo':sc==='inativo'?'Inativo':'Erro';
-    const ch=(DB.get('sv_chats')||{})[`admin_${uid}`];const hasC=!!(ch&&ch.length);
-    const adm=isAdmin?`
-      <button class="btn btn-primary btn-sm" onclick="adminChat('${uid}')">💬 Iniciar</button>
-      ${hasC?`<button class="btn btn-outline btn-sm" onclick="adminChat('${uid}')">📜 Histórico</button>`:''}
-    `:'';
-    const me=!isAdmin&&uid===CU.id;
+  if(!fila.length){el.innerHTML='<div style="text-align:center;padding:56px;color:var(--gray-400);font-size:14px">Nenhum paciente aguardando no momento</div>';return;}
+  el.innerHTML=fila.map((p,i)=>{
+    const sc=p.premium?'ativo':'inativo';const sl=p.premium?'Plano Ativo':'Inativo';
+    const adm=isAdmin?`<button class="btn btn-primary btn-sm" onclick="adminChatFb('${p.id}','${(p.nm||'').replace(/'/g,"\\'")}')">💬 Iniciar</button>`:'';
+    const me=!isAdmin&&p.id===CU.id;
     return `<div class="qi ${sc==='erro'?'error':sc==='inativo'?'inactive':''}">
       <div class="qi-num">${i+1}</div>
-      <div class="qi-info"><h4>${u.name}</h4><p>${me?'Você está aguardando':'Paciente na fila'}${u.planError?` · ⚠️ ${u.planError}`:''}</p></div>
+      <div class="qi-info"><h4>${p.nm||p.id}</h4><p>${me?'Você está aguardando':'Paciente na fila'}</p></div>
       <span class="badge ${sc}">${sl}</span>
       <div class="qi-actions">${adm}${me?`<span class="badge ativo">Você</span>`:''}</div>
     </div>`;
@@ -1194,559 +1215,99 @@ function renderQ(){
 }
 
 // ══════════════════════════════════════════
-//  CHAT
+//  CHAT ADMIN → PACIENTE (via Firebase salas/)
 // ══════════════════════════════════════════
-function adminChat(pid,from='sala'){
-  const users=DB.get('sv_users')||[];const pat=users.find(u=>u.id===pid);if(!pat)return;
-  chatWith=pid;const key=`admin_${pid}`;chatId=key;chatOrig=from;
-  const chats=DB.get('sv_chats')||{};
-  if(!chats[key]){chats[key]=[];chats[key].push({type:'system',text:`Atendimento iniciado com ${pat.name} — ${fmtDate()}`,ts:Date.now()});DB.set('sv_chats',chats);}
-  const notifs=DB.get('sv_notifs')||{};if(!notifs[pid])notifs[pid]=[];
-  notifs[pid].push({type:'call',ts:Date.now(),read:false});DB.set('sv_notifs',notifs);
-  const q=DB.get('sv_queue')||[];const pos=q.indexOf(pid)+1;
-  document.getElementById('c-av').textContent=pat.name[0];
-  document.getElementById('c-nm').textContent=pat.name;
-  document.getElementById('c-inf').textContent=`${pat.plan==='ativo'?'🟢':'🔴'} Plano ${pat.plan} · Posição #${pos||'—'}`;
+async function adminChatFb(pid,pnm){
+  chatWith=pid;chatId=`admin_${pid}`;chatOrig='sala';
+  // Atualizar status no Firebase
+  await fbPatch(`salas_index/${pid}`,{status:'atendendo'});
+  // Notificar paciente via Firebase
+  await fbPut(`sv_portal/notifs/${pid}`,{type:'call',ts:Date.now(),read:false,msg:'A Dra. Ilza iniciou o seu atendimento!'});
+  document.getElementById('c-av').textContent=(pnm||pid)[0].toUpperCase();
+  document.getElementById('c-nm').textContent=pnm||pid;
+  document.getElementById('c-inf').textContent='🟢 Atendimento em andamento (Firebase)';
   document.getElementById('c-acts').innerHTML=`
-    <button class="btn btn-sm btn-ghost" onclick="sendThx('${pid}')">🙏 Agradecer</button>
-    <button class="btn btn-sm" style="background:rgba(192,57,43,.2);color:#ffaaaa;border:1px solid rgba(192,57,43,.3);border-radius:var(--r-sm);font-size:12px;padding:7px 14px;cursor:pointer;font-weight:700" onclick="endChat('${pid}')">⏹ Encerrar</button>
-  `;
+    <button class="btn btn-sm btn-ghost" onclick="sendThxFb('${pid}')">🙏 Agradecer</button>
+    <button class="btn btn-sm" style="background:rgba(192,57,43,.2);color:#ffaaaa;border:1px solid rgba(192,57,43,.3);border-radius:var(--r-sm);font-size:12px;padding:7px 14px;cursor:pointer;font-weight:700" onclick="endChatFb('${pid}')">⏹ Encerrar</button>`;
   document.getElementById('c-bacts').innerHTML=`
-    <button class="btn btn-sm btn-gold" onclick="sendThx('${pid}')">🙏 Enviar mensagem de agradecimento</button>
-  `;
-  // Montar área Firebase para admin também ver/receber mensagens do paciente
-  const chatMsgs=document.getElementById('chat-msgs');
-  chatMsgs.innerHTML='<div class="sys-msg">Mensagens Firebase sincronizadas em tempo real</div><div id="fb-msgs-area" style="display:flex;flex-direction:column;gap:8px;padding-top:8px"></div>';
-  adminChatPid=pid;
-  _nav('chat');
-  // Carregar Firebase imediatamente
+    <button class="btn btn-sm btn-gold" onclick="sendThxFb('${pid}')">🙏 Enviar mensagem de agradecimento</button>`;
+  nav('chat',true);
   renderFbChatAdmin(pid);
   adminFbStartPoll(pid);
 }
-
-let adminChatPid=null;
-let adminFbT=null;
-
+// Compatibilidade com chamadas antigas
+function adminChat(pid,from='sala'){
+  const key=`admin_${pid}`;chatWith=pid;chatId=key;chatOrig=from;
+  fbGet('sv_portal/users').then(users=>{
+    const u=users?Object.values(users).find(x=>x.id===pid):null;
+    adminChatFb(pid,u?u.name:pid);
+  });
+}
 async function renderFbChatAdmin(pid){
   const val=await fbGet(`salas/${pid}/msgs`);
   const el=document.getElementById('fb-msgs-area');if(!el)return;
-  if(!val){el.innerHTML='<div style="padding:20px;text-align:center;color:#888;font-size:13px">Nenhuma mensagem ainda</div>';return;}
+  if(!val){el.innerHTML='<div style="text-align:center;padding:32px;color:var(--gray-400);font-size:13px">Sem mensagens ainda</div>';return;}
   const lista=Object.entries(val).map(([k,v])=>({id:k,...v})).sort((a,b)=>(a.tsNum||0)-(b.tsNum||0));
-  el.innerHTML=lista.map(m=>{
-    const isDra=m.de==='dra';
-    let content='';
-    if(m.fileUrl){
-      const isImg=m.fileUrl.startsWith('data:image')||/\.(png|jpg|jpeg|gif|webp)$/i.test(m.fileName||'');
-      if(isImg){
-        content+=`<div style="margin-bottom:${m.txt?'6px':'0'}"><img src="${m.fileUrl}" alt="${m.fileName||'img'}" style="max-width:100%;max-height:200px;border-radius:8px;display:block;cursor:pointer" onclick="window.open(this.src,'_blank')"></div>`;
-      } else {
-        content+=`<div style="margin-bottom:${m.txt?'6px':'0'}"><a href="${m.fileUrl}" download="${m.fileName||'arquivo'}" style="display:flex;align-items:center;gap:8px;text-decoration:none;color:${isDra?'#fff':'#1A5FA8'};font-weight:600;font-size:12px">
-          <span style="font-size:20px">${m.fileName?.endsWith('.pdf')?'📕':m.fileName?.match(/\.docx?$/i)?'📘':'📎'}</span>
-          <div><div style="font-weight:700">${m.fileName||'Arquivo'}</div><div style="font-size:10px;opacity:.7">Baixar</div></div>
-        </a></div>`;
-      }
-    } else if(m.fileName){
-      content+=`<div style="display:flex;align-items:center;gap:6px;font-size:11px;opacity:.7;margin-bottom:${m.txt?'4px':'0'}"><span>📎</span>${m.fileName}</div>`;
-    }
-    if(m.txt) content+=`<div>${m.txt}</div>`;
-    return `<div style="display:flex;justify-content:${isDra?'flex-end':'flex-start'};margin-bottom:6px">
-      <div style="max-width:78%;background:${isDra?'linear-gradient(135deg,#A8722A,#7A5018)':'#fff'};color:${isDra?'#fff':'#1E293B'};
-        border-radius:${isDra?'14px 14px 4px 14px':'14px 14px 14px 4px'};
-        padding:8px 13px;font-size:13px;box-shadow:0 1px 3px rgba(0,0,0,.08);overflow:hidden">
-        ${!isDra?`<div style="font-size:10px;font-weight:700;color:#94a3b8;margin-bottom:2px">${m.nome||'Paciente'}</div>`:''}
-        ${content}
-        <div style="font-size:10px;opacity:.6;text-align:right;margin-top:3px">${isDra?'Dra. Ilza · ':''}${m.ts||''}</div>
-      </div>
-    </div>`;
-  }).join('');
-  el.scrollTop=el.scrollHeight;
+  renderQWithFbMsgs(lista);
 }
-
 function adminFbStartPoll(pid){
-  clearInterval(adminFbT);
-  if(!pid)return;
-  adminFbT=setInterval(async()=>{
-    if(!document.getElementById('page-chat').classList.contains('active'))return;
-    if(adminChatPid!==pid)return;
-    await renderFbChatAdmin(pid);
-  },3000);
+  clearInterval(fbQueueT);
+  fbQueueT=setInterval(()=>renderFbChatAdmin(pid),3000);
 }
-
-function patEnterSala(){
-  // Bloquear paciente inativo
-  if(CU.plan==='inativo'||CU.plan==='erro'){
-    toast('⚠️ Seu plano está inativo. Entre em contato com a clínica para reativar.','error');return;
-  }
-  // Registrar no Firebase para o CRM ver
-  fbRegisterQueue();
-  fbLastMsgTs=Date.now();
-  const key=`admin_${CU.id}`;chatId=key;chatOrig='home';
-  const chats=DB.get('sv_chats')||{};
-  if(!chats[key])chats[key]=[];DB.set('sv_chats',chats);
-  const dra=(DB.get('sv_users')||[]).find(u=>u.role==='admin');
-  document.getElementById('c-av').textContent='I';
-  document.getElementById('c-nm').textContent=dra?dra.name:'Dra. Ilza';
+async function patEnterSala(){
+  if(!CU||CU.role!=='patient')return;
+  if(CU.plan==='inativo'||CU.plan==='erro'){toast('⚠️ Seu plano está inativo. Entre em contato com a clínica.','error');return;}
+  await fbRegisterQueue();
+  if(!fbLastMsgTsSet){fbLastMsgTs=Date.now();fbLastMsgTsSet=true;}
+  const key=`admin_${CU.id}`;chatId=key;
+  document.getElementById('c-av').textContent=CU.name[0];
+  document.getElementById('c-nm').textContent='Dra. Ilza Ezequiel';
   document.getElementById('c-inf').textContent='🟡 Aguardando a Dra. iniciar o atendimento via CRM...';
   document.getElementById('c-acts').innerHTML='';
   document.getElementById('c-bacts').innerHTML=`
-    <button class="btn btn-sm btn-danger" onclick="patEndChat()">⏹ Encerrar atendimento</button>
-    <button class="btn btn-sm btn-gold" onclick="showRating()">⭐ Avaliar atendimento</button>
-  `;
-  // Montar área de chat Firebase dentro do chat-msgs
-  const chatMsgs=document.getElementById('chat-msgs');
-  chatMsgs.innerHTML='<div class="sys-msg">Início da conversa — mensagens sincronizadas via Firebase</div><div id="fb-msgs-area" style="display:flex;flex-direction:column;gap:8px;padding-top:8px"></div>';
-  _nav('chat');
-  // Carregar mensagens do Firebase imediatamente e iniciar polling
-  renderFbChat();
-  fbStartMsgPoll();
+    <button class="btn btn-sm" style="background:rgba(192,57,43,.15);color:#ffaaaa;border:1px solid rgba(192,57,43,.25);border-radius:var(--r-sm);font-size:12px;padding:7px 14px;cursor:pointer;font-weight:700" onclick="patEndChat()">⏹ Encerrar</button>
+    <button class="btn btn-sm btn-gold" onclick="showRating()">⭐ Avaliar atendimento</button>`;
+  nav('chat',true);
+  await renderFbChat();
 }
-
 async function renderFbChat(){
-  if(!CU||CU.role!=='patient')return;
   const val=await fbGet(`salas/${CU.id}/msgs`);
   const el=document.getElementById('fb-msgs-area');if(!el)return;
-  if(!val){el.innerHTML='';return;}
+  if(!val){el.innerHTML='<div style="text-align:center;padding:32px;color:var(--gray-400);font-size:13px">Aguardando início do atendimento...</div>';return;}
   const lista=Object.entries(val).map(([k,v])=>({id:k,...v})).sort((a,b)=>(a.tsNum||0)-(b.tsNum||0));
   renderQWithFbMsgs(lista);
-  // Atualizar status da conexão
   const inf=document.getElementById('c-inf');
   const temDra=lista.some(m=>m.de==='dra');
   if(inf)inf.textContent=temDra?'🟢 Dra. Ilza em atendimento':'🟡 Aguardando a Dra. iniciar o atendimento via CRM...';
 }
-
-// (fbLoadPatMsgs substituída por renderFbChat — ver patEnterSala)
-
-
 function chatBack(){
-  if(chatId&&document.getElementById('page-chat').classList.contains('active')){
-    showModal('Sair da conversa','A conversa será preservada. Você poderá retornar a qualquer momento.',()=>_nav(chatOrig));return;
+  clearInterval(fbQueueT);
+  if(chatId&&document.getElementById('page-chat')?.classList.contains('active')){
+    showModal('Sair da conversa','A conversa será preservada. Retorne quando quiser.',()=>{chatId=null;chatWith=null;_nav(chatOrig||'sala');});return;
   }
-  _nav(chatOrig);
-}
-
-function renderMsgs(key){
-  const msgs=(DB.get('sv_chats')||{})[key]||[];
-  const c=document.getElementById('chat-msgs');
-  c.innerHTML=msgs.map(m=>{
-    if(m.type==='system')return `<div class="sys-msg">${m.text}</div>`;
-    const isMe=(CU.role==='admin'&&m.sender==='admin')||(CU.role==='patient'&&m.sender===CU.id);
-    const cls=isMe?'sent':'received';
-    if(m.fileData)return `<div class="msg ${cls}">
-      <div class="msg-bub" style="padding:0">
-        <div class="msg-file">${fIcon(m.fileName)} ${m.fileName}</div>
-        ${m.text?`<div style="padding:8px 14px">${m.text}</div>`:''}
-      </div><div class="msg-time">${fmtT(m.ts)}</div></div>`;
-    return `<div class="msg ${cls}"><div class="msg-bub">${m.text}</div><div class="msg-time">${fmtT(m.ts)}</div></div>`;
-  }).join('');
-  c.scrollTop=c.scrollHeight;
-}
-
-function sendMsg(){
-  if(!chatId)return;
-  // Bloquear paciente inativo
-  if(CU.role==='patient'&&(CU.plan==='inativo'||CU.plan==='erro')){
-    toast('⚠️ Seu plano está inativo. Não é possível enviar mensagens.','error');return;
-  }
-  const inp=document.getElementById('c-in');const text=inp.value.trim();
-  if(!text&&!selFile)return;
-  const chats=DB.get('sv_chats')||{};if(!chats[chatId])chats[chatId]=[];
-  const msg={sender:CU.role==='admin'?'admin':CU.id,text,ts:Date.now()};
-  if(selFile){msg.fileName=selFile.name;msg.fileData=true;}
-  chats[chatId].push(msg);DB.set('sv_chats',chats);
-  inp.value='';inp.style.height='auto';
-  const fileToSend=selFile;
-  clrFile();
-  // Enviar ao Firebase (paciente ou admin)
-  if(CU.role==='patient'){
-    fbSendMsg(text,fileToSend).then(()=>renderFbChat());
-  } else if(CU.role==='admin'&&adminChatPid&&text){
-    // Admin envia via Firebase também
-    const ts=new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
-    const key='m'+Date.now();
-    fbPut(`salas/${adminChatPid}/msgs/${key}`,{
-      txt:text, de:'dra', nome:'Equipe Dra. Ilza', ts, tsNum:Date.now(), lida:true
-    }).then(()=>renderFbChatAdmin(adminChatPid));
-  } else {
-    renderMsgs(chatId);
-  }
-}
-
-function cKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMsg();}}
-function autoH(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,110)+'px';}
-function trigFile(){document.getElementById('f-in').click();}
-function onFile(e){
-  const f=e.target.files[0];if(!f)return;
-  if(f.size>2*1024*1024){toast('Arquivo maior que 2MB!','error');return;}
-  selFile=f;document.getElementById('c-fn').textContent=f.name;
-  document.getElementById('c-fp').classList.remove('hidden');toast(`"${f.name}" pronto para envio`,'success');
-}
-function clrFile(){selFile=null;document.getElementById('c-fp').classList.add('hidden');document.getElementById('f-in').value='';}
-function fIcon(n){if(!n)return '📄';const e=n.split('.').pop().toLowerCase();return{pdf:'📕',doc:'📘',docx:'📘',xls:'📗',xlsx:'📗',png:'🖼️',jpg:'🖼️',txt:'📄'}[e]||'📎';}
-
-function sendThx(pid){
-  const msgs=['Obrigada pela consulta! Cuide-se muito! 🌿','Foi um prazer atendê-la! Qualquer dúvida, estamos aqui. 😊','Muito obrigada pela confiança depositada! 💚'];
-  const t=msgs[Math.floor(Math.random()*msgs.length)];
-  const k=`admin_${pid}`;const chats=DB.get('sv_chats')||{};
-  if(!chats[k])chats[k]=[];
-  chats[k].push({sender:'admin',text:t,ts:Date.now()});DB.set('sv_chats',chats);renderMsgs(k);
-  toast('Mensagem de agradecimento enviada!','success');
-}
-
-function endChat(pid){
-  showModal('Encerrar atendimento','Deseja encerrar o atendimento? O histórico desta sessão será arquivado.',()=>{
-    const k=`admin_${pid}`;const chats=DB.get('sv_chats')||{};
-    if(chats[k]){chats[k].push({type:'system',text:`Atendimento encerrado — ${fmtDate()}`,ts:Date.now()});
-      const arch=DB.get('sv_arch')||{};arch[k+'_'+Date.now()]=chats[k];DB.set('sv_arch',arch);delete chats[k];DB.set('sv_chats',chats);}
-    let q=DB.get('sv_queue')||[];q=q.filter(x=>x!==pid);DB.set('sv_queue',q);
-    chatId=null;chatWith=null;toast('Atendimento encerrado com sucesso.','success');_nav('sala');
-  });
-}
-
-function patEndChat(){
-  showModal('Encerrar atendimento','Deseja encerrar a consulta com a Dra.?',()=>{
-    fbUnregisterQueue(); // Remove do Firebase
-    clearInterval(fbMsgT);
-    const k=`admin_${CU.id}`;const chats=DB.get('sv_chats')||{};
-    if(chats[k]){chats[k].push({type:'system',text:`Paciente encerrou — ${fmtDate()}`,ts:Date.now()});DB.set('sv_chats',chats);}
-    let q=DB.get('sv_queue')||[];q=q.filter(x=>x!==CU.id);DB.set('sv_queue',q);
-    chatId=null;toast('Atendimento encerrado. Obrigada!','success');_nav('home');
-  });
+  chatId=null;chatWith=null;_nav(chatOrig||'sala');
 }
 
 // ══════════════════════════════════════════
-//  PATIENTS
+//  RENDER MSGS (Firebase)
 // ══════════════════════════════════════════
-function renderPats(filter=''){
-  const users=(DB.get('sv_users')||[]).filter(u=>u.role==='patient').sort((a,b)=>a.name.localeCompare(b.name,'pt-BR'));
-  const f=filter.toLowerCase();const list=f?users.filter(u=>u.name.toLowerCase().includes(f)||u.email.toLowerCase().includes(f)||(u.cpf||'').includes(f)):users;
-  document.getElementById('pat-tb').innerHTML=list.length===0
-    ?'<tr><td colspan="6" style="text-align:center;padding:36px;color:var(--gray-400)">Nenhum paciente encontrado</td></tr>'
-    :list.map(u=>{const sc=u.plan||'ativo';const sl=sc==='ativo'?'Ativo':sc==='inativo'?'Inativo':'Erro';
-      return `<tr>
-        <td><div class="pat-cell"><div class="pat-av">${u.name[0]}</div><div><strong style="font-size:13.5px">${u.name}</strong></div></div></td>
-        <td style="font-family:monospace;font-size:12.5px;color:var(--gray-600)">${u.cpf||'—'}</td>
-        <td>${u.email}</td><td>${u.phone||'—'}</td>
-        <td><span class="badge ${sc}">${sl}</span>${u.planError?`<div class="err-note">⚠️ ${u.planError}</div>`:''}</td>
-        <td style="display:flex;gap:6px;flex-wrap:wrap">
-          <button class="btn btn-primary btn-sm" onclick="chatFromPat('${u.id}')">💬 Chat</button>
-          <button class="btn btn-outline btn-sm" onclick="cyclePlan('${u.id}')">🔄 Status</button>
-          <button class="btn btn-danger btn-sm" onclick="deletePat('${u.id}','${u.name.replace(/'/g,"\\'")}')">🗑 Excluir</button>
-        </td>
-      </tr>`;
-    }).join('');
-}
-function fPats(v){renderPats(v);}
-function chatFromPat(uid){let q=DB.get('sv_queue')||[];if(!q.includes(uid)){q.push(uid);DB.set('sv_queue',q);}chatOrig='patients';adminChat(uid,'patients');}
-function cyclePlan(uid){
-  const users=DB.get('sv_users')||[];const u=users.find(x=>x.id===uid);if(!u)return;
-  const cy=['ativo','inativo','erro'];u.plan=cy[(cy.indexOf(u.plan||'ativo')+1)%3];
-  if(u.plan==='erro')u.planError='Erro simulado para teste';else delete u.planError;
-  DB.set('sv_users',users);renderPats(document.getElementById('pat-s').value);
-  toast(`Status de ${u.name}: "${u.plan}"`,'success');
-}
-function deletePat(uid,name){
-  showModal('Excluir paciente',`Tem certeza que deseja excluir o cadastro de <strong>${name}</strong>? Esta ação não pode ser desfeita.`,()=>{
-    let users=DB.get('sv_users')||[];
-    users=users.filter(x=>x.id!==uid);
-    DB.set('sv_users',users);
-    // Remover chats e fila
-    const chats=DB.get('sv_chats')||{};delete chats[`admin_${uid}`];DB.set('sv_chats',chats);
-    let q=DB.get('sv_queue')||[];q=q.filter(x=>x!==uid);DB.set('sv_queue',q);
-    // Remover do Firebase também
-    fbDel(`salas_index/${uid}`);fbDel(`salas/${uid}`);
-    renderPats(document.getElementById('pat-s').value);
-    fillPatSel();
-    toast(`Cadastro de ${name} excluído.`,'success');
-  });
-}
-
-// ══════════════════════════════════════════
-//  ADMIN
-// ══════════════════════════════════════════
-function fillPatSel(){
-  const sel=document.getElementById('rp-sel');if(!sel)return;
-  sel.innerHTML=(DB.get('sv_users')||[]).filter(u=>u.role==='patient').sort((a,b)=>a.name.localeCompare(b.name,'pt-BR')).map(u=>`<option value="${u.id}">${u.name}</option>`).join('');
-}
-function chgAdm(){
-  const o=document.getElementById('a-old').value,n=document.getElementById('a-new').value,n2=document.getElementById('a-new2').value;
-  if(!o||!n||!n2){toast('Preencha todos os campos','error');return;}
-  if(CU.password!==o){toast('Senha atual incorreta','error');return;}
-  if(n!==n2){toast('As senhas não conferem','error');return;}
-  if(n.length<6){toast('Mínimo 6 caracteres','error');return;}
-  const users=DB.get('sv_users')||[];users.find(x=>x.id===CU.id).password=n;CU.password=n;DB.set('sv_users',users);
-  ['a-old','a-new','a-new2'].forEach(id=>document.getElementById(id).value='');
-  toast('Senha do admin alterada!','success');
-}
-function rstPat(){
-  const pid=document.getElementById('rp-sel').value;const np=document.getElementById('rp-pw').value;
-  if(!np||np.length<6){toast('Mínimo 6 caracteres','error');return;}
-  const users=DB.get('sv_users')||[];const u=users.find(x=>x.id===pid);if(!u)return;
-  u.password=np;DB.set('sv_users',users);document.getElementById('rp-pw').value='';
-  toast(`Senha de ${u.name} redefinida!`,'success');
-}
-
-// ══════════════════════════════════════════
-//  CADASTRO
-// ══════════════════════════════════════════
-function loadCadForm(){
-  if(!CU||CU.role!=='patient')return;
-  document.getElementById('cd-nm').value=CU.name||'';
-  document.getElementById('cd-cpf').value=CU.cpf||'';
-  document.getElementById('cd-tel').value=CU.phone||'';
-  document.getElementById('cd-em').value=CU.email||'';
-}
-function savePrf(){
-  const nm=document.getElementById('cd-nm').value.trim();
-  const cpf=document.getElementById('cd-cpf').value;
-  const tel=document.getElementById('cd-tel').value;
-  if(!nm){toast('Nome não pode ser vazio','error');return;}
-  const ce=document.getElementById('cd-cpf-e');
-  if(cpf&&!valCPF(cpf)){ce.textContent='CPF inválido.';ce.classList.remove('hidden');return;}
-  ce.classList.add('hidden');
-  const users=DB.get('sv_users')||[];const u=users.find(x=>x.id===CU.id);
-  u.name=nm;u.cpf=cpf;u.phone=tel;CU.name=nm;CU.cpf=cpf;CU.phone=tel;DB.set('sv_users',users);
-  document.getElementById('sb-nm').textContent=CU.name;document.getElementById('tb-nm').textContent=CU.name;
-  document.getElementById('sb-av').textContent=CU.name[0];document.getElementById('tb-av').textContent=CU.name[0];
-  buildHomeCards();toast('Dados salvos com sucesso!','success');
-}
-function chgPatPw(){
-  const o=document.getElementById('cd-old').value,n=document.getElementById('cd-new').value,n2=document.getElementById('cd-new2').value;
-  if(!o||!n||!n2){toast('Preencha todos os campos','error');return;}
-  if(CU.password!==o){toast('Senha atual incorreta','error');return;}
-  if(n!==n2){toast('As senhas não conferem','error');return;}
-  if(n.length<6){toast('Mínimo 6 caracteres','error');return;}
-  const users=DB.get('sv_users')||[];users.find(x=>x.id===CU.id).password=n;CU.password=n;DB.set('sv_users',users);
-  ['cd-old','cd-new','cd-new2'].forEach(id=>document.getElementById(id).value='');
-  toast('Senha alterada com sucesso!','success');
-}
-
-// ══════════════════════════════════════════
-//  PAGAMENTO
-// ══════════════════════════════════════════
-function loadPayHist(){
-  if(!CU||CU.role!=='patient')return;
-  const pays=(DB.get('sv_payments')||{})[CU.id]||[];
-  const tb=document.getElementById('py-tb');if(!tb)return;
-  const due=document.getElementById('py-due');if(due)due.textContent=CU.planExpiry||'—';
-  const ec=document.getElementById('py-err-card');const em=document.getElementById('py-err-msg');
-  if(CU.plan==='erro'&&CU.planError&&ec&&em){ec.style.display='block';em.textContent=CU.planError;}
-  tb.innerHTML=pays.length===0
-    ?'<tr><td colspan="4" style="text-align:center;padding:28px;color:var(--gray-400)">Nenhum registro encontrado</td></tr>'
-    :pays.map(p=>`<tr><td>${p.date}</td><td>${p.desc}</td><td style="font-weight:700">${p.value}</td>
-      <td><span class="pstatus ${p.status}">${p.status[0].toUpperCase()+p.status.slice(1)}</span>
-      ${p.error?`<div class="err-note">⚠️ ${p.error}</div>`:''}</td></tr>`).join('');
-}
-function payMP(){
-  showModal('Pagamento via Mercado Pago','Em produção, você será redirecionado ao checkout seguro do Mercado Pago. Deseja simular um pagamento aprovado?',()=>{
-    const users=DB.get('sv_users')||[];const u=users.find(x=>x.id===CU.id);
-    const exp=new Date();exp.setMonth(exp.getMonth()+1);
-    u.plan='ativo';u.planExpiry=exp.toLocaleDateString('pt-BR');delete u.planError;
-    CU.plan='ativo';CU.planExpiry=u.planExpiry;DB.set('sv_users',users);
-    const p=DB.get('sv_payments')||{};if(!p[CU.id])p[CU.id]=[];
-    p[CU.id].unshift({date:new Date().toLocaleDateString('pt-BR'),desc:'Plano Mensal',value:'R$ 49,99',status:'pago'});
-    DB.set('sv_payments',p);loadPayHist();buildHomeCards();
-    toast('Pagamento aprovado! Plano ativo até '+CU.planExpiry,'success');
-  },'✓ Simular pagamento');
-}
-
-// ══════════════════════════════════════════
-//  RATING
-// ══════════════════════════════════════════
-function showRating(){
-  document.getElementById('m-ttl').textContent='Avalie o atendimento';
-  document.getElementById('m-bdy').innerHTML=`
-    <p style="color:var(--gray-600);font-size:13.5px;margin-bottom:4px">Como foi o seu atendimento com a Dra. Ilza?</p>
-    <div class="stars-row" id="st">${[1,2,3,4,5].map(i=>`<span class="star" onclick="selStar(${i})">⭐</span>`).join('')}</div>
-    <textarea class="fc" id="r-cm" placeholder="Deixe um comentário (opcional)" rows="3" style="margin-top:10px"></textarea>
-  `;
-  document.getElementById('m-yes').textContent='Enviar avaliação';
-  document.getElementById('m-no').textContent='Agora não';
-  const modal=document.getElementById('gmodal');modal.classList.remove('hidden');
-  document.getElementById('m-yes').onclick=()=>{modal.classList.add('hidden');toast('Avaliação enviada! Obrigada 💚','success');};
-  document.getElementById('m-no').onclick=()=>modal.classList.add('hidden');
-}
-function selStar(n){document.querySelectorAll('.star').forEach((s,i)=>s.classList.toggle('active',i<n));}
-
-// ══════════════════════════════════════════
-//  SYNC
-// ══════════════════════════════════════════
-function startSync(){
-  clearInterval(syncT);
-  syncT=setInterval(()=>{
-    const hcq=document.getElementById('hc-q');if(hcq)hcq.textContent=`${(DB.get('sv_queue')||[]).length} na fila`;
-    if(CU&&CU.role==='patient')chkNotifs();
-    if(chatId&&document.getElementById('page-chat').classList.contains('active'))renderMsgs(chatId);
-  },2000);
-}
-function chkNotifs(){
-  const notifs=DB.get('sv_notifs')||{};const mine=(notifs[CU.id]||[]).filter(n=>!n.read);
-  if(mine.length){
-    mine.forEach(n=>n.read=true);DB.set('sv_notifs',notifs);
-    if(!document.getElementById('page-chat').classList.contains('active')){
-      toast('🏥 A Dra. Ilza iniciou o seu atendimento! Acesse a Sala Virtual.','warning');
-      const ns=document.getElementById('ni-sala');
-      if(ns)ns.innerHTML='<span class="nav-icon">📹</span><span>Sala Virtual</span><span class="nav-notif"></span>';
-    }
-  }
-}
-
-// ══════════════════════════════════════════
-//  BEFOREUNLOAD
-// ══════════════════════════════════════════
-window.addEventListener('beforeunload',e=>{
-  if(chatId){e.preventDefault();e.returnValue='Você tem uma conversa ativa. Deseja realmente sair?';}
-});
-
-// ══════════════════════════════════════════
-//  MODAL
-// ══════════════════════════════════════════
-function showModal(ttl,bdy,onYes,yLbl='Confirmar'){
-  document.getElementById('m-ttl').textContent=ttl;
-  document.getElementById('m-bdy').innerHTML=bdy;
-  document.getElementById('m-yes').textContent=yLbl;
-  document.getElementById('m-no').textContent='Cancelar';
-  const modal=document.getElementById('gmodal');modal.classList.remove('hidden');
-  document.getElementById('m-yes').onclick=()=>{modal.classList.add('hidden');if(onYes)onYes();};
-  document.getElementById('m-no').onclick=()=>modal.classList.add('hidden');
-}
-
-// ══════════════════════════════════════════
-//  TOAST
-// ══════════════════════════════════════════
-function toast(msg,type=''){
-  const c=document.getElementById('toast-wrap');
-  const t=document.createElement('div');t.className=`toast ${type}`;t.textContent=msg;c.appendChild(t);
-  setTimeout(()=>{t.style.opacity='0';t.style.transform='translateX(110%)';t.style.transition='all .4s ease';setTimeout(()=>t.remove(),420);},4000);
-}
-
-// ══════════════════════════════════════════
-//  UTILS
-// ══════════════════════════════════════════
-function fmtT(ts){return new Date(ts).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});}
-function fmtDate(){return new Date().toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'});}
-
-// ══════════════════════════════════════════
-//  FIREBASE REST — integração CRM Dra. Ilza
-// ══════════════════════════════════════════
-const FB_URL='https://crm-dra-ilza-default-rtdb.firebaseio.com';
-let fbPollT=null,fbMsgT=null;
-
-async function fbPut(path,val){
-  try{
-    await fetch(`${FB_URL}/${path}.json`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(val)});
-  }catch(e){console.warn('[FB]',e);}
-}
-async function fbDel(path){
-  try{ await fetch(`${FB_URL}/${path}.json`,{method:'DELETE'}); }catch(e){console.warn('[FB]',e);}
-}
-async function fbGet(path){
-  try{const r=await fetch(`${FB_URL}/${path}.json`);return await r.json();}catch(e){return null;}
-}
-
-// Registrar paciente na fila do Firebase (para o CRM ver)
-async function fbRegisterQueue(){
-  if(!CU||CU.role!=='patient')return;
-  const iniciais=CU.name.split(' ').map(x=>x[0]).slice(0,2).join('').toUpperCase();
-  await fbPut(`salas_index/${CU.id}`,{
-    nm:CU.name, plano:CU.plan==='ativo'?'Plano Ativo':'Inativo',
-    premium:CU.plan==='ativo', iniciais,
-    status:'aguardando', ultimaTxt:'', ultimaTs:'',
-    tsNum:Date.now()
-  });
-}
-
-// Remover paciente da fila do Firebase
-async function fbUnregisterQueue(){
-  if(!CU||CU.role!=='patient')return;
-  await fbDel(`salas_index/${CU.id}`);
-}
-
-// Enviar mensagem via Firebase (com suporte a arquivo em base64)
-async function fbSendMsg(texto, fileObj){
-  if(!CU)return;
-  const ts=new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
-  const key='m'+Date.now();
-  const payload={txt:texto||'', de:'pac', nome:CU.name, ts, tsNum:Date.now(), lida:false};
-  // Se tem arquivo: converter para base64 e guardar no Firebase
-  if(fileObj){
-    payload.fileName=fileObj.name;
-    try{
-      const b64=await new Promise((res,rej)=>{
-        const r=new FileReader();
-        r.onload=()=>res(r.result);
-        r.onerror=rej;
-        r.readAsDataURL(fileObj);
-      });
-      // Máx ~1MB base64 no RTDB — para laudos PDF/imagens pequenas
-      if(b64.length<1200000){
-        payload.fileUrl=b64;
-      } else {
-        payload.fileBig=true; // Sinaliza que arquivo é grande demais
-      }
-    }catch(e){payload.fileErr=true;}
-  }
-  await fbPut(`salas/${CU.id}/msgs/${key}`,payload);
-  // Atualizar última mensagem no index
-  const preview=fileObj?`📎 ${fileObj.name}`:(texto||'').substring(0,50);
-  await fbPut(`salas_index/${CU.id}/ultimaTxt`,preview);
-  await fbPut(`salas_index/${CU.id}/ultimaTs`,ts);
-}
-
-// Polling de mensagens recebidas da Dra. Ilza
-let fbLastMsgTs=0;
-function fbStartMsgPoll(){
-  clearInterval(fbMsgT);
-  if(!CU||CU.role!=='patient')return;
-  fbMsgT=setInterval(async()=>{
-    const val=await fbGet(`salas/${CU.id}/msgs`);
-    if(!val)return;
-    const lista=Object.entries(val)
-      .map(([k,v])=>({id:k,...v}))
-      .sort((a,b)=>(a.tsNum||0)-(b.tsNum||0));
-    // Checar novas mensagens da Dra
-    lista.forEach(m=>{
-      if(m.de==='dra'&&(m.tsNum||0)>fbLastMsgTs){
-        fbLastMsgTs=m.tsNum||0;
-        toast('💬 Nova mensagem da Dra. Ilza: "'+m.txt.substring(0,40)+'"','success');
-        // Notificar nav
-        const ns=document.getElementById('ni-sala');
-        if(ns&&!document.getElementById('page-sala').classList.contains('active')){
-          ns.innerHTML='<span class="nav-icon">📹</span><span>Sala Virtual</span><span class="nav-notif"></span>';
-        }
-      }
-    });
-    // Re-renderizar chat Firebase se estiver no chat
-    if(document.getElementById('page-chat').classList.contains('active')){
-      renderQWithFbMsgs(lista);
-      // Atualizar status da conexão
-      const inf=document.getElementById('c-inf');
-      const temDra=lista.some(m=>m.de==='dra');
-      if(inf)inf.textContent=temDra?'🟢 Dra. Ilza em atendimento':'🟡 Aguardando a Dra. iniciar o atendimento via CRM...';
-    }
-    // Atualizar badge do nav
-    updateNavSalaBadge();
-  },3000);
-}
-
 function renderQWithFbMsgs(msgs){
-  const el=document.getElementById('fb-msgs-area');
-  if(!el)return;
+  const el=document.getElementById('fb-msgs-area');if(!el)return;
   el.innerHTML=msgs.map(m=>{
-    const isDra=m.de==='dra';
-    let content='';
+    const isDra=m.de==='dra';let content='';
     if(m.fileUrl){
       if(m.fileUrl.startsWith('data:image')||m.fileUrl.match(/\.(png|jpg|jpeg|gif|webp)/i)){
         content+=`<div style="margin-bottom:${m.txt?'6px':'0'}"><img src="${m.fileUrl}" alt="${m.fileName||'imagem'}" style="max-width:100%;max-height:200px;border-radius:8px;display:block;cursor:pointer" onclick="window.open(this.src,'_blank')"></div>`;
-      } else {
+      }else{
         content+=`<div style="margin-bottom:${m.txt?'6px':'0'}"><a href="${m.fileUrl}" download="${m.fileName||'arquivo'}" style="display:flex;align-items:center;gap:8px;text-decoration:none;color:${isDra?'#fff':'#1A5FA8'};font-weight:600;font-size:12px">
           <span style="font-size:20px">${m.fileName?.endsWith('.pdf')?'📕':m.fileName?.match(/\.docx?$/i)?'📘':'📎'}</span>
           <div><div style="font-weight:700">${m.fileName||'Arquivo'}</div><div style="font-size:10px;opacity:.7">Clique para baixar</div></div>
         </a></div>`;
       }
-    } else if(m.fileName&&!m.fileUrl){
+    }else if(m.fileName&&!m.fileUrl){
       content+=`<div style="display:flex;align-items:center;gap:6px;font-size:11px;opacity:.75;margin-bottom:${m.txt?'4px':'0'}"><span>📎</span>${m.fileName}</div>`;
     }
-    if(m.txt) content+=`<div>${m.txt}</div>`;
+    if(m.txt)content+=`<div>${m.txt}</div>`;
     return `<div style="display:flex;justify-content:${isDra?'flex-end':'flex-start'};margin-bottom:6px">
       <div style="max-width:78%;background:${isDra?'#1A8C82':'#fff'};color:${isDra?'#fff':'#1E293B'};
         border-radius:${isDra?'14px 14px 4px 14px':'14px 14px 14px 4px'};
@@ -1760,16 +1321,330 @@ function renderQWithFbMsgs(msgs){
   el.scrollTop=el.scrollHeight;
 }
 
-// Poll fila do Firebase (para admin)
+// ══════════════════════════════════════════
+//  ENVIAR MENSAGEM (Firebase)
+// ══════════════════════════════════════════
+function renderMsgs(key){
+  // Para compatibilidade — redireciona para Firebase
+  const pid=chatWith;
+  if(pid)renderFbChatAdmin(pid);
+}
+async function sendMsg(){
+  const el=document.getElementById('c-in');const txt=el.value.trim();
+  if(!txt&&!selFile)return;
+  el.value='';el.style.height='auto';
+  const isAdmin=CU.role==='admin';
+  if(isAdmin&&chatWith){
+    // Admin → Paciente via Firebase
+    const ts=new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+    const key='m'+Date.now();
+    const payload={txt:txt||'',de:'dra',nome:'Dra. Ilza Ezequiel',ts,tsNum:Date.now(),lida:false};
+    if(selFile){
+      payload.fileName=selFile.name;
+      try{
+        const b64=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(selFile);});
+        if(b64.length<1200000)payload.fileUrl=b64;else payload.fileBig=true;
+      }catch(e){payload.fileErr=true;}
+    }
+    await fbPut(`salas/${chatWith}/msgs/${key}`,payload);
+    const preview=selFile?`← 📎 ${selFile.name}`:`← ${txt.substring(0,50)}`;
+    await fbPut(`salas_index/${chatWith}/ultimaTxt`,preview);
+    clrFile();renderFbChatAdmin(chatWith);
+  }else if(!isAdmin){
+    // Paciente → Dra via Firebase
+    await fbSendMsg(txt,selFile);clrFile();renderFbChat();
+  }
+}
+function cKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMsg();}}
+function autoH(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,110)+'px';}
+function trigFile(){document.getElementById('f-in').click();}
+function onFile(e){
+  const f=e.target.files[0];if(!f)return;
+  selFile=f;document.getElementById('c-fn').textContent=f.name;
+  document.getElementById('c-fp').classList.remove('hidden');toast(`"${f.name}" pronto para envio`,'success');
+}
+function clrFile(){selFile=null;document.getElementById('c-fp').classList.add('hidden');const fi=document.getElementById('f-in');if(fi)fi.value='';}
+function fIcon(n){if(!n)return'📄';const e=n.split('.').pop().toLowerCase();return{pdf:'📕',doc:'📘',docx:'📘',xls:'📗',xlsx:'📗',png:'🖼️',jpg:'🖼️',txt:'📄'}[e]||'📎';}
+
+async function sendThxFb(pid){
+  const msgs=['Obrigada pela consulta! Cuide-se muito! 🌿','Foi um prazer atendê-la! Qualquer dúvida, estamos aqui. 😊','Muito obrigada pela confiança depositada! 💚'];
+  const t=msgs[Math.floor(Math.random()*msgs.length)];
+  const ts=new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  const key='m'+Date.now();
+  await fbPut(`salas/${pid}/msgs/${key}`,{txt:t,de:'dra',nome:'Dra. Ilza Ezequiel',ts,tsNum:Date.now(),lida:false});
+  await fbPut(`salas_index/${pid}/ultimaTxt`,`← ${t.substring(0,50)}`);
+  toast('Mensagem de agradecimento enviada!','success');renderFbChatAdmin(pid);
+}
+function endChatFb(pid){
+  showModal('Encerrar atendimento','Deseja encerrar o atendimento com este paciente?',async()=>{
+    const ts=new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+    const key='m'+Date.now();
+    await fbPut(`salas/${pid}/msgs/${key}`,{txt:'Atendimento encerrado. Obrigada pela confiança! 💚',de:'dra',nome:'Equipe Dra. Ilza',ts,tsNum:Date.now(),lida:true});
+    setTimeout(async()=>{await fbDel(`salas_index/${pid}`);},800);
+    clearInterval(fbQueueT);chatId=null;chatWith=null;
+    toast('Atendimento encerrado com sucesso.','success');_nav('sala');
+    setTimeout(renderQ,1200);
+  });
+}
+function patEndChat(){
+  showModal('Encerrar atendimento','Deseja encerrar a consulta com a Dra.?',async()=>{
+    await fbUnregisterQueue();clearInterval(fbMsgT);
+    chatId=null;toast('Atendimento encerrado. Obrigada!','success');_nav('home');
+  });
+}
+
+// ══════════════════════════════════════════
+//  PACIENTES (admin) — Firebase
+// ══════════════════════════════════════════
+async function renderPats(filter=''){
+  const users_raw=await fbGet('sv_portal/users');
+  const users=(users_raw?Object.values(users_raw):[]).filter(u=>u.role==='patient').sort((a,b)=>a.name.localeCompare(b.name,'pt-BR'));
+  const f=filter.toLowerCase();
+  const list=f?users.filter(u=>u.name.toLowerCase().includes(f)||u.email.toLowerCase().includes(f)||(u.cpf||'').includes(f)):users;
+  document.getElementById('pat-tb').innerHTML=list.length===0
+    ?'<tr><td colspan="6" style="text-align:center;padding:36px;color:var(--gray-400)">Nenhum paciente encontrado</td></tr>'
+    :list.map(u=>{const sc=u.plan||'ativo';const sl=sc==='ativo'?'Ativo':sc==='inativo'?'Inativo':'Erro';
+      return `<tr>
+        <td><div class="pat-cell"><div class="pat-av">${u.name[0]}</div><div><strong style="font-size:13.5px">${u.name}</strong></div></div></td>
+        <td style="font-family:monospace;font-size:12.5px;color:var(--gray-600)">${u.cpf||'—'}</td>
+        <td>${u.email}</td><td>${u.phone||'—'}</td>
+        <td><span class="badge ${sc}">${sl}</span>${u.planError?`<div class="err-note">⚠️ ${u.planError}</div>`:''}</td>
+        <td style="display:flex;gap:6px;flex-wrap:wrap">
+          <button class="btn btn-primary btn-sm" onclick="adminChat('${u.id}')">💬 Chat</button>
+          <button class="btn btn-outline btn-sm" onclick="cyclePlan('${u.id}')">🔄 Status</button>
+          <button class="btn btn-danger btn-sm" onclick="deletePat('${u.id}','${u.name.replace(/'/g,"\\'")}')">🗑 Excluir</button>
+        </td>
+      </tr>`;
+    }).join('');
+}
+function fPats(v){renderPats(v);}
+async function chatFromPat(uid){
+  await fbRegisterQueueFor(uid);chatOrig='patients';adminChat(uid,'patients');
+}
+async function cyclePlan(uid){
+  const u=await fbGet(`sv_portal/users/${uid}`);if(!u)return;
+  const cy=['ativo','inativo','erro'];u.plan=cy[(cy.indexOf(u.plan||'ativo')+1)%3];
+  if(u.plan==='erro')u.planError='Erro simulado para teste';else delete u.planError;
+  await fbPut(`sv_portal/users/${uid}`,u);
+  toast(`Status de ${u.name}: "${u.plan}"`,'success');
+  renderPats(document.getElementById('pat-s')?.value||'');
+}
+async function deletePat(uid,name){
+  showModal('Excluir paciente',`Tem certeza que deseja excluir <strong>${name}</strong>? Esta ação não pode ser desfeita.`,async()=>{
+    await fbDel(`sv_portal/users/${uid}`);
+    await fbDel(`sv_portal/payments/${uid}`);
+    await fbDel(`sv_portal/notifs/${uid}`);
+    await fbDel(`salas_index/${uid}`);
+    await fbDel(`salas/${uid}`);
+    await fbDel(`pacientes_cadastro/${uid}`);
+    renderPats(document.getElementById('pat-s')?.value||'');
+    fillPatSel();
+    toast(`Cadastro de ${name} excluído.`,'success');
+  });
+}
+
+// ══════════════════════════════════════════
+//  ADMIN — trocar senha, resetar paciente
+// ══════════════════════════════════════════
+async function fillPatSel(){
+  const sel=document.getElementById('rp-sel');if(!sel)return;
+  const users_raw=await fbGet('sv_portal/users');
+  sel.innerHTML=(users_raw?Object.values(users_raw):[]).filter(u=>u.role==='patient').sort((a,b)=>a.name.localeCompare(b.name,'pt-BR')).map(u=>`<option value="${u.id}">${u.name}</option>`).join('');
+}
+async function chgAdm(){
+  const o=document.getElementById('a-old').value,n=document.getElementById('a-new').value,n2=document.getElementById('a-new2').value;
+  if(!o||!n||!n2){toast('Preencha todos os campos','error');return;}
+  if(CU.password!==o){toast('Senha atual incorreta','error');return;}
+  if(n!==n2){toast('As senhas não conferem','error');return;}
+  if(n.length<6){toast('Mínimo 6 caracteres','error');return;}
+  await fbPatch(`sv_portal/users/${CU.id}`,{password:n});CU.password=n;
+  ['a-old','a-new','a-new2'].forEach(id=>document.getElementById(id).value='');
+  toast('Senha do admin alterada!','success');
+}
+async function rstPat(){
+  const pid=document.getElementById('rp-sel').value;const np=document.getElementById('rp-pw').value;
+  if(!np||np.length<6){toast('Mínimo 6 caracteres','error');return;}
+  const u=await fbGet(`sv_portal/users/${pid}`);if(!u)return;
+  await fbPatch(`sv_portal/users/${pid}`,{password:np});
+  document.getElementById('rp-pw').value='';
+  toast(`Senha de ${u.name} redefinida!`,'success');
+}
+
+// ══════════════════════════════════════════
+//  CADASTRO PACIENTE — editar perfil
+// ══════════════════════════════════════════
+function loadCadForm(){
+  if(!CU||CU.role!=='patient')return;
+  document.getElementById('cd-nm').value=CU.name||'';
+  document.getElementById('cd-cpf').value=CU.cpf||'';
+  document.getElementById('cd-tel').value=CU.phone||'';
+  document.getElementById('cd-em').value=CU.email||'';
+}
+async function savePrf(){
+  const nm=document.getElementById('cd-nm').value.trim();
+  const cpf=document.getElementById('cd-cpf').value;
+  const tel=document.getElementById('cd-tel').value;
+  if(!nm){toast('Nome não pode ser vazio','error');return;}
+  const ce=document.getElementById('cd-cpf-e');
+  if(cpf&&!valCPF(cpf)){ce.textContent='CPF inválido.';ce.classList.remove('hidden');return;}
+  ce.classList.add('hidden');
+  await fbPatch(`sv_portal/users/${CU.id}`,{name:nm,cpf,phone:tel});
+  CU.name=nm;CU.cpf=cpf;CU.phone=tel;
+  document.getElementById('sb-nm').textContent=CU.name;document.getElementById('tb-nm').textContent=CU.name;
+  document.getElementById('sb-av').textContent=CU.name[0];document.getElementById('tb-av').textContent=CU.name[0];
+  buildHomeCards();toast('Dados salvos com sucesso!','success');
+}
+async function chgPatPw(){
+  const o=document.getElementById('cd-old').value,n=document.getElementById('cd-new').value,n2=document.getElementById('cd-new2').value;
+  if(!o||!n||!n2){toast('Preencha todos os campos','error');return;}
+  if(CU.password!==o){toast('Senha atual incorreta','error');return;}
+  if(n!==n2){toast('As senhas não conferem','error');return;}
+  if(n.length<6){toast('Mínimo 6 caracteres','error');return;}
+  await fbPatch(`sv_portal/users/${CU.id}`,{password:n});CU.password=n;
+  ['cd-old','cd-new','cd-new2'].forEach(id=>document.getElementById(id).value='');
+  toast('Senha alterada com sucesso!','success');
+}
+
+// ══════════════════════════════════════════
+//  PAGAMENTO — Firebase
+// ══════════════════════════════════════════
+async function loadPayHist(){
+  if(!CU||CU.role!=='patient')return;
+  const pays=await fbGet(`sv_portal/payments/${CU.id}`)||[];
+  const tb=document.getElementById('py-tb');if(!tb)return;
+  const due=document.getElementById('py-due');if(due)due.textContent=CU.planExpiry||'—';
+  const ec=document.getElementById('py-err-card');const em_el=document.getElementById('py-err-msg');
+  if(CU.plan==='erro'&&CU.planError&&ec&&em_el){ec.style.display='block';em_el.textContent=CU.planError;}
+  tb.innerHTML=pays.length===0
+    ?'<tr><td colspan="4" style="text-align:center;padding:28px;color:var(--gray-400)">Nenhum registro encontrado</td></tr>'
+    :pays.map(p=>`<tr><td>${p.date}</td><td>${p.desc}</td><td style="font-weight:700">${p.value}</td>
+      <td><span class="pstatus ${p.status}">${p.status[0].toUpperCase()+p.status.slice(1)}</span>
+      ${p.error?`<div class="err-note">⚠️ ${p.error}</div>`:''}</td></tr>`).join('');
+}
+async function payMP(){
+  showModal('Pagamento via Mercado Pago','Em produção, você será redirecionado ao checkout seguro do Mercado Pago. Deseja simular um pagamento aprovado?',async()=>{
+    const exp=new Date();exp.setMonth(exp.getMonth()+1);
+    const expStr=exp.toLocaleDateString('pt-BR');
+    await fbPatch(`sv_portal/users/${CU.id}`,{plan:'ativo',planExpiry:expStr,planError:null});
+    CU.plan='ativo';CU.planExpiry=expStr;
+    const pays=await fbGet(`sv_portal/payments/${CU.id}`)||[];
+    pays.unshift({date:new Date().toLocaleDateString('pt-BR'),desc:'Plano Mensal',value:'R$ 49,99',status:'pago'});
+    await fbPut(`sv_portal/payments/${CU.id}`,pays);
+    loadPayHist();buildHomeCards();
+    toast('Pagamento aprovado! Plano ativo até '+expStr,'success');
+  },'✓ Simular pagamento');
+}
+
+// ══════════════════════════════════════════
+//  AVALIAÇÃO
+// ══════════════════════════════════════════
+function showRating(){
+  document.getElementById('m-ttl').textContent='Avalie o atendimento';
+  document.getElementById('m-bdy').innerHTML=`
+    <p style="color:var(--gray-600);font-size:13.5px;margin-bottom:4px">Como foi o seu atendimento com a Dra. Ilza?</p>
+    <div class="stars-row" id="st">${[1,2,3,4,5].map(i=>`<span class="star" onclick="selStar(${i})">⭐</span>`).join('')}</div>
+    <textarea class="fc" id="r-cm" placeholder="Deixe um comentário (opcional)" rows="3" style="margin-top:10px"></textarea>`;
+  document.getElementById('m-yes').textContent='Enviar avaliação';
+  document.getElementById('m-no').textContent='Agora não';
+  const modal=document.getElementById('gmodal');modal.classList.remove('hidden');
+  document.getElementById('m-yes').onclick=()=>{modal.classList.add('hidden');toast('Avaliação enviada! Obrigada 💚','success');};
+  document.getElementById('m-no').onclick=()=>modal.classList.add('hidden');
+}
+function selStar(n){document.querySelectorAll('.star').forEach((s,i)=>s.classList.toggle('active',i<n));}
+
+// ══════════════════════════════════════════
+//  SYNC / NOTIFICAÇÕES — Firebase polling
+// ══════════════════════════════════════════
+function startSync(){
+  clearInterval(syncT);
+  syncT=setInterval(async()=>{
+    if(CU&&CU.role==='patient'){chkNotifs();updateNavSalaBadge();}
+    if(CU&&CU.role==='admin'){
+      const data=await fbGet('salas_index');
+      const q=data?Object.keys(data).length:0;
+      const hcq=document.getElementById('hc-q');if(hcq)hcq.textContent=`${q} na fila`;
+    }
+  },3000);
+}
+async function chkNotifs(){
+  const notif=await fbGet(`sv_portal/notifs/${CU.id}`);
+  if(notif&&!notif.read){
+    await fbPatch(`sv_portal/notifs/${CU.id}`,{read:true});
+    if(!document.getElementById('page-chat').classList.contains('active')){
+      toast('🏥 A Dra. Ilza iniciou o seu atendimento! Acesse a Sala Virtual.','warning');
+      const ns=document.getElementById('ni-sala');
+      if(ns)ns.innerHTML='<span class="nav-icon">📹</span><span>Sala Virtual</span><span class="nav-notif"></span>';
+    }
+  }
+}
+
+// ══════════════════════════════════════════
+//  FIREBASE — fila e mensagens
+// ══════════════════════════════════════════
+async function fbRegisterQueue(){
+  if(!CU||CU.role!=='patient')return;
+  const iniciais=CU.name.split(' ').map(x=>x[0]).slice(0,2).join('').toUpperCase();
+  await fbPut(`salas_index/${CU.id}`,{nm:CU.name,plano:CU.plan==='ativo'?'Plano Ativo':'Inativo',premium:CU.plan==='ativo',iniciais,status:'aguardando',ultimaTxt:'',ultimaTs:'',tsNum:Date.now()});
+}
+async function fbRegisterQueueFor(uid){
+  const u=await fbGet(`sv_portal/users/${uid}`);if(!u)return;
+  const iniciais=u.name.split(' ').map(x=>x[0]).slice(0,2).join('').toUpperCase();
+  await fbPut(`salas_index/${uid}`,{nm:u.name,plano:u.plan==='ativo'?'Plano Ativo':'Inativo',premium:u.plan==='ativo',iniciais,status:'aguardando',ultimaTxt:'',ultimaTs:'',tsNum:Date.now()});
+}
+async function fbUnregisterQueue(){
+  if(!CU||CU.role!=='patient')return;
+  await fbDel(`salas_index/${CU.id}`);
+}
+async function fbSendMsg(texto,fileObj){
+  if(!CU)return;
+  const ts=new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  const key='m'+Date.now();
+  const payload={txt:texto||'',de:'pac',nome:CU.name,ts,tsNum:Date.now(),lida:false};
+  if(fileObj){
+    payload.fileName=fileObj.name;
+    try{
+      const b64=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(fileObj);});
+      if(b64.length<1200000)payload.fileUrl=b64;else payload.fileBig=true;
+    }catch(e){payload.fileErr=true;}
+  }
+  await fbPut(`salas/${CU.id}/msgs/${key}`,payload);
+  const preview=fileObj?`📎 ${fileObj.name}`:(texto||'').substring(0,50);
+  await fbPut(`salas_index/${CU.id}/ultimaTxt`,preview);
+  await fbPut(`salas_index/${CU.id}/ultimaTs`,ts);
+}
+let fbLastMsgTsSet=false;
+function fbStartMsgPoll(){
+  clearInterval(fbMsgT);
+  if(!CU||CU.role!=='patient')return;
+  if(!fbLastMsgTsSet){fbLastMsgTs=Date.now();fbLastMsgTsSet=true;}
+  fbMsgT=setInterval(async()=>{
+    const val=await fbGet(`salas/${CU.id}/msgs`);if(!val)return;
+    const lista=Object.entries(val).map(([k,v])=>({id:k,...v})).sort((a,b)=>(a.tsNum||0)-(b.tsNum||0));
+    lista.forEach(m=>{
+      if(m.de==='dra'&&(m.tsNum||0)>fbLastMsgTs){
+        fbLastMsgTs=m.tsNum||0;
+        toast('💬 Nova mensagem da Dra. Ilza: "'+m.txt.substring(0,40)+'"','success');
+        const ns=document.getElementById('ni-sala');
+        if(ns&&!document.getElementById('page-sala').classList.contains('active'))
+          ns.innerHTML='<span class="nav-icon">📹</span><span>Sala Virtual</span><span class="nav-notif"></span>';
+      }
+    });
+    if(document.getElementById('page-chat').classList.contains('active')){
+      renderQWithFbMsgs(lista);
+      const inf=document.getElementById('c-inf');
+      const temDra=lista.some(m=>m.de==='dra');
+      if(inf)inf.textContent=temDra?'🟢 Dra. Ilza em atendimento':'🟡 Aguardando a Dra. iniciar o atendimento via CRM...';
+    }
+    updateNavSalaBadge();
+  },3000);
+}
 function fbStartQueuePoll(){
   clearInterval(fbPollT);
   if(!CU||CU.role!=='admin')return;
   fbPollT=setInterval(async()=>{
-    const data=await fbGet('salas_index');
-    if(data===null)return;
+    const data=await fbGet('salas_index');if(data===null)return;
     const count=Object.keys(data).length;
-    const hcq=document.getElementById('hc-q');
-    if(hcq)hcq.textContent=`${count} na fila (Firebase)`;
+    const hcq=document.getElementById('hc-q');if(hcq)hcq.textContent=`${count} na fila`;
   },5000);
 }
 
@@ -1779,20 +1654,16 @@ function fbStartQueuePoll(){
 function showForgotPw(){
   document.getElementById('m-ttl').textContent='Recuperar senha';
   document.getElementById('m-bdy').innerHTML=`
-    <p style="font-size:13px;color:var(--gray-600);margin-bottom:14px">
-      Digite seu e-mail cadastrado. A senha será exibida aqui (demo — em produção, enviamos por e-mail).
-    </p>
-    <div class="fg"><label>E-mail cadastrado</label>
-      <input class="fc" id="fp-em" type="email" placeholder="seu@email.com"></div>
-    <div id="fp-res" style="display:none;background:var(--green-light);color:var(--green);
-      padding:12px;border-radius:var(--r-sm);font-size:13px;font-weight:700;margin-top:8px"></div>
-  `;
-  document.getElementById('m-yes').textContent='Recuperar';
+    <p style="color:var(--gray-600);font-size:13px;margin-bottom:14px">Digite seu e-mail cadastrado. A senha será exibida aqui (demo — em produção, enviamos por e-mail).</p>
+    <div class="fg"><label>E-mail cadastrado</label><input class="fc" id="fp-em" type="email" placeholder="seu@email.com"></div>
+    <div id="fp-res" style="display:none;background:var(--green-light);color:var(--green);padding:12px;border-radius:var(--r-sm);font-size:13px;font-weight:700;margin-top:8px"></div>`;
+  document.getElementById('m-yes').textContent='Enviar instruções';
   document.getElementById('m-no').textContent='Cancelar';
   const modal=document.getElementById('gmodal');modal.classList.remove('hidden');
-  document.getElementById('m-yes').onclick=()=>{
-    const em=document.getElementById('fp-em').value.trim();
-    const u=(DB.get('sv_users')||[]).find(x=>x.email===em);
+  document.getElementById('m-yes').onclick=async()=>{
+    const em=document.getElementById('fp-em')?.value.trim();if(!em)return;
+    const users=await fbGet('sv_portal/users');
+    const u=users?Object.values(users).find(x=>x.email===em):null;
     const res=document.getElementById('fp-res');
     if(!u){res.style.display='block';res.style.background='var(--red-light)';res.style.color='var(--red)';res.textContent='E-mail não encontrado.';return;}
     res.style.display='block';res.style.background='var(--green-light)';res.style.color='var(--green)';
@@ -1803,33 +1674,62 @@ function showForgotPw(){
 }
 
 // ══════════════════════════════════════════
-//  CREDENCIAIS VISÍVEIS (referência rápida)
+//  CREDENTIALS LIST (tela de login)
 // ══════════════════════════════════════════
-function renderCredList(){
-  const users=DB.get('sv_users')||[];
-  const el=document.getElementById('cred-list');if(!el)return;
-  el.innerHTML=users.map(u=>`
-    <div onclick="fillLogin('${u.email}','${u.password}')" style="cursor:pointer;display:flex;justify-content:space-between;
-      align-items:center;padding:5px 8px;border-radius:6px;border:1px solid #c8dcf0;background:#fff;
-      font-size:11.5px;transition:background .15s" onmouseover="this.style.background='#dbeafe'" onmouseout="this.style.background='#fff'">
-      <span><strong style="color:#1A5FA8">${u.email}</strong></span>
-      <span style="color:#475569">${u.password} <span style="color:#94a3b8;font-size:10px">${u.role==='admin'?'[admin]':'[paciente]'}</span></span>
+async function renderCredList(){
+  const users=await fbGet('sv_portal/users');
+  const list=document.getElementById('cred-list');if(!list)return;
+  if(!users){list.innerHTML='<div style="color:#64748b;font-size:11px">Carregando...</div>';return;}
+  const all=Object.values(users);
+  list.innerHTML=all.map(u=>`
+    <div class="cred-item" onclick="fillLogin('${u.email}','${u.password}')">
+      <span style="font-weight:700;color:#1A5FA8">${u.name}</span>
+      <span style="font-size:10px;color:#94a3b8">${u.email} · ${u.password} ${u.role==='admin'?'[admin]':'[paciente]'}</span>
     </div>`).join('');
 }
-function fillLogin(em,pw){
-  setTab('login');
-  document.getElementById('l-em').value=em;
-  document.getElementById('l-pw').value=pw;
-}
+function fillLogin(em,pw){document.getElementById('l-em').value=em;document.getElementById('l-pw').value=pw;}
 
 // ══════════════════════════════════════════
-//  INIT
+//  UTILS — Modal, Toast
 // ══════════════════════════════════════════
-(function init(){
-  fbLastMsgTs=Date.now(); // ignora msgs antigas no boot
-  renderCredList();
-  const sid=DB.get('sv_sess');
-  if(sid){const u=(DB.get('sv_users')||[]).find(x=>x.id===sid);if(u){CU=u;startApp();return;}}
+function showModal(ttl,bdy,onYes,yLbl='Confirmar'){
+  document.getElementById('m-ttl').textContent=ttl;
+  document.getElementById('m-bdy').innerHTML=bdy;
+  document.getElementById('m-yes').textContent=yLbl;
+  document.getElementById('m-no').textContent='Cancelar';
+  const modal=document.getElementById('gmodal');modal.classList.remove('hidden');
+  document.getElementById('m-yes').onclick=()=>{modal.classList.add('hidden');onYes();};
+  document.getElementById('m-no').onclick=()=>modal.classList.add('hidden');
+}
+function toast(msg,type=''){
+  const t=document.createElement('div');t.className='toast'+(type?' toast-'+type:'');t.textContent=msg;
+  document.getElementById('toast-wrap').appendChild(t);
+  requestAnimationFrame(()=>t.classList.add('show'));
+  setTimeout(()=>{t.classList.remove('show');setTimeout(()=>t.remove(),300);},3500);
+}
+function fmtT(ts){return new Date(ts).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});}
+function fmtDate(){return new Date().toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'});}
+
+// ══════════════════════════════════════════
+//  BEFOREUNLOAD
+// ══════════════════════════════════════════
+window.addEventListener('beforeunload',e=>{
+  if(chatId){e.preventDefault();e.returnValue='Você tem uma conversa ativa. Deseja realmente sair?';}
+});
+
+// ══════════════════════════════════════════
+//  INIT — recuperar sessão do Firebase
+// ══════════════════════════════════════════
+(async function init(){
+  fbLastMsgTs=Date.now();
+  await seed(); // garante dados iniciais no Firebase
+  await renderCredList();
+  const sid=SS.get();
+  if(sid){
+    const u=await fbGet(`sv_portal/users/${sid}`);
+    if(u){CU=u;startApp();return;}
+    SS.del(); // sessão inválida
+  }
   document.getElementById('screen-login').style.display='flex';
 })();
 </script>
