@@ -577,7 +577,7 @@ select.fc{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns=
         <div class="ll-feat"><div class="ll-feat-icon">🏥</div>Sala virtual de atendimento em tempo real</div>
         <div class="ll-feat"><div class="ll-feat-icon">🔒</div>Dados criptografados e protegidos pela LGPD</div>
         <div class="ll-feat"><div class="ll-feat-icon">📎</div>Envio seguro de exames e documentos</div>
-        <div class="ll-feat"><div class="ll-feat-icon">💳</div>Pagamento seguro via Mercado Pago</div>
+        <div class="ll-feat"><div class="ll-feat-icon">📅</div>Agendamento e histórico de consultas</div>
       </div>
     </div>
   </div>
@@ -599,7 +599,10 @@ select.fc{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns=
         <p style="text-align:center;margin-top:12px">
           <a href="#" onclick="showForgotPw()" style="font-size:12px;color:var(--teal);font-weight:700;text-decoration:none">🔑 Esqueci minha senha</a>
         </p>
-        <p style="font-size:11px;color:var(--gray-400);text-align:center;margin-top:8px">Demo admin: admin@drailza.com / admin123</p>
+        <p style="font-size:11px;color:var(--gray-400);text-align:center;margin-top:8px">
+          Admin: admin@drailza.com / admin123<br>
+          Teste paciente: ana@email.com / Ana@2025
+        </p>
       </div>
       <!-- INFO ACESSO CONTROLADO -->
       <div style="margin-top:20px;background:#f0f9ff;border:1.5px solid #bae6fd;border-radius:12px;padding:14px 18px">
@@ -860,20 +863,26 @@ let _pendingToken='',_pendingPaid=false,rTemp={};
 async function seed(){
   const users=await fbGet('sv_portal/users');
   if(users&&Object.keys(users).length>0) return; // já tem dados
+  // Criar entradas de teste no CRM (crm_pats_v26) para os pacientes demo
+  const crmPats={
+    crm_p1:{nm:'Ana Carolina Silva',email:'ana@email.com',tel:'(13) 99001-1111',cpf:'529.982.247-25',nasc:'1985-03-22'},
+    crm_p3:{nm:'Carla Mendes',email:'carla@email.com',tel:'(13) 99003-3333',cpf:'111.444.777-35',nasc:'1990-07-15'},
+    crm_p5:{nm:'Eduarda Lima',email:'edu@email.com',tel:'(13) 99005-5555',cpf:'853.801.537-27',nasc:'1992-11-08'},
+  };
+  const existingCrm=await fbGet('crm_data/crm_pats_v26');
+  if(!existingCrm||Object.keys(existingCrm).length===0){
+    await fbPut('crm_data/crm_pats_v26',crmPats);
+    console.log('[Portal] Pacientes demo inseridos no CRM.');
+  }
+  // Usuários da Sala Virtual — pacientes vinculados ao CRM via crmPacId
   const initial={
-    admin:{id:'admin',name:'Dra. Ilza Ezequiel',email:'admin@drailza.com',password:'admin123',role:'admin',cpf:''},
-    p1:{id:'p1',name:'Ana Carolina Silva',email:'ana@email.com',password:'123456',role:'patient',cpf:'529.982.247-25',phone:'(13) 99001-1111',plan:'ativo',planExpiry:'30/07/2025'},
-    p2:{id:'p2',name:'Bruno Oliveira',email:'bruno@email.com',password:'123456',role:'patient',cpf:'987.654.321-00',phone:'(13) 99002-2222',plan:'inativo',planExpiry:'10/01/2025'},
-    p3:{id:'p3',name:'Carla Mendes',email:'carla@email.com',password:'123456',role:'patient',cpf:'111.444.777-35',phone:'(13) 99003-3333',plan:'ativo',planExpiry:'15/08/2025'},
-    p4:{id:'p4',name:'Diego Fernandes',email:'diego@email.com',password:'123456',role:'patient',cpf:'275.274.330-04',phone:'(13) 99004-4444',plan:'erro',planExpiry:'01/05/2025',planError:'Cartão recusado – tente novamente'},
-    p5:{id:'p5',name:'Eduarda Lima',email:'edu@email.com',password:'123456',role:'patient',cpf:'853.801.537-27',phone:'(13) 99005-5555',plan:'ativo',planExpiry:'20/09/2025'},
+    admin:{id:'admin',name:'Dra. Ilza Ezequiel',email:'admin@drailza.com',password:'admin123',role:'admin',cpf:'',ativo:true},
+    sv_crm_p1:{id:'sv_crm_p1',crmPacId:'crm_p1',name:'Ana Carolina Silva',email:'ana@email.com',password:'Ana@2025',role:'patient',cpf:'529.982.247-25',phone:'(13) 99001-1111',plan:'ativo',planExpiry:'',ativo:true,registeredAt:new Date().toISOString()},
+    sv_crm_p3:{id:'sv_crm_p3',crmPacId:'crm_p3',name:'Carla Mendes',email:'carla@email.com',password:'Carla@2025',role:'patient',cpf:'111.444.777-35',phone:'(13) 99003-3333',plan:'ativo',planExpiry:'',ativo:true,registeredAt:new Date().toISOString()},
+    sv_crm_p5:{id:'sv_crm_p5',crmPacId:'crm_p5',name:'Eduarda Lima',email:'edu@email.com',password:'Edu@2025',role:'patient',cpf:'853.801.537-27',phone:'(13) 99005-5555',plan:'ativo',planExpiry:'',ativo:true,registeredAt:new Date().toISOString()},
   };
   await fbPut('sv_portal/users',initial);
-  await fbPut('sv_portal/payments',{
-    p1:[{date:'01/04/2025',desc:'Plano Mensal',value:'R$ 150,00',status:'pago'},{date:'01/03/2025',desc:'Plano Mensal',value:'R$ 150,00',status:'pago'}],
-    p4:[{date:'01/04/2025',desc:'Plano Mensal',value:'R$ 150,00',status:'erro',error:'Cartão recusado'}],
-  });
-  console.log('[Portal] Dados iniciais gravados no Firebase.');
+  console.log('[Portal] Dados iniciais (seed) gravados no Firebase.');
 }
 
 // ══════════════════════════════════════════
@@ -1797,7 +1806,7 @@ window.addEventListener('beforeunload',e=>{
     </div>
     <div class="lgpd-modal-foot">
       <button class="btn btn-secondary" onclick="document.getElementById('lgpd-modal').classList.remove('open')">Fechar</button>
-      <button class="btn btn-primary" onclick="document.getElementById('lgpd-cb').checked=true;lgpdCheckChange();document.getElementById('lgpd-modal').classList.remove('open');toast('✅ Política aceita com sucesso!','success')">
+      <button class="btn btn-primary" onclick="document.getElementById('lgpd-modal').classList.remove('open');toast('✅ Política lida com sucesso!','success')">
         ✅ Li e Aceito
       </button>
     </div>
