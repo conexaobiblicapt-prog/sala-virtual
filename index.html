@@ -499,10 +499,7 @@ select.fc{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns=
 .token-note{font-size:11px;color:var(--gray-400);margin-top:6px}
 
 /* Confirmation screen */
-#screen-confirm{
-  min-height:100vh;display:flex;align-items:center;justify-content:center;
-  background:linear-gradient(145deg,var(--navy) 0%,var(--navy-mid) 60%,#1a3a52 100%);
-}
+
 .confirm-card{
   background:var(--white);border-radius:var(--r-lg);padding:48px 40px;
   max-width:460px;width:92%;text-align:center;
@@ -588,11 +585,8 @@ select.fc{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns=
   <div class="login-right">
     <div class="login-card">
       <div class="lc-title">Bem-vinda de volta</div>
-      <div class="lc-sub">Acesse sua conta ou crie uma nova</div>
-      <div class="lc-tabs">
-        <button class="lc-tab active" onclick="setTab('login')">Entrar</button>
-        <button class="lc-tab" onclick="setTab('register')">Criar conta</button>
-      </div>
+      <div class="lc-sub">Acesse sua conta com as credenciais fornecidas pela clínica</div>
+
       <div id="l-alrt" class="lalert"></div>
 
       <!-- LOGIN -->
@@ -607,169 +601,22 @@ select.fc{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns=
         </p>
         <p style="font-size:11px;color:var(--gray-400);text-align:center;margin-top:8px">Demo admin: admin@drailza.com / admin123</p>
       </div>
-
-      <!-- ══ LGPD STEP 0 ══ -->
-      <div id="f-r0" class="hidden">
-        <div class="steps-bar">
-          <div class="step-item"><div class="step-num active" id="sn0">🔒</div><div class="step-line" id="sl0"></div></div>
-          <div class="step-item"><div class="step-num pending">1</div><div class="step-line"></div></div>
-          <div class="step-item"><div class="step-num pending">2</div><div class="step-line"></div></div>
-          <div class="step-item" style="flex:0"><div class="step-num pending">3</div></div>
-        </div>
-        <div class="lgpd-badge">🔒 LGPD · Privacidade</div>
-        <div class="lgpd-box">
-          <h4>📋 Política de Privacidade e Proteção de Dados</h4>
-          <p>Antes de criar sua conta, leia e aceite nossa Política de Privacidade, elaborada em conformidade com a <strong>Lei Geral de Proteção de Dados (Lei nº 13.709/2018 – LGPD)</strong>.</p>
-          <div class="lgpd-scroll" id="lgpd-scroll-box">
-            <h5>1. Controladora dos Dados</h5>
-            <p>Clínica Dra. Ilza Ezequiel – Gastrenterologia, responsável pelo tratamento dos seus dados pessoais, com endereço em [Rua, Nº, Cidade/SP], CNPJ: XX.XXX.XXX/0001-XX, e-mail: contato@drailzaezequiel.com.br.</p>
-            <h5>2. Encarregada de Dados (DPO)</h5>
-            <p>Dra. Ilza Ezequiel – privacidade@drailzaezequiel.com.br. Prazo de resposta: até 15 dias úteis.</p>
-            <h5>3. Dados Coletados</h5>
-            <p>Nome, CPF, data de nascimento, telefone, e-mail, dados de saúde (prontuário, exames, diagnósticos), dados de pagamento e dados de navegação na plataforma.</p>
-            <h5>4. Finalidades</h5>
-            <p>Prestação de serviços médicos; agendamento de consultas e exames; comunicação via WhatsApp/e-mail (com consentimento); cumprimento de obrigações legais; controle interno de estoque e faturamento.</p>
-            <h5>5. Bases Legais</h5>
-            <p>Tutela da saúde (art. 11, II, f); execução de contrato (art. 7º, V); consentimento (art. 7º, I); obrigação legal (art. 7º, II); interesse legítimo (art. 7º, IX).</p>
-            <h5>6. Seus Direitos</h5>
-            <p>Acesso, correção, portabilidade, eliminação, revogação do consentimento e petição à ANPD, conforme arts. 17–22 da LGPD. Solicitações pelo e-mail acima.</p>
-            <h5>7. Segurança</h5>
-            <p>Adotamos controle de acesso, criptografia, backup periódico e treinamento de equipe. Incidentes serão comunicados à ANPD e a você em até 72 horas.</p>
-            <h5>8. Retenção</h5>
-            <p>Prontuário: mínimo 20 anos (CFM Res. 1.821/2007). Dados de consentimento: durante o vínculo + 5 anos. Dados fiscais: 5 anos.</p>
-            <h5>9. Compartilhamento</h5>
-            <p>Somente com convênios/planos de saúde, laboratórios parceiros, autoridades sanitárias e sistemas de gestão — nunca para fins comerciais.</p>
-            <h5>10. Contato</h5>
-            <p>Dúvidas? Escreva para privacidade@drailzaezequiel.com.br ou ligue para a clínica.</p>
-          </div>
-          <p class="lgpd-read-hint" id="lgpd-hint">↕ Role o texto acima para ler a política completa</p>
-          <label class="lgpd-check-wrap" for="lgpd-cb">
-            <input type="checkbox" id="lgpd-cb" onchange="lgpdCheckChange()">
-            <label for="lgpd-cb">Li e aceito a <span>Política de Privacidade</span> da Clínica Dra. Ilza Ezequiel e consinto com o tratamento dos meus dados pessoais de saúde conforme a LGPD (Lei nº 13.709/2018).</label>
-          </label>
-        </div>
-        <button class="btn btn-outline btn-block" style="margin-bottom:10px;font-size:12px" onclick="document.getElementById('lgpd-modal').classList.add('open')">
-          📄 Ver política completa em tela cheia
-        </button>
-        <button class="btn btn-primary btn-block" id="lgpd-next-btn" onclick="rs0()" disabled style="opacity:.5;cursor:not-allowed">
-          Próximo: Dados Pessoais →
-        </button>
-        <p style="font-size:10.5px;color:var(--gray-400);text-align:center;margin-top:10px">
-          ⚠️ O aceite é obrigatório para criar sua conta. Você pode revogar seu consentimento a qualquer momento.
-        </p>
-      </div>
-
-      <!-- REG STEP 1 -->
-      <div id="f-r1" class="hidden">
-        <div class="steps-bar">
-          <div class="step-item"><div class="step-num done">✓</div><div class="step-line done"></div></div>
-          <div class="step-item"><div class="step-num active" id="sn1">1</div><div class="step-line" id="sl1"></div></div>
-          <div class="step-item"><div class="step-num pending" id="sn2">2</div><div class="step-line" id="sl2"></div></div>
-          <div class="step-item" style="flex:0"><div class="step-num pending" id="sn3">3</div></div>
-        </div>
-        <p style="font-size:12px;color:var(--gray-400);margin-bottom:16px;font-weight:600">Dados Pessoais</p>
-        <div class="fg"><label>Nome completo</label><input class="fc" id="r-nm" type="text" placeholder="Nome completo"></div>
-        <div class="fg"><label>CPF</label>
-          <input class="fc" id="r-cpf" type="text" placeholder="000.000.000-00" maxlength="14" oninput="mCPF(this)">
-          <span id="cpf-e" class="fe hidden"></span></div>
-        <div class="fg"><label>Data de nascimento</label><input class="fc" id="r-dob" type="date"></div>
-        <div class="fg"><label>Telefone</label><input class="fc" id="r-tel" type="tel" placeholder="(13) 99999-9999" maxlength="15" oninput="mPhone(this)"></div>
-        <button class="btn btn-primary btn-block" onclick="rs1()">Próximo →</button>
-      </div>
-
-      <!-- REG STEP 2 -->
-      <div id="f-r2" class="hidden">
-        <div class="steps-bar">
-          <div class="step-item"><div class="step-num done">✓</div><div class="step-line done"></div></div>
-          <div class="step-item"><div class="step-num active">2</div><div class="step-line" id="sl2b"></div></div>
-          <div class="step-item" style="flex:0"><div class="step-num pending">3</div></div>
-        </div>
-        <p style="font-size:12px;color:var(--gray-400);margin-bottom:16px;font-weight:600">Acesso ao Sistema</p>
-        <div class="fg"><label>E-mail</label><input class="fc" id="r-em" type="email" placeholder="seu@email.com"></div>
-        <div class="fg"><label>Senha</label>
-          <div class="pw"><input class="fc" id="r-pw" type="password" placeholder="mínimo 6 caracteres">
-          <button type="button" class="show-pass" onclick="tp('r-pw',this)">👁</button></div></div>
-        <div class="fg"><label>Confirmar senha</label>
-          <div class="pw"><input class="fc" id="r-pw2" type="password" placeholder="repita a senha">
-          <button type="button" class="show-pass" onclick="tp('r-pw2',this)">👁</button></div></div>
-        <div style="display:flex;gap:10px">
-          <button class="btn btn-secondary" style="flex:1;justify-content:center" onclick="srs(1)">← Voltar</button>
-          <button class="btn btn-primary" style="flex:1;justify-content:center" onclick="rs2()">Próximo →</button>
+      <!-- INFO ACESSO CONTROLADO -->
+      <div style="margin-top:20px;background:#f0f9ff;border:1.5px solid #bae6fd;border-radius:12px;padding:14px 18px">
+        <div style="font-size:11px;font-weight:800;color:#0369a1;letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px">🏥 Não tem acesso?</div>
+        <p style="font-size:12.5px;color:#374151;line-height:1.6;margin:0">As credenciais são geradas pela clínica no momento do seu cadastro. Entre em contato:</p>
+        <div style="margin-top:8px;font-size:12.5px;color:#374151">
+          📱 WhatsApp: <strong>(13) 99XXX-XXXX</strong><br>
+          📧 contato@drailzaezequiel.com.br
         </div>
       </div>
 
-      <!-- REG STEP 3: PAGAMENTO -->
-      <div id="f-r3" class="hidden">
-        <div class="steps-bar">
-          <div class="step-item"><div class="step-num done">✓</div><div class="step-line done"></div></div>
-          <div class="step-item"><div class="step-num done">✓</div><div class="step-line done"></div></div>
-          <div class="step-item" style="flex:0"><div class="step-num active">3</div></div>
-        </div>
-        <p style="font-size:12px;color:var(--gray-400);margin-bottom:16px;font-weight:600">Pagamento do Plano</p>
-        <div class="mp-plan-box">
-          <div><div class="mp-plan-name">Plano Mensal</div><div class="mp-plan-desc">Acesso completo à Sala Virtual</div></div>
-          <div><div class="mp-price"><span style="text-decoration:line-through;font-size:18px;color:rgba(201,169,110,.5);font-family:'Nunito Sans',sans-serif">R$ 150</span><br>R$ 49,99<span>/mês</span></div></div>
-        </div>
-        <div class="mp-feats">
-          <div class="mp-feat">Consultas online ilimitadas com a Dra. Ilza</div>
-          <div class="mp-feat">Chat seguro com envio de exames</div>
-          <div class="mp-feat">Histórico completo de atendimentos</div>
-          <div class="mp-feat">Renovação automática mensal</div>
-        </div>
-        <button class="mp-btn" onclick="goMP()">
-          <svg width="22" height="22" viewBox="0 0 24 24"><circle cx="12" cy="12" r="12" fill="#fff"/><text x="5.5" y="16.5" font-size="11" font-weight="900" fill="#009ee3">MP</text></svg>
-          Pagar com Mercado Pago
-        </button>
-        <p class="mp-safe">🔒 Pagamento seguro · SSL · Dados protegidos</p>
-        <div style="display:flex;gap:10px;margin-top:12px">
-          <button class="btn btn-secondary" style="flex:1;justify-content:center;font-size:12px" onclick="srs(2)">← Voltar</button>
-          <button class="btn btn-outline" style="flex:1;justify-content:center;font-size:12px" onclick="skipPay()">Pular por agora</button>
-        </div>
-      </div>
-      <!-- REG STEP 4: TOKEN VALIDAÇÃO -->
-      <div id="f-r4" class="hidden">
-        <div class="steps-bar">
-          <div class="step-item"><div class="step-num done">✓</div><div class="step-line done"></div></div>
-          <div class="step-item"><div class="step-num done">✓</div><div class="step-line done"></div></div>
-          <div class="step-item"><div class="step-num done">✓</div><div class="step-line done"></div></div>
-        </div>
-        <p style="font-size:12px;color:var(--gray-400);margin-bottom:16px;font-weight:600">✉️ Confirme seu e-mail</p>
-        <div class="token-box">
-          <h4>📧 Código enviado para seu e-mail!</h4>
-          <div style="font-size:12px;color:var(--green);margin-bottom:8px">Token de verificação (demo – aparece aqui pois não há backend):</div>
-          <div class="token-display" id="tok-display">——</div>
-          <div class="token-note">Em produção, este código chegará apenas no seu e-mail.</div>
-        </div>
-        <div class="fg">
-          <label>Digite o token recebido</label>
-          <input class="fc token-input" id="r-tok" type="text" maxlength="6" placeholder="000000"
-            oninput="this.value=this.value.replace(/\D/g,'').slice(0,6)"
-            onkeydown="if(event.key==='Enter')validateToken()">
-        </div>
-        <button class="btn btn-primary btn-block" onclick="validateToken()">✓ Confirmar e acessar</button>
-        <p class="token-note" style="text-align:center;margin-top:10px">Não recebeu? <a href="#" onclick="resendToken()" style="color:var(--teal);font-weight:700">Reenviar código</a></p>
-      </div>
-    </div>
 
     <!-- cred-list removido por segurança — admin usa o CRM para ativar acessos -->
   </div>
 </div>
 
-<div id="screen-confirm" class="hidden">
-  <div class="confirm-card">
-    <span class="confirm-icon">✅</span>
-    <h2>Cadastro Confirmado!</h2>
-    <p>Sua conta foi criada com sucesso e o pagamento foi processado.</p>
-    <p>Você já pode acessar a <strong>Sala Virtual</strong> com suas credenciais.</p>
-    <div class="confirm-cred" id="conf-cred">
-      <div>E-mail de acesso:</div>
-      <strong id="conf-email">—</strong>
-      <div style="margin-top:8px">Senha: use a senha criada no cadastro</div>
-    </div>
-    <p style="font-size:12px;color:var(--gray-400)">📧 Um e-mail de confirmação foi enviado para você.</p>
-    <button class="btn btn-primary btn-block" style="margin-top:20px" onclick="goToLogin()">Entrar na plataforma →</button>
-  </div>
-</div>
+
 
 
 <div id="app-shell" class="hidden">
@@ -1056,42 +903,39 @@ function tp(id,btn){
 }
 function togglePw(id,btn){tp(id,btn);}
 function setTab(t){
-  document.querySelectorAll('.lc-tab').forEach((b,i)=>b.classList.toggle('active',['login','register'][i]===t));
-  const isLogin=t==='login';
-  document.getElementById('f-login').classList.toggle('hidden',!isLogin);
-  if(!isLogin){hideReg();srs(0);}else{hideReg();}  // começa no step LGPD
+  // Acesso somente via credenciais da clínica — sem cadastro livre
+  document.getElementById('f-login').classList.remove('hidden');
   clrAlrt();
 }
-function hideReg(){['f-r0','f-r1','f-r2','f-r3','f-r4'].forEach(id=>{const el=document.getElementById(id);if(el)el.classList.add('hidden');});}
-function srs(n){hideReg();const el=document.getElementById('f-r'+n);if(el)el.classList.remove('hidden');clrAlrt();}
+function hideReg(){}
+function srs(n){}
 function showAlrt(msg,type='err'){const el=document.getElementById('l-alrt');el.className='lalert '+type;el.innerHTML=msg;el.style.display='block';}
 function clrAlrt(){document.getElementById('l-alrt').style.display='none';}
 function enterLogin(e){if(e.key==='Enter')doLogin();}
 
-// ── LGPD Step 0 ──────────────────────────────────────────
-function lgpdCheckChange(){
-  const cb=document.getElementById('lgpd-cb');
-  const btn=document.getElementById('lgpd-next-btn');
-  if(!btn)return;
-  if(cb.checked){
-    btn.disabled=false;
-    btn.style.opacity='1';
-    btn.style.cursor='pointer';
-    document.getElementById('lgpd-hint').style.display='none';
-  } else {
-    btn.disabled=true;
-    btn.style.opacity='.5';
-    btn.style.cursor='not-allowed';
+// ══════════════════════════════════════════
+//  LOGIN
+// ══════════════════════════════════════════
+async function doLogin(){
+  const em=document.getElementById('l-em').value.trim();
+  const pw=document.getElementById('l-pw').value;
+  if(!em||!pw){showAlrt('Preencha e-mail e senha.');return;}
+  showAlrt('Verificando...','info');
+  const users=await fbGet('sv_portal/users');
+  if(!users){showAlrt('Erro de conexão. Tente novamente.');return;}
+  const u=Object.values(users).find(x=>x.email===em&&x.password===pw);
+  if(!u){showAlrt('E-mail ou senha incorretos.');return;}
+  // Paciente: verificar se vinculado ao CRM e se acesso está ativo
+  if(u.role==='patient'){
+    if(!u.crmPacId){showAlrt('Acesso não vinculado ao CRM. Contate a clínica.');return;}
+    const crmPac=await fbGet(`crm_data/crm_pats_v26/${u.crmPacId}`);
+    if(!crmPac){showAlrt('⚠️ Cadastro não localizado no CRM. Contate a clínica.');return;}
+    if(u.ativo===false){showAlrt('⚠️ Acesso à Sala Virtual desativado. Contate a clínica.');return;}
   }
+  CU=u;SS.set(u.id);
+  if(u.role==='patient') await fbRegisterQueue();
+  clrAlrt();startApp();
 }
-function rs0(){
-  const cb=document.getElementById('lgpd-cb');
-  if(!cb.checked){showAlrt('⚠️ Você precisa aceitar a Política de Privacidade para continuar.');return;}
-  // Marca horário do aceite para gravação posterior
-  window._lgpdAceiteTs=new Date().toISOString();
-  srs(1);
-}
-
 
 // ══════════════════════════════════════════
 //  GERAR SENHA AUTOMÁTICA
@@ -1107,7 +951,6 @@ function genPass(){
 async function ativarAcessoCRM(crmId){
   const crmPac=await fbGet(`crm_data/crm_pats_v26/${crmId}`);
   if(!crmPac){toast('Paciente não encontrado no CRM','error');return;}
-  // Verificar se já tem acesso
   const users=await fbGet('sv_portal/users')||{};
   const existing=Object.values(users).find(u=>u.crmPacId===crmId);
   if(existing){toast(`${crmPac.nm||crmPac.nome} já tem acesso ativo.`,'error');renderPats();return;}
@@ -1117,24 +960,13 @@ async function ativarAcessoCRM(crmId){
   const email=crmPac.email||`${id}@sv.drailza.com`;
   const telefone=crmPac.tel||crmPac.telefone||'';
   const nu={
-    id,
-    crmPacId:crmId,
-    name:nome,
-    email,
-    password:novaSenha,
-    phone:telefone,
-    cpf:crmPac.cpf||'',
-    dob:crmPac.nasc||crmPac.dob||'',
-    role:'patient',
-    plan:'ativo',
-    planExpiry:'',
-    ativo:true,
+    id,crmPacId:crmId,name:nome,email,password:novaSenha,
+    phone:telefone,cpf:crmPac.cpf||'',dob:crmPac.nasc||crmPac.dob||'',
+    role:'patient',plan:'ativo',planExpiry:'',ativo:true,
     registeredAt:new Date().toISOString(),
-    ativadoPor:CU?CU.id:'admin',
-    ativadoEm:new Date().toISOString()
+    ativadoPor:CU?CU.id:'admin',ativadoEm:new Date().toISOString()
   };
   await fbPut(`sv_portal/users/${id}`,nu);
-  // Mostrar credenciais geradas
   showModal(
     '✅ Acesso Ativado',
     `<div style="text-align:center">
@@ -1146,11 +978,10 @@ async function ativarAcessoCRM(crmId){
         <div style="font-size:13px;color:#374151">🔒 Senha: <strong style="font-size:16px;letter-spacing:.1em;color:#0D1B2A;font-family:monospace">${novaSenha}</strong></div>
       </div>
       <div style="font-size:11.5px;color:#64748b;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:10px 14px">
-        ⚠️ Copie as credenciais e envie ao paciente via WhatsApp ou e-mail antes de fechar esta janela.
+        ⚠️ Copie as credenciais e envie ao paciente via WhatsApp ou e-mail antes de fechar.
       </div>
     </div>`,
-    ()=>{fillPatSel();renderPats();},
-    'OK, entendido'
+    ()=>{fillPatSel();renderPats();},'OK, entendido'
   );
   document.getElementById('m-no').style.display='none';
   toast(`Acesso de ${nome} ativado!`,'success');
@@ -1173,8 +1004,7 @@ async function showCRMNoAccess(){
     :[];
   if(!semAcesso.length){
     showModal('Pacientes CRM','<p style="text-align:center;color:#64748b">✅ Todos os pacientes do CRM já possuem acesso à Sala Virtual.</p>',()=>{});
-    document.getElementById('m-no').style.display='none';
-    return;
+    document.getElementById('m-no').style.display='none';return;
   }
   showModal(
     `📋 Pacientes CRM sem acesso (${semAcesso.length})`,
@@ -1183,170 +1013,18 @@ async function showCRMNoAccess(){
         <div style="display:flex;justify-content:space-between;align-items:center;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:10px 14px;gap:12px">
           <div style="flex:1;min-width:0">
             <div style="font-size:13px;font-weight:700;color:#0D1B2A;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.nome}</div>
-            <div style="font-size:11.5px;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.email} · ${p.tel}</div>
+            <div style="font-size:11.5px;color:#64748b">${p.email} · ${p.tel}</div>
           </div>
           <button onclick="document.getElementById('gmodal').classList.add('hidden');ativarAcessoCRM('${p.id}')"
-            style="flex-shrink:0;padding:6px 14px;background:linear-gradient(135deg,#1A8C82,#4A9B8E);color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">
+            style="flex-shrink:0;padding:6px 14px;background:linear-gradient(135deg,#1A8C82,#4A9B8E);color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer">
             🔑 Ativar
           </button>
         </div>`).join('')}
     </div>`,
-    ()=>{},
-    'Fechar'
+    ()=>{},'Fechar'
   );
   document.getElementById('m-no').style.display='none';
 }
-// ══════════════════════════════════════════
-//  LOGIN
-// ══════════════════════════════════════════
-async function doLogin(){
-  const em=document.getElementById('l-em').value.trim();
-  const pw=document.getElementById('l-pw').value;
-  if(!em||!pw){showAlrt('Preencha e-mail e senha.');return;}
-  showAlrt('Verificando...','info');
-  const users=await fbGet('sv_portal/users');
-  if(!users){showAlrt('Erro de conexão. Tente novamente.');return;}
-  const u=Object.values(users).find(x=>x.email===em&&x.password===pw);
-  if(!u){showAlrt('E-mail ou senha incorretos.');return;}
-  // Paciente: verificar se ainda existe no CRM
-  if(u.role==='patient'){
-    if(!u.crmPacId){showAlrt('Acesso não vinculado ao CRM. Contate a clínica.');return;}
-    const crmPac=await fbGet(`crm_data/crm_pats_v26/${u.crmPacId}`);
-    if(!crmPac){showAlrt('⚠️ Cadastro não localizado no CRM. Contate a clínica.');return;}
-    if(u.ativo===false){showAlrt('⚠️ Acesso à Sala Virtual desativado. Contate a clínica.');return;}
-  }
-  CU=u;SS.set(u.id);
-  if(u.role==='patient') await fbRegisterQueue();
-  clrAlrt();startApp();
-}
-
-// ══════════════════════════════════════════
-//  CADASTRO
-// ══════════════════════════════════════════
-function rs1(){
-  const nm=document.getElementById('r-nm').value.trim();
-  const cpf=document.getElementById('r-cpf').value;
-  const dob=document.getElementById('r-dob').value;
-  const tel=document.getElementById('r-tel').value;
-  if(!nm){showAlrt('Digite seu nome completo.');return;}
-  const ce=document.getElementById('cpf-e');
-  if(!valCPF(cpf)){ce.textContent='CPF inválido. Verifique os dígitos.';ce.classList.remove('hidden');document.getElementById('r-cpf').classList.add('err');return;}
-  ce.classList.add('hidden');document.getElementById('r-cpf').classList.remove('err');
-  rTemp={nm,cpf,dob,tel};srs(2);
-}
-async function rs2(){
-  const em=document.getElementById('r-em').value.trim();
-  const pw=document.getElementById('r-pw').value;
-  const pw2=document.getElementById('r-pw2').value;
-  if(!em||!pw){showAlrt('Preencha e-mail e senha.');return;}
-  if(pw!==pw2){showAlrt('As senhas não conferem.');return;}
-  if(pw.length<6){showAlrt('Senha deve ter ao menos 6 caracteres.');return;}
-  // Verificar e-mail único no Firebase
-  const users=await fbGet('sv_portal/users')||{};
-  if(Object.values(users).find(u=>u.email===em)){showAlrt('E-mail já cadastrado.');return;}
-  rTemp={...rTemp,em,pw};srs(3);
-}
-function goMP(){
-  _pendingToken=String(Math.floor(100000+Math.random()*900000));
-  _pendingPaid=true;
-  document.getElementById('tok-display').textContent=_pendingToken;
-  document.getElementById('r-tok').value='';
-  simulateEmail(rTemp.em,rTemp.nm,_pendingToken,true);
-  ['f-r1','f-r2','f-r3'].forEach(id=>document.getElementById(id).classList.add('hidden'));
-  document.getElementById('f-r4').classList.remove('hidden');
-  toast('📧 Token enviado para '+rTemp.em,'success');
-}
-function skipPay(){cmpReg(false);}
-function validateToken(){
-  const v=document.getElementById('r-tok').value.trim();
-  if(v!==_pendingToken){showAlrt('Token inválido. Verifique o código e tente novamente.');return;}
-  cmpReg(_pendingPaid);
-}
-function resendToken(){
-  _pendingToken=String(Math.floor(100000+Math.random()*900000));
-  document.getElementById('tok-display').textContent=_pendingToken;
-  simulateEmail(rTemp.em,rTemp.nm,_pendingToken,_pendingPaid);
-  toast('📧 Novo token enviado para '+rTemp.em,'success');
-}
-function simulateEmail(email,name,token,paid){
-  console.log(`[EMAIL SIMULADO]\nPara: ${email}\nOlá, ${name}!\nToken de validação: ${token}\n${paid?'Pagamento R$ 49,99 – APROVADO ✅':''}\nDra. Ilza Ezequiel – Sala Virtual`);
-}
-function simulateLgpdEmail(email,name,aceiteTs){
-  const msg=`
-[E-MAIL LGPD SIMULADO]
-Para: ${email}
-Assunto: Confirmação de Cadastro e Política de Privacidade – LGPD
-
-Olá, ${name}!
-
-Seu cadastro na Sala Virtual da Clínica Dra. Ilza Ezequiel foi concluído com sucesso.
-
-✅ CONFIRMAÇÃO DE ACEITE LGPD
-Em ${new Date(aceiteTs).toLocaleString('pt-BR')} você aceitou nossa Política de Privacidade 
-(Lei nº 13.709/2018 – LGPD) ao se cadastrar na plataforma.
-
-📋 RESUMO DO QUE COLETAMOS E POR QUÊ:
-• Seus dados pessoais e de saúde são tratados para prestação de serviços médicos.
-• Usamos consentimento, tutela da saúde e obrigação legal como bases legais.
-• Seus dados de prontuário são mantidos por no mínimo 20 anos (CFM Res. 1.821/2007).
-
-🔒 SEUS DIREITOS (arts. 17-22 LGPD):
-Você pode acessar, corrigir, portar ou solicitar exclusão dos seus dados a qualquer momento.
-Contato DPO: privacidade@drailzaezequiel.com.br
-
-Atenciosamente,
-Dra. Ilza Ezequiel – Encarregada de Dados (DPO)
-Clínica Dra. Ilza Ezequiel · www.drailzaezequiel.com.br
-`;
-  console.log(msg);
-  // Em produção: integrar com Nodemailer / SendGrid / API de e-mail
-}
-async function cmpReg(paid){
-  const users=await fbGet('sv_portal/users')||{};
-  const pacientes=Object.values(users).filter(u=>u.role==='patient');
-  if(pacientes.length>=50){showAlrt('⚠️ Limite de 50 pacientes atingido. Entre em contato com a clínica para liberar vagas.');return;}
-  const id='p'+Date.now();
-  const exp=new Date();exp.setMonth(exp.getMonth()+1);
-  const aceiteTs=window._lgpdAceiteTs||new Date().toISOString();
-  const nu={id,name:rTemp.nm,cpf:rTemp.cpf,dob:rTemp.dob||'',phone:rTemp.tel||'',
-    email:rTemp.em,password:rTemp.pw,role:'patient',
-    plan:paid?'ativo':'inativo',planExpiry:exp.toLocaleDateString('pt-BR'),
-    registeredAt:new Date().toISOString(),
-    lgpd:{aceite:true,aceiteTs,versaoPolitica:'1.0',canal:'sala_virtual',ip:'(capturado no backend)'}
-  };
-  // Gravar usuário no Firebase
-  await fbPut(`sv_portal/users/${id}`,nu);
-  // Gravar pagamento inicial se pago
-  if(paid){
-    await fbPut(`sv_portal/payments/${id}`,[{date:new Date().toLocaleDateString('pt-BR'),desc:'Plano Mensal',value:'R$ 49,99',status:'pago'}]);
-  }
-  // Backup no path de cadastro de pacientes (CRM lê daqui) — inclui dados LGPD
-  await fbPut(`pacientes_cadastro/${id}`,{id,name:nu.name,cpf:nu.cpf,dob:nu.dob,phone:nu.phone,email:nu.email,role:'patient',plan:nu.plan,planExpiry:nu.planExpiry,registeredAt:nu.registeredAt,lgpd:nu.lgpd});
-  // Registro de consentimento LGPD no Firebase (trilha de auditoria)
-  await fbPut(`lgpd_consentimentos/${id}`,{
-    pacienteId:id,nome:nu.name,email:nu.email,cpf:nu.cpf,
-    aceite:true,aceiteTs,versaoPolitica:'1.0',canal:'sala_virtual',
-    emailLgpdEnviado:true,emailLgpdEnviadoTs:new Date().toISOString()
-  });
-  // Disparar e-mail LGPD simulado
-  simulateLgpdEmail(rTemp.em,rTemp.nm,aceiteTs);
-  toast('📧 E-mail de confirmação LGPD enviado para '+rTemp.em,'success');
-  showConfirmScreen(rTemp.em,paid);
-}
-
-function showConfirmScreen(email,paid){
-  hideReg();
-  document.getElementById('screen-login').innerHTML=`
-    <div style="background:#fff;border-radius:20px;padding:48px 40px;max-width:420px;width:90%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.12)">
-      <div style="font-size:56px;margin-bottom:16px">${paid?'✅':'📋'}</div>
-      <h2 style="color:#0d2137;margin-bottom:8px">${paid?'Cadastro realizado!':'Cadastro enviado!'}</h2>
-      <p style="color:#64748b;font-size:14px;margin-bottom:24px">
-        ${paid?`Plano ativo! Acesse com o e-mail <strong>${email}</strong>`:`Cadastro realizado. Acesse com o e-mail <strong>${email}</strong>`}
-      </p>
-      <button class="btn btn-primary" onclick="goToLogin()">Ir para o Login</button>
-    </div>`;
-}
-function goToLogin(){location.reload();}
 
 // ══════════════════════════════════════════
 //  LOGOUT
