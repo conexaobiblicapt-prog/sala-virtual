@@ -933,20 +933,32 @@ async function doLogin(){
   const pw=document.getElementById('l-pw').value;
   if(!em||!pw){showAlrt('Preencha e-mail e senha.');return;}
   showAlrt('Verificando...','info');
-  const users=await fbGet('sv_portal/users');
-  if(!users){showAlrt('Erro de conexão. Tente novamente.');return;}
-  const u=Object.values(users).find(x=>x.email===em&&x.password===pw);
-  if(!u){showAlrt('E-mail ou senha incorretos.');return;}
-  // Paciente: verificar se vinculado ao CRM e se acesso está ativo
-  if(u.role==='patient'){
-    if(!u.crmPacId){showAlrt('Acesso não vinculado ao CRM. Contate a clínica.');return;}
-    const crmPac=await fbGet(`crm_data/crm_pats_v26/${u.crmPacId}`);
-    if(!crmPac){showAlrt('⚠️ Cadastro não localizado no CRM. Contate a clínica.');return;}
+  try{
+    const users=await fbGet('sv_portal/users');
+    console.log('[Login] users carregados:',users?Object.keys(users).length:'null');
+    if(!users){showAlrt('Erro de conexão com Firebase. Tente novamente.');return;}
+    const u=Object.values(users).find(x=>x.email===em&&x.password===pw);
+    console.log('[Login] usuário encontrado:',u?u.name:'não encontrado');
+    if(!u){showAlrt('E-mail ou senha incorretos.');return;}
+    // Admin: entra direto
+    if(u.role==='admin'){
+      CU=u;SS.set(u.id);clrAlrt();startApp();return;
+    }
+    // Paciente: verificar se acesso está ativo
     if(u.ativo===false){showAlrt('⚠️ Acesso à Sala Virtual desativado. Contate a clínica.');return;}
+    // Verificar CRM somente se crmPacId estiver definido
+    if(u.crmPacId){
+      const crmPac=await fbGet(`crm_data/crm_pats_v26/${u.crmPacId}`);
+      console.log('[Login] CRM pac:',crmPac?'ok':'null');
+      if(!crmPac){showAlrt('⚠️ Cadastro não localizado no CRM. Contate a clínica.');return;}
+    }
+    CU=u;SS.set(u.id);
+    await fbRegisterQueue();
+    clrAlrt();startApp();
+  }catch(err){
+    console.error('[Login] erro:',err);
+    showAlrt('Erro inesperado. Tente novamente.');
   }
-  CU=u;SS.set(u.id);
-  if(u.role==='patient') await fbRegisterQueue();
-  clrAlrt();startApp();
 }
 
 // ══════════════════════════════════════════
@@ -1059,19 +1071,28 @@ async function _logout(){
 //  APP SHELL
 // ══════════════════════════════════════════
 function startApp(){
-  document.getElementById('screen-login').classList.add('hidden');
-  document.getElementById('app-shell').classList.remove('hidden');
-  const init=CU.name[0].toUpperCase();
-  document.getElementById('sb-av').textContent=init;
-  document.getElementById('sb-nm').textContent=CU.name;
-  document.getElementById('sb-rl').textContent=CU.role==='admin'?'Administrador':'Paciente';
-  document.getElementById('tb-av').textContent=init;
-  document.getElementById('tb-nm').textContent=CU.name;
-  document.getElementById('tb-rl').textContent=CU.role==='admin'?'Admin · Sala Virtual':'Paciente';
-  buildNav();
-  if(CU.role==='patient'){loadCadForm();loadPayHist();fbStartMsgPoll();}
-  if(CU.role==='admin'){fillPatSel();fbStartQueuePoll();}
-  nav('home');startSync();
+  try{
+    console.log('[startApp] iniciando para:',CU.name,CU.role);
+    document.getElementById('screen-login').classList.add('hidden');
+    document.getElementById('app-shell').classList.remove('hidden');
+    const ini=CU.name[0].toUpperCase();
+    document.getElementById('sb-av').textContent=ini;
+    document.getElementById('sb-nm').textContent=CU.name;
+    document.getElementById('sb-rl').textContent=CU.role==='admin'?'Administrador':'Paciente';
+    document.getElementById('tb-av').textContent=ini;
+    document.getElementById('tb-nm').textContent=CU.name;
+    document.getElementById('tb-rl').textContent=CU.role==='admin'?'Admin · Sala Virtual':'Paciente';
+    buildNav();
+    if(CU.role==='patient'){loadCadForm();loadPayHist();fbStartMsgPoll();}
+    if(CU.role==='admin'){fillPatSel();fbStartQueuePoll();}
+    nav('home');startSync();
+    console.log('[startApp] OK');
+  }catch(err){
+    console.error('[startApp] ERRO:',err);
+    // Forçar mostrar app mesmo com erro parcial
+    document.getElementById('screen-login').classList.add('hidden');
+    document.getElementById('app-shell').classList.remove('hidden');
+  }
 }
 function buildNav(){
   const isAdmin=CU.role==='admin';
@@ -1729,15 +1750,24 @@ window.addEventListener('beforeunload',e=>{
 // ══════════════════════════════════════════
 (async function init(){
   fbLastMsgTs=Date.now();
-  await seed(); // garante dados iniciais no Firebase
-  // renderCredList removido (segurança)
+  try{
+    await seed();
+    console.log('[Init] seed OK');
+  }catch(e){console.warn('[Init] seed falhou:',e);}
+  // Recuperar sessão salva
   const sid=SS.get();
   if(sid){
-    const u=await fbGet(`sv_portal/users/${sid}`);
-    if(u){CU=u;startApp();return;}
-    SS.del(); // sessão inválida
+    try{
+      const u=await fbGet(`sv_portal/users/${sid}`);
+      if(u){
+        console.log('[Init] sessão recuperada:',u.name);
+        CU=u;startApp();return;
+      }
+    }catch(e){console.warn('[Init] sessão inválida:',e);}
+    SS.del();
   }
   document.getElementById('screen-login').classList.remove('hidden');
+  console.log('[Init] tela de login exibida');
 })();
 </script>
 
