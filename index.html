@@ -293,7 +293,7 @@ select.fc{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns=
 .topbar{background:var(--white);border-bottom:1px solid var(--gray-200);padding:0 32px;height:66px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:var(--shadow-xs)}
 .tb-breadcrumb{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--gray-400)}
 .tb-breadcrumb strong{color:var(--gray-800);font-size:14px;font-weight:700}
-.tb-breadcrumb span{color:var(--gray-300)}>›</tb-breadcrumb>
+.tb-breadcrumb span{color:var(--gray-300)}
 .tb-right{display:flex;align-items:center;gap:16px}
 .tb-user{display:flex;align-items:center;gap:10px}
 .tb-av{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--teal),var(--sage));display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;font-family:'Playfair Display',serif;font-weight:600}
@@ -1079,7 +1079,7 @@ function startApp(){
     document.getElementById('screen-login').classList.add('hidden');
     const shell=document.getElementById('app-shell');
     shell.classList.remove('hidden');
-    void shell.offsetHeight; // forçar repaint
+    void shell.offsetHeight;
     const ini=CU.name[0].toUpperCase();
     document.getElementById('sb-av').textContent=ini;
     document.getElementById('sb-nm').textContent=CU.name;
@@ -1104,7 +1104,7 @@ function buildNav(){
   const isAdmin=CU.role==='admin';
   const items=isAdmin
     ?[{id:'home',icon:'🏠',label:'Início'},{id:'sala',icon:'📹',label:'Sala Virtual'},{id:'patients',icon:'👥',label:'Pacientes'},{id:'admin',icon:'⚙️',label:'Admin'}]
-    :[{id:'home',icon:'🏠',label:'Início'},{id:'sala',icon:'📹',label:'Sala Virtual',badge:true},{id:'cadastro',icon:'👤',label:'Meu Cadastro'},{id:'payment',icon:'💳',label:'Plano & Pagamento'}];
+    :[{id:'home',icon:'🏠',label:'Início'},{id:'sala',icon:'📹',label:'Sala Virtual',badge:true},{id:'cadastro',icon:'👤',label:'Meu Cadastro'},{id:'pagamento',icon:'💳',label:'Plano & Pagamento'}];
   document.getElementById('side-nav').innerHTML='<div class="nav-section">Menu</div>'+items.map(it=>`
     <button class="nav-item nav-btn" onclick="nav('${it.id}')" id="ni-${it.id}" style="position:relative">
       <span class="nav-icon">${it.icon}</span>
@@ -1291,7 +1291,7 @@ function adminFbStartPoll(pid){
 }
 async function patEnterSala(){
   if(!CU||CU.role!=='patient')return;
-  if(CU.plan==='inativo'||CU.plan==='erro'){toast('⚠️ Seu plano está inativo. Entre em contato com a clínica.','error');return;}
+  if(CU.ativo===false){toast('⚠️ Seu acesso está desativado. Entre em contato com a clínica.','error');return;}
   await fbRegisterQueue();
   if(!fbLastMsgTsSet){fbLastMsgTs=Date.now();fbLastMsgTsSet=true;}
   const key=`admin_${CU.id}`;chatId=key;
@@ -1618,7 +1618,7 @@ async function chkNotifs(){
 async function fbRegisterQueue(){
   if(!CU||CU.role!=='patient')return;
   const iniciais=CU.name.split(' ').map(x=>x[0]).slice(0,2).join('').toUpperCase();
-  await fbPut(`salas_index/${CU.id}`,{nm:CU.name,plano:CU.plan==='ativo'?'Plano Ativo':'Inativo',premium:CU.plan==='ativo',iniciais,status:'aguardando',ultimaTxt:'',ultimaTs:'',tsNum:Date.now()});
+  await fbPut(`salas_index/${CU.id}`,{nm:CU.name,plano:CU.ativo!==false?'Plano Ativo':'Inativo',premium:CU.ativo!==false,iniciais,status:'aguardando',ultimaTxt:'',ultimaTs:'',tsNum:Date.now()});
 }
 async function fbRegisterQueueFor(uid){
   const u=await fbGet(`sv_portal/users/${uid}`);if(!u)return;
