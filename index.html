@@ -146,8 +146,11 @@ select.fc{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns=
    LOGIN SCREEN
 ══════════════════════════════════════════ */
 #screen-login{
-  min-height:100vh;display:flex;align-items:stretch;
+  min-height:100vh;align-items:stretch;
   background:var(--navy);
+}
+#screen-login.visible,#screen-login:not(.hidden){
+  display:flex;
 }
 .login-left{
   flex:1;display:flex;align-items:center;justify-content:center;
@@ -564,7 +567,7 @@ select.fc{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns=
 </div>
 
 <!-- ════════════════════ LOGIN ════════════════════ -->
-<div id="screen-login" style="display:none">
+<div id="screen-login" class="hidden">
   <div class="login-left">
     <div class="login-left-grid"></div>
     <div class="login-left-content">
@@ -1047,7 +1050,7 @@ async function _logout(){
   clearInterval(syncT);clearInterval(fbMsgT);clearInterval(fbPollT);
   CU=null;chatId=null;chatWith=null;SS.del();
   document.getElementById('app-shell').classList.add('hidden');
-  document.getElementById('screen-login').style.display='flex';
+  document.getElementById('screen-login').classList.remove('hidden');
   document.getElementById('l-em').value='';document.getElementById('l-pw').value='';
   setTab('login');toast('Sessão encerrada com segurança.','success');
 }
@@ -1056,7 +1059,7 @@ async function _logout(){
 //  APP SHELL
 // ══════════════════════════════════════════
 function startApp(){
-  document.getElementById('screen-login').style.display='none';
+  document.getElementById('screen-login').classList.add('hidden');
   document.getElementById('app-shell').classList.remove('hidden');
   const init=CU.name[0].toUpperCase();
   document.getElementById('sb-av').textContent=init;
@@ -1734,7 +1737,7 @@ window.addEventListener('beforeunload',e=>{
     if(u){CU=u;startApp();return;}
     SS.del(); // sessão inválida
   }
-  document.getElementById('screen-login').style.display='flex';
+  document.getElementById('screen-login').classList.remove('hidden');
 })();
 </script>
 
