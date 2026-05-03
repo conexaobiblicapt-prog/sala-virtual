@@ -148,8 +148,9 @@ select.fc{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns=
 #screen-login{
   min-height:100vh;align-items:stretch;
   background:var(--navy);
+  display:none;
 }
-#screen-login.visible,#screen-login:not(.hidden){
+#screen-login:not(.hidden){
   display:flex;
 }
 .login-left{
@@ -251,7 +252,7 @@ select.fc{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns=
 /* ══════════════════════════════════════════
    APP SHELL — SIDEBAR LAYOUT
 ══════════════════════════════════════════ */
-#app-shell{display:flex;min-height:100vh}
+#app-shell{display:flex;min-height:100vh;width:100%}
 
 /* SIDEBAR */
 .sidebar{
@@ -285,7 +286,7 @@ select.fc{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns=
 .logout-btn:hover{background:rgba(192,57,43,.15);color:#ff6b6b}
 
 /* MAIN */
-.main-content{flex:1;display:flex;flex-direction:column;min-width:0;background:var(--cream)}
+.main-content{flex:1;display:flex;flex-direction:column;min-width:0;background:var(--cream);overflow-y:auto;min-height:100vh}
 .topbar{background:var(--white);border-bottom:1px solid var(--gray-200);padding:0 32px;height:66px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:var(--shadow-xs)}
 .tb-breadcrumb{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--gray-400)}
 .tb-breadcrumb strong{color:var(--gray-800);font-size:14px;font-weight:700}
@@ -1074,7 +1075,9 @@ function startApp(){
   try{
     console.log('[startApp] iniciando para:',CU.name,CU.role);
     document.getElementById('screen-login').classList.add('hidden');
-    document.getElementById('app-shell').classList.remove('hidden');
+    const shell=document.getElementById('app-shell');
+    shell.classList.remove('hidden');
+    shell.style.opacity='1';// forçar repaint
     const ini=CU.name[0].toUpperCase();
     document.getElementById('sb-av').textContent=ini;
     document.getElementById('sb-nm').textContent=CU.name;
@@ -1089,9 +1092,10 @@ function startApp(){
     console.log('[startApp] OK');
   }catch(err){
     console.error('[startApp] ERRO:',err);
-    // Forçar mostrar app mesmo com erro parcial
     document.getElementById('screen-login').classList.add('hidden');
-    document.getElementById('app-shell').classList.remove('hidden');
+    const sh=document.getElementById('app-shell');
+    sh.classList.remove('hidden');sh.style.opacity='1';
+    try{buildNav();nav('home');}catch(e2){console.error('[nav fallback]',e2);}
   }
 }
 function buildNav(){
