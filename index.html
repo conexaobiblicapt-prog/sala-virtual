@@ -200,6 +200,38 @@ select.fc{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns=
 .step-line{flex:1;height:2px;background:var(--gray-200);transition:var(--trans)}
 .step-line.done{background:var(--teal)}
 
+/* ── LGPD Step ─────────────────────────────────────── */
+.lgpd-badge{display:inline-flex;align-items:center;gap:6px;background:linear-gradient(135deg,#0d2137,#1a5fa8);color:#fff;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:5px 12px;border-radius:20px;margin-bottom:12px}
+.lgpd-box{background:linear-gradient(135deg,#f0f6ff,#e8f2ff);border:1.5px solid #c8dcf0;border-radius:var(--r);padding:16px;margin-bottom:16px}
+.lgpd-box h4{font-size:13px;font-weight:800;color:#0d2137;margin-bottom:6px;display:flex;align-items:center;gap:7px}
+.lgpd-box p{font-size:11.5px;color:var(--gray-600);line-height:1.6;margin-bottom:10px}
+.lgpd-scroll{max-height:160px;overflow-y:auto;background:#fff;border:1px solid #dce8f5;border-radius:8px;padding:12px;font-size:10.5px;color:var(--gray-600);line-height:1.7;margin-bottom:14px;scroll-behavior:smooth}
+.lgpd-scroll::-webkit-scrollbar{width:4px}.lgpd-scroll::-webkit-scrollbar-thumb{background:#1a5fa8;border-radius:4px}
+.lgpd-scroll h5{font-size:11px;font-weight:800;color:#0d2137;margin:10px 0 4px}
+.lgpd-scroll h5:first-child{margin-top:0}
+.lgpd-check-wrap{display:flex;align-items:flex-start;gap:10px;background:#fff;border:2px solid #c8dcf0;border-radius:10px;padding:12px;cursor:pointer;transition:border-color .2s}
+.lgpd-check-wrap:has(input:checked){border-color:#1a5fa8;background:#f0f6ff}
+.lgpd-check-wrap input[type=checkbox]{width:18px;height:18px;accent-color:#1a5fa8;flex-shrink:0;margin-top:1px;cursor:pointer}
+.lgpd-check-wrap label{font-size:12px;color:#0d2137;font-weight:600;line-height:1.5;cursor:pointer}
+.lgpd-check-wrap label span{color:#1a5fa8;font-weight:800}
+.lgpd-read-hint{font-size:10px;color:#1a5fa8;text-align:center;margin:8px 0;display:flex;align-items:center;justify-content:center;gap:5px;opacity:.7;animation:blink-hint 2s ease infinite}
+@keyframes blink-hint{0%,100%{opacity:.7}50%{opacity:1}}
+/* Modal política completa */
+#lgpd-modal{display:none;position:fixed;inset:0;z-index:9999;background:rgba(13,27,42,.65);backdrop-filter:blur(4px);align-items:center;justify-content:center;padding:16px}
+#lgpd-modal.open{display:flex}
+.lgpd-modal-card{background:#fff;border-radius:16px;max-width:560px;width:100%;max-height:88vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(13,27,42,.35);overflow:hidden}
+.lgpd-modal-head{background:linear-gradient(135deg,#0d2137,#1a5fa8);padding:20px 24px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.lgpd-modal-head h3{color:#fff;font-size:15px;font-weight:800;display:flex;align-items:center;gap:8px}
+.lgpd-modal-head span{font-size:10px;color:rgba(255,255,255,.6);margin-top:2px}
+.lgpd-modal-close{background:rgba(255,255,255,.15);border:none;color:#fff;width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:.2s}
+.lgpd-modal-close:hover{background:rgba(255,255,255,.3)}
+.lgpd-modal-body{overflow-y:auto;padding:24px;flex:1;font-size:12px;color:#2c3e50;line-height:1.8}
+.lgpd-modal-body h4{font-size:13px;font-weight:800;color:#0d2137;margin:18px 0 6px;border-left:3px solid #1a5fa8;padding-left:8px}
+.lgpd-modal-body h4:first-child{margin-top:0}
+.lgpd-modal-body ul{padding-left:18px;margin:6px 0}
+.lgpd-modal-body ul li{margin-bottom:4px}
+.lgpd-modal-foot{padding:16px 24px;border-top:1px solid #e8f2ff;flex-shrink:0;display:flex;gap:10px;align-items:center}
+.lgpd-modal-foot .btn{flex:1;justify-content:center;font-size:13px}
 /* MP box */
 .mp-plan-box{background:linear-gradient(135deg,var(--navy),var(--navy-mid));border-radius:var(--r);padding:20px;margin-bottom:18px;display:flex;justify-content:space-between;align-items:center;color:#fff}
 .mp-plan-name{font-family:'Playfair Display',serif;font-size:18px;color:var(--white)}
@@ -576,9 +608,61 @@ select.fc{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns=
         <p style="font-size:11px;color:var(--gray-400);text-align:center;margin-top:8px">Demo admin: admin@drailza.com / admin123</p>
       </div>
 
+      <!-- ══ LGPD STEP 0 ══ -->
+      <div id="f-r0" class="hidden">
+        <div class="steps-bar">
+          <div class="step-item"><div class="step-num active" id="sn0">🔒</div><div class="step-line" id="sl0"></div></div>
+          <div class="step-item"><div class="step-num pending">1</div><div class="step-line"></div></div>
+          <div class="step-item"><div class="step-num pending">2</div><div class="step-line"></div></div>
+          <div class="step-item" style="flex:0"><div class="step-num pending">3</div></div>
+        </div>
+        <div class="lgpd-badge">🔒 LGPD · Privacidade</div>
+        <div class="lgpd-box">
+          <h4>📋 Política de Privacidade e Proteção de Dados</h4>
+          <p>Antes de criar sua conta, leia e aceite nossa Política de Privacidade, elaborada em conformidade com a <strong>Lei Geral de Proteção de Dados (Lei nº 13.709/2018 – LGPD)</strong>.</p>
+          <div class="lgpd-scroll" id="lgpd-scroll-box">
+            <h5>1. Controladora dos Dados</h5>
+            <p>Clínica Dra. Ilza Ezequiel – Gastrenterologia, responsável pelo tratamento dos seus dados pessoais, com endereço em [Rua, Nº, Cidade/SP], CNPJ: XX.XXX.XXX/0001-XX, e-mail: contato@drailzaezequiel.com.br.</p>
+            <h5>2. Encarregada de Dados (DPO)</h5>
+            <p>Dra. Ilza Ezequiel – privacidade@drailzaezequiel.com.br. Prazo de resposta: até 15 dias úteis.</p>
+            <h5>3. Dados Coletados</h5>
+            <p>Nome, CPF, data de nascimento, telefone, e-mail, dados de saúde (prontuário, exames, diagnósticos), dados de pagamento e dados de navegação na plataforma.</p>
+            <h5>4. Finalidades</h5>
+            <p>Prestação de serviços médicos; agendamento de consultas e exames; comunicação via WhatsApp/e-mail (com consentimento); cumprimento de obrigações legais; controle interno de estoque e faturamento.</p>
+            <h5>5. Bases Legais</h5>
+            <p>Tutela da saúde (art. 11, II, f); execução de contrato (art. 7º, V); consentimento (art. 7º, I); obrigação legal (art. 7º, II); interesse legítimo (art. 7º, IX).</p>
+            <h5>6. Seus Direitos</h5>
+            <p>Acesso, correção, portabilidade, eliminação, revogação do consentimento e petição à ANPD, conforme arts. 17–22 da LGPD. Solicitações pelo e-mail acima.</p>
+            <h5>7. Segurança</h5>
+            <p>Adotamos controle de acesso, criptografia, backup periódico e treinamento de equipe. Incidentes serão comunicados à ANPD e a você em até 72 horas.</p>
+            <h5>8. Retenção</h5>
+            <p>Prontuário: mínimo 20 anos (CFM Res. 1.821/2007). Dados de consentimento: durante o vínculo + 5 anos. Dados fiscais: 5 anos.</p>
+            <h5>9. Compartilhamento</h5>
+            <p>Somente com convênios/planos de saúde, laboratórios parceiros, autoridades sanitárias e sistemas de gestão — nunca para fins comerciais.</p>
+            <h5>10. Contato</h5>
+            <p>Dúvidas? Escreva para privacidade@drailzaezequiel.com.br ou ligue para a clínica.</p>
+          </div>
+          <p class="lgpd-read-hint" id="lgpd-hint">↕ Role o texto acima para ler a política completa</p>
+          <label class="lgpd-check-wrap" for="lgpd-cb">
+            <input type="checkbox" id="lgpd-cb" onchange="lgpdCheckChange()">
+            <label for="lgpd-cb">Li e aceito a <span>Política de Privacidade</span> da Clínica Dra. Ilza Ezequiel e consinto com o tratamento dos meus dados pessoais de saúde conforme a LGPD (Lei nº 13.709/2018).</label>
+          </label>
+        </div>
+        <button class="btn btn-outline btn-block" style="margin-bottom:10px;font-size:12px" onclick="document.getElementById('lgpd-modal').classList.add('open')">
+          📄 Ver política completa em tela cheia
+        </button>
+        <button class="btn btn-primary btn-block" id="lgpd-next-btn" onclick="rs0()" disabled style="opacity:.5;cursor:not-allowed">
+          Próximo: Dados Pessoais →
+        </button>
+        <p style="font-size:10.5px;color:var(--gray-400);text-align:center;margin-top:10px">
+          ⚠️ O aceite é obrigatório para criar sua conta. Você pode revogar seu consentimento a qualquer momento.
+        </p>
+      </div>
+
       <!-- REG STEP 1 -->
       <div id="f-r1" class="hidden">
         <div class="steps-bar">
+          <div class="step-item"><div class="step-num done">✓</div><div class="step-line done"></div></div>
           <div class="step-item"><div class="step-num active" id="sn1">1</div><div class="step-line" id="sl1"></div></div>
           <div class="step-item"><div class="step-num pending" id="sn2">2</div><div class="step-line" id="sl2"></div></div>
           <div class="step-item" style="flex:0"><div class="step-num pending" id="sn3">3</div></div>
@@ -977,14 +1061,38 @@ function setTab(t){
   document.querySelectorAll('.lc-tab').forEach((b,i)=>b.classList.toggle('active',['login','register'][i]===t));
   const isLogin=t==='login';
   document.getElementById('f-login').classList.toggle('hidden',!isLogin);
-  if(!isLogin){hideReg();srs(1);}else{hideReg();}
+  if(!isLogin){hideReg();srs(0);}else{hideReg();}  // começa no step LGPD
   clrAlrt();
 }
-function hideReg(){['f-r1','f-r2','f-r3','f-r4'].forEach(id=>document.getElementById(id).classList.add('hidden'));}
-function srs(n){hideReg();document.getElementById('f-r'+n).classList.remove('hidden');clrAlrt();}
+function hideReg(){['f-r0','f-r1','f-r2','f-r3','f-r4'].forEach(id=>{const el=document.getElementById(id);if(el)el.classList.add('hidden');});}
+function srs(n){hideReg();const el=document.getElementById('f-r'+n);if(el)el.classList.remove('hidden');clrAlrt();}
 function showAlrt(msg,type='err'){const el=document.getElementById('l-alrt');el.className='lalert '+type;el.innerHTML=msg;el.style.display='block';}
 function clrAlrt(){document.getElementById('l-alrt').style.display='none';}
 function enterLogin(e){if(e.key==='Enter')doLogin();}
+
+// ── LGPD Step 0 ──────────────────────────────────────────
+function lgpdCheckChange(){
+  const cb=document.getElementById('lgpd-cb');
+  const btn=document.getElementById('lgpd-next-btn');
+  if(!btn)return;
+  if(cb.checked){
+    btn.disabled=false;
+    btn.style.opacity='1';
+    btn.style.cursor='pointer';
+    document.getElementById('lgpd-hint').style.display='none';
+  } else {
+    btn.disabled=true;
+    btn.style.opacity='.5';
+    btn.style.cursor='not-allowed';
+  }
+}
+function rs0(){
+  const cb=document.getElementById('lgpd-cb');
+  if(!cb.checked){showAlrt('⚠️ Você precisa aceitar a Política de Privacidade para continuar.');return;}
+  // Marca horário do aceite para gravação posterior
+  window._lgpdAceiteTs=new Date().toISOString();
+  srs(1);
+}
 
 // ══════════════════════════════════════════
 //  LOGIN
@@ -1055,26 +1163,69 @@ function resendToken(){
 function simulateEmail(email,name,token,paid){
   console.log(`[EMAIL SIMULADO]\nPara: ${email}\nOlá, ${name}!\nToken de validação: ${token}\n${paid?'Pagamento R$ 49,99 – APROVADO ✅':''}\nDra. Ilza Ezequiel – Sala Virtual`);
 }
+function simulateLgpdEmail(email,name,aceiteTs){
+  const msg=`
+[E-MAIL LGPD SIMULADO]
+Para: ${email}
+Assunto: Confirmação de Cadastro e Política de Privacidade – LGPD
+
+Olá, ${name}!
+
+Seu cadastro na Sala Virtual da Clínica Dra. Ilza Ezequiel foi concluído com sucesso.
+
+✅ CONFIRMAÇÃO DE ACEITE LGPD
+Em ${new Date(aceiteTs).toLocaleString('pt-BR')} você aceitou nossa Política de Privacidade 
+(Lei nº 13.709/2018 – LGPD) ao se cadastrar na plataforma.
+
+📋 RESUMO DO QUE COLETAMOS E POR QUÊ:
+• Seus dados pessoais e de saúde são tratados para prestação de serviços médicos.
+• Usamos consentimento, tutela da saúde e obrigação legal como bases legais.
+• Seus dados de prontuário são mantidos por no mínimo 20 anos (CFM Res. 1.821/2007).
+
+🔒 SEUS DIREITOS (arts. 17-22 LGPD):
+Você pode acessar, corrigir, portar ou solicitar exclusão dos seus dados a qualquer momento.
+Contato DPO: privacidade@drailzaezequiel.com.br
+
+Atenciosamente,
+Dra. Ilza Ezequiel – Encarregada de Dados (DPO)
+Clínica Dra. Ilza Ezequiel · www.drailzaezequiel.com.br
+`;
+  console.log(msg);
+  // Em produção: integrar com Nodemailer / SendGrid / API de e-mail
+}
 async function cmpReg(paid){
   const users=await fbGet('sv_portal/users')||{};
   const pacientes=Object.values(users).filter(u=>u.role==='patient');
   if(pacientes.length>=50){showAlrt('⚠️ Limite de 50 pacientes atingido. Entre em contato com a clínica para liberar vagas.');return;}
   const id='p'+Date.now();
   const exp=new Date();exp.setMonth(exp.getMonth()+1);
+  const aceiteTs=window._lgpdAceiteTs||new Date().toISOString();
   const nu={id,name:rTemp.nm,cpf:rTemp.cpf,dob:rTemp.dob||'',phone:rTemp.tel||'',
     email:rTemp.em,password:rTemp.pw,role:'patient',
     plan:paid?'ativo':'inativo',planExpiry:exp.toLocaleDateString('pt-BR'),
-    registeredAt:new Date().toISOString()};
+    registeredAt:new Date().toISOString(),
+    lgpd:{aceite:true,aceiteTs,versaoPolitica:'1.0',canal:'sala_virtual',ip:'(capturado no backend)'}
+  };
   // Gravar usuário no Firebase
   await fbPut(`sv_portal/users/${id}`,nu);
   // Gravar pagamento inicial se pago
   if(paid){
     await fbPut(`sv_portal/payments/${id}`,[{date:new Date().toLocaleDateString('pt-BR'),desc:'Plano Mensal',value:'R$ 49,99',status:'pago'}]);
   }
-  // Backup no path de cadastro de pacientes (CRM lê daqui)
-  await fbPut(`pacientes_cadastro/${id}`,{id,name:nu.name,cpf:nu.cpf,dob:nu.dob,phone:nu.phone,email:nu.em,role:'patient',plan:nu.plan,planExpiry:nu.planExpiry,registeredAt:nu.registeredAt});
+  // Backup no path de cadastro de pacientes (CRM lê daqui) — inclui dados LGPD
+  await fbPut(`pacientes_cadastro/${id}`,{id,name:nu.name,cpf:nu.cpf,dob:nu.dob,phone:nu.phone,email:nu.email,role:'patient',plan:nu.plan,planExpiry:nu.planExpiry,registeredAt:nu.registeredAt,lgpd:nu.lgpd});
+  // Registro de consentimento LGPD no Firebase (trilha de auditoria)
+  await fbPut(`lgpd_consentimentos/${id}`,{
+    pacienteId:id,nome:nu.name,email:nu.email,cpf:nu.cpf,
+    aceite:true,aceiteTs,versaoPolitica:'1.0',canal:'sala_virtual',
+    emailLgpdEnviado:true,emailLgpdEnviadoTs:new Date().toISOString()
+  });
+  // Disparar e-mail LGPD simulado
+  simulateLgpdEmail(rTemp.em,rTemp.nm,aceiteTs);
+  toast('📧 E-mail de confirmação LGPD enviado para '+rTemp.em,'success');
   showConfirmScreen(rTemp.em,paid);
 }
+
 function showConfirmScreen(email,paid){
   hideReg();
   document.getElementById('screen-login').innerHTML=`
@@ -1792,5 +1943,81 @@ window.addEventListener('beforeunload',e=>{
   document.getElementById('screen-login').style.display='flex';
 })();
 </script>
+
+<!-- ══ MODAL POLÍTICA LGPD COMPLETA ══ -->
+<div id="lgpd-modal">
+  <div class="lgpd-modal-card">
+    <div class="lgpd-modal-head">
+      <div>
+        <h3>🔒 Política de Privacidade · LGPD</h3>
+        <span>Clínica Dra. Ilza Ezequiel · Lei nº 13.709/2018</span>
+      </div>
+      <button class="lgpd-modal-close" onclick="document.getElementById('lgpd-modal').classList.remove('open')">✕</button>
+    </div>
+    <div class="lgpd-modal-body">
+      <h4>1. Identificação da Controladora</h4>
+      <p>A <strong>Clínica Dra. Ilza Ezequiel – Gastrenterologia</strong> é a responsável pelo tratamento dos seus dados pessoais, nos termos da Lei nº 13.709/2018 (LGPD). CNPJ: XX.XXX.XXX/0001-XX · Endereço: [Rua, Nº, Bairro – Cidade/SP] · E-mail: contato@drailzaezequiel.com.br · Telefone: (13) XXXX-XXXX.</p>
+
+      <h4>2. Encarregada de Dados (DPO)</h4>
+      <p><strong>Dra. Ilza Ezequiel</strong> — Diretora Clínica e Encarregada de Proteção de Dados. Contato LGPD: privacidade@drailzaezequiel.com.br. Prazo de resposta: até 15 dias úteis.</p>
+
+      <h4>3. Dados Pessoais Coletados</h4>
+      <ul>
+        <li><strong>Identificação:</strong> nome, CPF, RG, data de nascimento, sexo, estado civil.</li>
+        <li><strong>Contato:</strong> endereço, telefone, e-mail, WhatsApp/Instagram.</li>
+        <li><strong>Saúde (dados sensíveis):</strong> histórico médico, diagnósticos, exames, medicamentos, alergias, prontuário eletrônico.</li>
+        <li><strong>Financeiros:</strong> plano de saúde, carteirinha, informações de pagamento.</li>
+        <li><strong>Navegação:</strong> IP, data/hora de acesso, dispositivo utilizado.</li>
+      </ul>
+
+      <h4>4. Finalidades e Bases Legais</h4>
+      <ul>
+        <li>Prestação de serviços médicos e prontuário eletrônico — <em>tutela da saúde (art. 11, II, f)</em></li>
+        <li>Agendamento de consultas e exames — <em>execução de contrato (art. 7º, V)</em></li>
+        <li>Comunicação por WhatsApp/e-mail — <em>consentimento (art. 7º, I)</em></li>
+        <li>Obrigações legais (CFM, ANS, Receita Federal) — <em>obrigação legal (art. 7º, II)</em></li>
+        <li>Prevenção à fraude e segurança — <em>interesse legítimo (art. 7º, IX)</em></li>
+      </ul>
+
+      <h4>5. Seus Direitos como Titular</h4>
+      <p>Conforme arts. 17 a 22 da LGPD, você tem direito a: confirmação e acesso aos dados; correção de dados inexatos; anonimização ou eliminação; portabilidade; revogação do consentimento; oposição ao tratamento; e petição à ANPD. Exerça seus direitos pelo e-mail <strong>privacidade@drailzaezequiel.com.br</strong>.</p>
+
+      <h4>6. Consentimento</h4>
+      <p>Quando o tratamento for baseado em consentimento, você pode revogá-lo a qualquer momento, sem prejuízo ao tratamento já realizado ou baseado em outras bases legais (como obrigação legal ou tutela da saúde).</p>
+
+      <h4>7. Compartilhamento de Dados</h4>
+      <p>Compartilhamos dados <strong>exclusivamente</strong> com: operadoras de planos de saúde (faturamento), laboratórios parceiros (exames), autoridades sanitárias (quando exigido), e sistemas de gestão clínica (como processadores de dados, mediante contrato). <strong>Não vendemos nem cedemos seus dados para fins comerciais.</strong></p>
+
+      <h4>8. Segurança dos Dados</h4>
+      <p>Adotamos: controle de acesso por perfis individuais; criptografia e backup periódico; treinamento da equipe; logs de auditoria; política de mesa limpa. Incidentes de segurança serão comunicados à ANPD e a você em até 72 horas (art. 48 LGPD).</p>
+
+      <h4>9. Retenção e Descarte</h4>
+      <ul>
+        <li>Prontuário médico: mínimo 20 anos após último atendimento (CFM Res. 1.821/2007)</li>
+        <li>Dados fiscais: 5 anos (Código Tributário Nacional)</li>
+        <li>Dados de consentimento: durante o vínculo + 5 anos após revogação</li>
+        <li>Dados de comunicação: 2 anos após último contato</li>
+      </ul>
+
+      <h4>10. Menores de Idade</h4>
+      <p>Para pacientes com menos de 18 anos, o consentimento é coletado dos pais ou responsáveis legais, conforme art. 14 da LGPD.</p>
+
+      <h4>11. Alterações desta Política</h4>
+      <p>Esta Política pode ser atualizada periodicamente. A versão mais atual estará sempre disponível no site www.drailzaezequiel.com.br e na recepção da clínica. Alterações relevantes serão comunicadas com antecedência mínima de 15 dias.</p>
+
+      <h4>12. Legislação Aplicável</h4>
+      <p>Esta Política é regida pela legislação brasileira, em especial pela Lei nº 13.709/2018 (LGPD) e pelas resoluções da ANPD. Foro: comarca de [Cidade]/SP.</p>
+
+      <p style="font-size:10px;color:#94a3b8;margin-top:20px;text-align:center">Versão 1.0 · Clínica Dra. Ilza Ezequiel · LGPD</p>
+    </div>
+    <div class="lgpd-modal-foot">
+      <button class="btn btn-secondary" onclick="document.getElementById('lgpd-modal').classList.remove('open')">Fechar</button>
+      <button class="btn btn-primary" onclick="document.getElementById('lgpd-cb').checked=true;lgpdCheckChange();document.getElementById('lgpd-modal').classList.remove('open');toast('✅ Política aceita com sucesso!','success')">
+        ✅ Li e Aceito
+      </button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
