@@ -751,12 +751,7 @@ select.fc{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns=
       </div>
     </div>
 
-    <!-- ── Acessos cadastrados (referência rápida) ── -->
-    <div style="margin-top:18px;background:#f0f6ff;border:1.5px solid #c8dcf0;border-radius:12px;padding:14px 18px;max-width:400px;width:100%">
-      <div style="font-size:11px;font-weight:800;color:#1A5FA8;letter-spacing:.07em;text-transform:uppercase;margin-bottom:8px">🔐 Logins cadastrados</div>
-      <div id="cred-list" style="display:flex;flex-direction:column;gap:5px"></div>
-      <div style="margin-top:8px;font-size:10px;color:#94a3b8">Clique no e-mail para preencher automaticamente.</div>
-    </div>
+    <!-- cred-list removido por segurança — admin usa o CRM para ativar acessos -->
   </div>
 </div>
 
@@ -897,7 +892,10 @@ select.fc{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns=
         <button class="btn-back" onclick="nav('home')">◀ Voltar</button>
         <div class="ph">
           <div class="ph-left"><h2>Pacientes</h2><p>Lista completa em ordem alfabética</p></div>
-          <div class="ph-right">
+          <div class="ph-right" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+            <button onclick="showCRMNoAccess()" style="padding:8px 16px;background:linear-gradient(135deg,#1A8C82,#4A9B8E);color:#fff;border:none;border-radius:9px;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;box-shadow:0 2px 8px rgba(26,140,130,.25);white-space:nowrap">
+              ➕ Ativar do CRM
+            </button>
             <div class="search-wr"><input type="text" placeholder="Buscar..." id="pat-s" oninput="fPats(this.value)"></div>
           </div>
         </div>
@@ -1094,6 +1092,110 @@ function rs0(){
   srs(1);
 }
 
+
+// ══════════════════════════════════════════
+//  GERAR SENHA AUTOMÁTICA
+// ══════════════════════════════════════════
+function genPass(){
+  const chars='ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789@#!';
+  return Array.from({length:8},()=>chars[Math.floor(Math.random()*chars.length)]).join('');
+}
+
+// ══════════════════════════════════════════
+//  ATIVAR ACESSO DO PACIENTE DO CRM
+// ══════════════════════════════════════════
+async function ativarAcessoCRM(crmId){
+  const crmPac=await fbGet(`crm_data/crm_pats_v26/${crmId}`);
+  if(!crmPac){toast('Paciente não encontrado no CRM','error');return;}
+  // Verificar se já tem acesso
+  const users=await fbGet('sv_portal/users')||{};
+  const existing=Object.values(users).find(u=>u.crmPacId===crmId);
+  if(existing){toast(`${crmPac.nm||crmPac.nome} já tem acesso ativo.`,'error');renderPats();return;}
+  const novaSenha=genPass();
+  const id='sv_'+crmId;
+  const nome=crmPac.nm||crmPac.nome||'Paciente';
+  const email=crmPac.email||`${id}@sv.drailza.com`;
+  const telefone=crmPac.tel||crmPac.telefone||'';
+  const nu={
+    id,
+    crmPacId:crmId,
+    name:nome,
+    email,
+    password:novaSenha,
+    phone:telefone,
+    cpf:crmPac.cpf||'',
+    dob:crmPac.nasc||crmPac.dob||'',
+    role:'patient',
+    plan:'ativo',
+    planExpiry:'',
+    ativo:true,
+    registeredAt:new Date().toISOString(),
+    ativadoPor:CU?CU.id:'admin',
+    ativadoEm:new Date().toISOString()
+  };
+  await fbPut(`sv_portal/users/${id}`,nu);
+  // Mostrar credenciais geradas
+  showModal(
+    '✅ Acesso Ativado',
+    `<div style="text-align:center">
+      <div style="font-size:40px;margin-bottom:8px">🔑</div>
+      <div style="font-size:14px;font-weight:700;color:#0D1B2A;margin-bottom:16px">${nome}</div>
+      <div style="background:#f0f9ff;border:1.5px solid #bae6fd;border-radius:10px;padding:14px 18px;text-align:left;margin-bottom:12px">
+        <div style="font-size:11px;font-weight:800;color:#0369a1;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Credenciais geradas</div>
+        <div style="font-size:13px;color:#374151;margin-bottom:6px">📧 E-mail: <strong style="color:#0D1B2A">${email}</strong></div>
+        <div style="font-size:13px;color:#374151">🔒 Senha: <strong style="font-size:16px;letter-spacing:.1em;color:#0D1B2A;font-family:monospace">${novaSenha}</strong></div>
+      </div>
+      <div style="font-size:11.5px;color:#64748b;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:10px 14px">
+        ⚠️ Copie as credenciais e envie ao paciente via WhatsApp ou e-mail antes de fechar esta janela.
+      </div>
+    </div>`,
+    ()=>{fillPatSel();renderPats();},
+    'OK, entendido'
+  );
+  document.getElementById('m-no').style.display='none';
+  toast(`Acesso de ${nome} ativado!`,'success');
+}
+
+// ══════════════════════════════════════════
+//  LISTAR PACIENTES DO CRM SEM ACESSO
+// ══════════════════════════════════════════
+async function showCRMNoAccess(){
+  const [crmRaw,svRaw]=await Promise.all([
+    fbGet('crm_data/crm_pats_v26'),
+    fbGet('sv_portal/users')
+  ]);
+  const svIds=svRaw?Object.values(svRaw).filter(u=>u.crmPacId).map(u=>u.crmPacId):[];
+  const semAcesso=crmRaw
+    ?Object.entries(crmRaw)
+        .filter(([id])=>!svIds.includes(id))
+        .map(([id,p])=>({id,nome:p.nm||p.nome||'—',email:p.email||'—',tel:p.tel||p.telefone||'—'}))
+        .sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'))
+    :[];
+  if(!semAcesso.length){
+    showModal('Pacientes CRM','<p style="text-align:center;color:#64748b">✅ Todos os pacientes do CRM já possuem acesso à Sala Virtual.</p>',()=>{});
+    document.getElementById('m-no').style.display='none';
+    return;
+  }
+  showModal(
+    `📋 Pacientes CRM sem acesso (${semAcesso.length})`,
+    `<div style="max-height:340px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;padding-right:4px">
+      ${semAcesso.map(p=>`
+        <div style="display:flex;justify-content:space-between;align-items:center;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:10px 14px;gap:12px">
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;font-weight:700;color:#0D1B2A;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.nome}</div>
+            <div style="font-size:11.5px;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.email} · ${p.tel}</div>
+          </div>
+          <button onclick="document.getElementById('gmodal').classList.add('hidden');ativarAcessoCRM('${p.id}')"
+            style="flex-shrink:0;padding:6px 14px;background:linear-gradient(135deg,#1A8C82,#4A9B8E);color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">
+            🔑 Ativar
+          </button>
+        </div>`).join('')}
+    </div>`,
+    ()=>{},
+    'Fechar'
+  );
+  document.getElementById('m-no').style.display='none';
+}
 // ══════════════════════════════════════════
 //  LOGIN
 // ══════════════════════════════════════════
@@ -1106,8 +1208,14 @@ async function doLogin(){
   if(!users){showAlrt('Erro de conexão. Tente novamente.');return;}
   const u=Object.values(users).find(x=>x.email===em&&x.password===pw);
   if(!u){showAlrt('E-mail ou senha incorretos.');return;}
+  // Paciente: verificar se ainda existe no CRM
+  if(u.role==='patient'){
+    if(!u.crmPacId){showAlrt('Acesso não vinculado ao CRM. Contate a clínica.');return;}
+    const crmPac=await fbGet(`crm_data/crm_pats_v26/${u.crmPacId}`);
+    if(!crmPac){showAlrt('⚠️ Cadastro não localizado no CRM. Contate a clínica.');return;}
+    if(u.ativo===false){showAlrt('⚠️ Acesso à Sala Virtual desativado. Contate a clínica.');return;}
+  }
   CU=u;SS.set(u.id);
-  // Paciente entra na fila Firebase automaticamente
   if(u.role==='patient') await fbRegisterQueue();
   clrAlrt();startApp();
 }
@@ -1621,7 +1729,7 @@ async function renderPats(filter=''){
         <td><span class="badge ${sc}">${sl}</span>${u.planError?`<div class="err-note">⚠️ ${u.planError}</div>`:''}</td>
         <td style="display:flex;gap:6px;flex-wrap:wrap">
           <button class="btn btn-primary btn-sm" onclick="adminChat('${u.id}')">💬 Chat</button>
-          <button class="btn btn-outline btn-sm" onclick="cyclePlan('${u.id}')">🔄 Status</button>
+          <button class="btn btn-outline btn-sm" onclick="cyclePlan('${u.id}')" title="${u.ativo===false?'Ativar':'Desativar'} acesso">${u.ativo===false?'🔴 Desativado':'✅ Ativo'}</button>
           <button class="btn btn-danger btn-sm" onclick="deletePat('${u.id}','${u.name.replace(/'/g,"\\'")}')">🗑 Excluir</button>
         </td>
       </tr>`;
@@ -1633,10 +1741,9 @@ async function chatFromPat(uid){
 }
 async function cyclePlan(uid){
   const u=await fbGet(`sv_portal/users/${uid}`);if(!u)return;
-  const cy=['ativo','inativo','erro'];u.plan=cy[(cy.indexOf(u.plan||'ativo')+1)%3];
-  if(u.plan==='erro')u.planError='Erro simulado para teste';else delete u.planError;
-  await fbPut(`sv_portal/users/${uid}`,u);
-  toast(`Status de ${u.name}: "${u.plan}"`,'success');
+  const novoAtivo=u.ativo===false?true:false;
+  await fbPatch(`sv_portal/users/${uid}`,{ativo:novoAtivo});
+  toast(`Acesso de ${u.name}: ${novoAtivo?'✅ Ativado':'🔴 Desativado'}`,'success');
   renderPats(document.getElementById('pat-s')?.value||'');
 }
 async function deletePat(uid,name){
@@ -1933,7 +2040,7 @@ window.addEventListener('beforeunload',e=>{
 (async function init(){
   fbLastMsgTs=Date.now();
   await seed(); // garante dados iniciais no Firebase
-  await renderCredList();
+  // renderCredList removido (segurança)
   const sid=SS.get();
   if(sid){
     const u=await fbGet(`sv_portal/users/${sid}`);
