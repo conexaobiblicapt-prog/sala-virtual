@@ -1129,8 +1129,8 @@ function buildHomeCards(){
         <div class="hcard" onclick="nav('admin')"><div class="hcard-icon">⚙️</div><h3>Administração</h3><p>Configurações e senhas</p></div>`;
     });
   }else{
-    const plCls=CU.plan==='ativo'?'ativo':CU.plan==='inativo'?'inativo':'erro';
-    const plLbl=CU.plan==='ativo'?'Ativo ✅':CU.plan==='inativo'?'Inativo ⚠️':'Erro no Cartão ❌';
+    const plCls=CU.ativo!==false?'ativo':'inativo';
+    const plLbl=CU.ativo!==false?'Ativo ✅':'Inativo ⚠️';
     document.getElementById('home-cards').innerHTML=`
       <div class="hcard hcard-sala-cta" onclick="nav('sala')" style="border:2px solid rgba(26,140,130,.35);background:linear-gradient(135deg,rgba(26,140,130,.06),rgba(74,155,142,.03))">
         <div class="hcard-icon" style="background:linear-gradient(135deg,var(--teal),var(--sage));border:none">
@@ -1432,15 +1432,15 @@ async function renderPats(filter=''){
   const list=f?users.filter(u=>u.name.toLowerCase().includes(f)||u.email.toLowerCase().includes(f)||(u.cpf||'').includes(f)):users;
   document.getElementById('pat-tb').innerHTML=list.length===0
     ?'<tr><td colspan="6" style="text-align:center;padding:36px;color:var(--gray-400)">Nenhum paciente encontrado</td></tr>'
-    :list.map(u=>{const sc=u.plan||'ativo';const sl=sc==='ativo'?'Ativo':sc==='inativo'?'Inativo':'Erro';
+    :list.map(u=>{const ativo=u.ativo!==false;const sc=ativo?'ativo':'inativo';const sl=ativo?'Ativo':'Inativo';
       return `<tr>
         <td><div class="pat-cell"><div class="pat-av">${u.name[0]}</div><div><strong style="font-size:13.5px">${u.name}</strong></div></div></td>
         <td style="font-family:monospace;font-size:12.5px;color:var(--gray-600)">${u.cpf||'—'}</td>
         <td>${u.email}</td><td>${u.phone||'—'}</td>
-        <td><span class="badge ${sc}">${sl}</span>${u.planError?`<div class="err-note">⚠️ ${u.planError}</div>`:''}</td>
+        <td><span class="badge ${sc}">${sl}</span></td>
         <td style="display:flex;gap:6px;flex-wrap:wrap">
           <button class="btn btn-primary btn-sm" onclick="adminChat('${u.id}')">💬 Chat</button>
-          <button class="btn btn-outline btn-sm" onclick="cyclePlan('${u.id}')" title="${u.ativo===false?'Ativar':'Desativar'} acesso">${u.ativo===false?'🔴 Desativado':'✅ Ativo'}</button>
+          <button class="btn btn-outline btn-sm" onclick="cyclePlan('${u.id}')" title="${ativo?'Desativar':'Ativar'} acesso">${ativo?'✅ Ativo':'🔴 Desativado'}</button>
           <button class="btn btn-danger btn-sm" onclick="deletePat('${u.id}','${u.name.replace(/'/g,"\\'")}')">🗑 Excluir</button>
         </td>
       </tr>`;
