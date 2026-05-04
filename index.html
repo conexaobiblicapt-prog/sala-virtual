@@ -199,13 +199,16 @@ input:focus,select:focus,textarea:focus{
         <button class="nav-item" id="nav-mensagens" onclick="showPage('mensagens')">💬 &nbsp;Mensagens</button>
         <div style="padding:6px 12px 4px;color:rgba(255,255,255,.25);font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;margin:10px 0 4px">CONTA</div>
         <button class="nav-item" id="nav-senha" onclick="showPage('senha')">🔑 &nbsp;Minha Senha</button>
-        <button class="nav-item" id="nav-sala" onclick="abrirSalaVirtual()">📹 &nbsp;Sala de Espera</button>
+        <button class="nav-item" id="nav-sala" onclick="showPage('sala')">📹 &nbsp;Sala de Espera</button>
       </nav>
-      <div style="padding:12px 10px 16px;border-top:1px solid rgba(255,255,255,.07)">
+      <div style="padding:10px 10px 14px;border-top:1px solid rgba(255,255,255,.07);display:flex;flex-direction:column;gap:8px">
         <div id="sync-badge" style="background:rgba(26,122,82,.18);border:1px solid rgba(26,122,82,.35);border-radius:8px;padding:6px 10px;display:flex;align-items:center;gap:6px">
           <span id="sync-dot" style="width:7px;height:7px;border-radius:50%;background:#1A7A52;flex-shrink:0"></span>
           <span id="sync-txt" style="font-size:9.5px;font-weight:700;color:#86C9A4">Sincronizado ✓</span>
         </div>
+        <button onclick="svLogout()" style="display:flex;align-items:center;justify-content:center;gap:7px;background:rgba(192,57,43,.12);border:1px solid rgba(192,57,43,.3);color:rgba(255,150,130,.85);border-radius:8px;padding:7px 10px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;width:100%;transition:all .15s" onmouseover="this.style.background='rgba(192,57,43,.22)'" onmouseout="this.style.background='rgba(192,57,43,.12)'">
+          🚪 &nbsp;Sair da conta
+        </button>
       </div>
     </div>
 
@@ -339,6 +342,89 @@ input:focus,select:focus,textarea:focus{
         </div>
       </div>
 
+
+      <!-- ── SALA DE ESPERA ── -->
+      <div id="page-sala" class="page" style="display:none">
+
+        <!-- Header da sala -->
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
+          <div style="background:linear-gradient(135deg,#0d2137,#1A5FA8);width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">📹</div>
+          <div>
+            <div style="font-size:20px;font-weight:800;color:var(--tx);letter-spacing:-.02em">Sala de Espera Virtual</div>
+            <div style="font-size:13px;color:var(--txS)">Teleconsulta com a equipe da Dra. Ilza Ezequiel</div>
+          </div>
+        </div>
+
+        <!-- Status card -->
+        <div style="background:var(--sur2);border:1px solid var(--br);border-radius:14px;padding:16px 20px;margin-bottom:16px;display:flex;align-items:center;gap:14px">
+          <div id="sala-status-dot" style="width:12px;height:12px;border-radius:50%;background:var(--txS);flex-shrink:0;transition:background .3s"></div>
+          <div>
+            <div style="font-size:14px;font-weight:700;color:var(--tx)" id="sala-status-txt">Sala de Espera Virtual</div>
+            <div style="font-size:12px;color:var(--txS)" id="sala-status-sub">Clique para entrar na fila de atendimento.</div>
+          </div>
+        </div>
+
+        <!-- Estado: aguardando (fila) -->
+        <div id="sala-fila-info" style="display:none;background:var(--amB);border:1px solid var(--amBr);border-radius:12px;padding:18px 20px;margin-bottom:16px">
+          <div style="font-size:14px;font-weight:700;color:var(--am);margin-bottom:4px">&#x23F3; Voc&#xEA; est&#xE1; na fila de espera</div>
+          <div style="font-size:12px;color:var(--am);opacity:.8;line-height:1.6">A equipe ir&#xE1; te chamar em breve. <strong>Mantenha esta janela aberta.</strong> Voc&#xEA; ser&#xE1; notificada automaticamente quando a sala for liberada.</div>
+          <div style="margin-top:12px;display:flex;align-items:center;gap:8px">
+            <span style="display:inline-block;font-size:18px;animation:pulse 1.5s infinite;color:var(--am)">&#x25CF;</span>
+            <span style="font-size:11px;color:var(--am);font-weight:600">Verificando a fila a cada 2 segundos...</span>
+          </div>
+        </div>
+
+        <!-- Estado: botão entrar na fila -->
+        <div id="sala-btn-area">
+          <button onclick="svEntrarFila()" id="btn-entrar-fila" class="btn-p" style="max-width:380px;margin-bottom:12px">
+            &#x1F6AA; &nbsp;Entrar na fila de espera
+          </button>
+          <div style="background:var(--sur2);border:1px solid var(--br);border-radius:12px;padding:16px 18px;max-width:380px">
+            <div style="font-size:11px;font-weight:700;color:var(--txM);margin-bottom:8px;text-transform:uppercase;letter-spacing:.07em">&#x2139;&#xFE0F; Como funciona</div>
+            <div style="font-size:12px;color:var(--txS);line-height:1.7">
+              1. Clique em <strong style="color:var(--tx)">Entrar na fila</strong><br>
+              2. Aguarde a equipe te chamar<br>
+              3. Quando liberado, o chat abre automaticamente<br>
+              4. Converse com a equipe em tempo real
+            </div>
+          </div>
+        </div>
+
+        <!-- Estado: chat aberto (quando equipe libera) -->
+        <div id="sala-chat-box" style="display:none;flex-direction:column;gap:0">
+
+          <!-- Banner sala pronta -->
+          <div style="background:var(--grB);border:1px solid var(--grBr);border-radius:12px;padding:14px 18px;margin-bottom:14px;display:flex;align-items:center;gap:12px">
+            <div style="font-size:28px">&#x1F7E2;</div>
+            <div>
+              <div style="font-size:14px;font-weight:700;color:var(--gr)">Sala pronta! A equipe est&#xE1; aguardando.</div>
+              <div style="font-size:12px;color:var(--txS);margin-top:2px">Chat em tempo real com a equipe da Dra. Ilza</div>
+            </div>
+          </div>
+
+          <!-- Área de mensagens -->
+          <div id="sala-msgs"
+            style="background:#fff;border:1.5px solid var(--br);border-radius:16px;min-height:300px;max-height:calc(100vh - 500px);overflow-y:auto;padding:18px;display:flex;flex-direction:column;gap:10px;margin-bottom:12px;scroll-behavior:smooth">
+            <div id="sala-msgs-empty" style="text-align:center;color:var(--txS);font-size:13px;padding:32px 0;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px">
+              <div style="font-size:36px">&#x1F4AC;</div>
+              <div>Chat aberto &#x2014; escreva sua mensagem abaixo</div>
+            </div>
+          </div>
+
+          <!-- Input de envio -->
+          <div style="display:flex;gap:8px;align-items:center;background:#fff;border:1.5px solid var(--br);border-radius:14px;padding:10px 12px;max-width:100%">
+            <input id="sala-chat-input" type="text" placeholder="Escrever para a equipe... (Enter para enviar)"
+              style="flex:1;border:none;outline:none;font-size:14px;font-family:inherit;color:var(--tx);background:transparent"
+              onkeydown="if(event.key==='Enter')salaEnviarMsg()">
+            <button onclick="salaEnviarMsg()"
+              style="background:linear-gradient(135deg,var(--p),var(--pL));color:#fff;border:none;border-radius:10px;padding:9px 18px;font-weight:700;cursor:pointer;font-family:inherit;font-size:13px;white-space:nowrap;flex-shrink:0">
+              Enviar &#x2197;
+            </button>
+          </div>
+        </div>
+
+      </div><!-- /page-sala -->
+
     </div><!-- /content -->
   </div><!-- /layout -->
 </div><!-- /app-page -->
@@ -369,51 +455,6 @@ input:focus,select:focus,textarea:focus{
   </div>
 </div>
 
-<!-- ════ MODAL: Sala de Espera ════ -->
-<div id="modal-sala" class="overlay" style="display:none">
-  <div class="modal modal-box" style="margin:auto 0;max-width:540px">
-    <div class="modal-hd">
-      <div style="font-size:15px;font-weight:800;color:var(--tx)">💬 Sala de Espera Virtual</div>
-      <button onclick="fecharSala()" style="background:none;border:none;cursor:pointer;font-size:20px;color:var(--txM)">✕</button>
-    </div>
-    <div class="modal-bd">
-      <div style="background:var(--sur2);border:1px solid var(--br);border-radius:12px;padding:16px;margin-bottom:16px">
-        <div style="font-size:14px;font-weight:700;color:var(--p);margin-bottom:4px" id="sala-status-txt">Conectando à sala...</div>
-        <div style="font-size:12px;color:var(--txS)" id="sala-status-sub">Aguarde enquanto verificamos sua posição na fila.</div>
-      </div>
-      <div id="sala-fila-info" style="display:none;background:var(--amB);border:1px solid var(--amBr);border-radius:10px;padding:12px 14px;margin-bottom:14px;font-size:13px;color:var(--am)">
-        ⏳ Você está na fila. Aguarde ser chamado pela equipe.
-      </div>
-
-      <!-- Chat de texto — aparece quando equipe libera (substitui link de vídeo) -->
-      <div id="sala-chat-box" style="display:none;flex-direction:column;gap:0">
-        <div style="background:var(--grB);border:1px solid var(--grBr);border-radius:10px;padding:14px;margin-bottom:14px;text-align:center">
-          <div style="font-size:32px;margin-bottom:6px">🟢</div>
-          <div style="font-size:14px;font-weight:700;color:var(--gr)">Sala pronta!</div>
-          <div style="font-size:12px;color:var(--txS);margin-top:4px">A equipe liberou seu acesso.</div>
-        </div>
-        <!-- Histórico de mensagens -->
-        <div id="sala-msgs" style="background:#fff;border:1px solid var(--br);border-radius:12px;min-height:160px;max-height:240px;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:8px;margin-bottom:10px">
-          <div id="sala-msgs-empty" style="text-align:center;color:var(--txS);font-size:12px;padding:20px 0">
-            💬 Chat aberto — escreva sua mensagem abaixo
-          </div>
-        </div>
-        <!-- Input de envio -->
-        <div style="display:flex;gap:8px;align-items:center">
-          <input id="sala-chat-input" type="text" class="inp" placeholder="Escrever para a equipe... (Enter para enviar)"
-            style="flex:1;font-size:13px"
-            onkeydown="if(event.key==='Enter')salaEnviarMsg()">
-          <button onclick="salaEnviarMsg()"
-            style="background:linear-gradient(135deg,var(--p),var(--pL));color:#fff;border:none;border-radius:10px;padding:0 16px;height:42px;font-weight:700;cursor:pointer;font-family:inherit;font-size:13px;white-space:nowrap;flex-shrink:0">
-            Enviar ↗
-          </button>
-        </div>
-      </div>
-
-      <button onclick="svEntrarFila()" id="btn-entrar-fila" class="btn-p" style="margin-bottom:8px">🚪 Entrar na fila de espera</button>
-    </div>
-  </div>
-</div>
 
 <script>
 // ══════════════════════════════════════════════════════════════
@@ -809,16 +850,11 @@ let _salaIdsVistos = {};
 let _salaPacId = null;
 
 function abrirSalaVirtual() {
-  document.getElementById("modal-sala").style.display = "flex";
-  document.getElementById("sala-chat-box").style.display = "none";
-  document.getElementById("sala-fila-info").style.display = "none";
-  document.getElementById("btn-entrar-fila").style.display = "block";
-  document.getElementById("sala-status-txt").textContent = "Sala Virtual";
-  document.getElementById("sala-status-sub").textContent = "Clique para entrar na fila de atendimento.";
+  // Mantido por compatibilidade — agora sala é page normal
+  showPage("sala");
 }
 
 function fecharSala() {
-  document.getElementById("modal-sala").style.display = "none";
   if (_pollingId)          { clearInterval(_pollingId);          _pollingId          = null; }
   if (_salaPollingMsgId)   { clearInterval(_salaPollingMsgId);   _salaPollingMsgId   = null; }
   _salaIdsVistos = {};
@@ -842,10 +878,12 @@ async function svEntrarFila() {
     email:     _user.email || "",
   });
 
-  document.getElementById("btn-entrar-fila").style.display = "none";
+  document.getElementById("sala-btn-area").style.display  = "none";
   document.getElementById("sala-fila-info").style.display  = "block";
   document.getElementById("sala-status-txt").textContent   = "⏳ Aguardando atendimento";
   document.getElementById("sala-status-sub").textContent   = "A equipe irá te chamar em breve. Mantenha esta janela aberta.";
+  const dotEl = document.getElementById("sala-status-dot");
+  if(dotEl) { dotEl.style.background = "#9A6A00"; dotEl.style.animation = "pulse 1.5s infinite"; }
 
   // Polling para detectar quando a equipe liberou a sala
   if (_pollingId) clearInterval(_pollingId);
@@ -855,13 +893,16 @@ async function svEntrarFila() {
       clearInterval(_pollingId);
       _pollingId = null;
       document.getElementById("sala-fila-info").style.display = "none";
+      document.getElementById("sala-btn-area").style.display  = "none";
       document.getElementById("sala-chat-box").style.display  = "flex";
       document.getElementById("sala-status-txt").textContent  = "🟢 Você foi chamada!";
       document.getElementById("sala-status-sub").textContent  = "A Dra. Ilza está aguardando na sala.";
-      document.getElementById("sala-chat-input").focus();
+      const dot = document.getElementById("sala-status-dot");
+      if(dot) { dot.style.background = "#1A7A52"; dot.style.boxShadow = "0 0 0 3px rgba(26,122,82,.25)"; }
+      setTimeout(() => document.getElementById("sala-chat-input")?.focus(), 200);
       iniciarPollingMsgsSala();
     }
-  }, 4000);
+  }, 2000);
 }
 
 // Envia mensagem do paciente via chat da sala
@@ -870,25 +911,30 @@ async function salaEnviarMsg() {
   const txt = (input.value || "").trim();
   if (!txt || !_user || !_salaPacId) return;
 
-  const tsLabel = new Date().toLocaleTimeString("pt-BR", { hour:"2-digit", minute:"2-digit" });
-  const id = "pm_" + Date.now();
+  const ts = new Date().toLocaleTimeString("pt-BR", { hour:"2-digit", minute:"2-digit" });
+  const tsNum = Date.now();
+  const msgKey = "m" + tsNum;
 
-  // Renderiza localmente (lado paciente)
-  _renderBolhaSala(txt, tsLabel, "paciente", id);
+  // Renderiza localmente (lado paciente) — marcado como visto para não duplicar no polling
+  _renderBolhaSala(txt, ts, "pac", msgKey);
   input.value = "";
 
-  // Salva no Firebase para a equipe ver no CRM
-  await fbPost(`crm_data/portal_msgs_inbox`, {
-    id,
-    pac:    _user.nm || _user.email,
-    pacId:  _salaPacId,
-    msg:    txt,
-    ts:     new Date().toLocaleString("pt-BR"),
-    tsISO:  new Date().toISOString(),
-    lido:   false,
-    de:     "paciente",
-    email:  _user.email || "",
-  });
+  // Salva em salas/{pacId}/msgs — mesmo caminho que o CRM lê e escreve
+  try {
+    await fbPut(`salas/${_salaPacId}/msgs/${msgKey}`, {
+      txt,
+      de:    "pac",
+      nome:  _user.nm || _user.email,
+      ts,
+      tsNum,
+      lida:  false,
+    });
+    // Atualiza última mensagem no índice (para o CRM exibir preview)
+    await fbPut(`salas_index/${_salaPacId}/ultimaTxt`, txt.substring(0, 60));
+    await fbPut(`salas_index/${_salaPacId}/ultimaTs`, ts);
+  } catch(e) {
+    console.error("[Sala] erro ao enviar mensagem:", e);
+  }
 }
 
 // Renderiza bolha no chat da sala
@@ -923,39 +969,38 @@ function _renderBolhaSala(txt, tsLabel, de, id) {
   lista.scrollTop = lista.scrollHeight;
 }
 
-// Polling de respostas da equipe durante o chat da sala
+// Polling de mensagens da sala — lê salas/{pacId}/msgs (mesmo caminho do CRM)
 function iniciarPollingMsgsSala() {
   if (_salaPollingMsgId) clearInterval(_salaPollingMsgId);
 
   async function poll() {
     if (!_salaPacId || !_user) return;
-    const pacNm    = (_user.nm || "").toLowerCase();
-    const pacEmail = (_user.email || "").toLowerCase();
+    try {
+      const data = await fbGet(`salas/${_salaPacId}/msgs`);
+      if (!data) return;
 
-    const data = await fbGet("crm_data/portal_msgs_outbox");
-    if (!data) return;
+      // Ordena por tsNum e renderiza todas as mensagens novas
+      const msgs = Object.entries(data)
+        .map(([k, v]) => ({ id: k, ...v }))
+        .sort((a, b) => (a.tsNum || 0) - (b.tsNum || 0));
 
-    const arr = Array.isArray(data) ? data : Object.values(data);
-    arr
-      .filter(m => {
-        const dest = (m.pac || m.pacNm || "").toLowerCase();
-        return dest === pacNm || dest.includes(pacNm.split(" ")[0]) ||
-               (m.email && m.email.toLowerCase() === pacEmail);
-      })
-      .sort((a,b) => (a.tsISO||a.ts||"") > (b.tsISO||b.ts||"") ? 1 : -1)
-      .forEach(m => {
-        const id = m.id || (m.ts + m.msg);
-        _renderBolhaSala(m.msg || m.txt || "", m.ts || "", "equipe", id);
+      msgs.forEach(m => {
+        // Renderiza quem enviou: "dra" = equipe, "pac" = paciente
+        const de = m.de === "dra" ? "equipe" : "pac";
+        _renderBolhaSala(m.txt || m.msg || "", m.ts || "", de, m.id);
       });
+    } catch(e) {
+      console.warn("[Sala] poll msgs:", e);
+    }
   }
 
-  poll();
-  _salaPollingMsgId = setInterval(poll, 4000);
+  poll(); // Poll imediato ao entrar
+  _salaPollingMsgId = setInterval(poll, 2000); // A cada 2s
 }
 
 // ── Navegação entre páginas ───────────────────────────────────
 function showPage(name) {
-  const pages = ["inicio","dados","consultas","exames","mensagens","senha"];
+  const pages = ["inicio","dados","consultas","exames","mensagens","senha","sala"];
   pages.forEach(p => {
     const el = document.getElementById(`page-${p}`);
     if (el) el.style.display = p === name ? "block" : "none";
@@ -974,6 +1019,16 @@ function svLogout() {
   _salaIdsVistos = {}; _salaPacId = null;
   if (_pollingId)        { clearInterval(_pollingId);        _pollingId        = null; }
   if (_salaPollingMsgId) { clearInterval(_salaPollingMsgId); _salaPollingMsgId = null; }
+  // Reseta estado visual da sala
+  try {
+    document.getElementById("sala-chat-box").style.display  = "none";
+    document.getElementById("sala-fila-info").style.display = "none";
+    document.getElementById("sala-btn-area").style.display  = "block";
+    document.getElementById("sala-msgs").innerHTML = '<div id="sala-msgs-empty" style="text-align:center;color:var(--txS);font-size:13px;padding:32px 0">💬 Chat aberto — escreva sua mensagem abaixo</div>';
+    document.getElementById("sala-status-txt").textContent = "Sala de Espera Virtual";
+    document.getElementById("sala-status-sub").textContent = "Clique para entrar na fila de atendimento.";
+    const d = document.getElementById("sala-status-dot"); if(d) { d.style.background="var(--txS)"; d.style.animation=""; d.style.boxShadow=""; }
+  } catch(e) {}
   document.getElementById("app-page").style.display   = "none";
   document.getElementById("login-page").style.display = "flex";
   document.getElementById("login-pass").value  = "";
