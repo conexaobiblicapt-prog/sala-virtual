@@ -196,7 +196,6 @@ input:focus,select:focus,textarea:focus{
         <button class="nav-item" id="nav-dados" onclick="showPage('dados')">👤 &nbsp;Meus Dados</button>
         <button class="nav-item" id="nav-consultas" onclick="showPage('consultas')">📅 &nbsp;Consultas</button>
         <button class="nav-item" id="nav-exames" onclick="showPage('exames')">🔬 &nbsp;Exames</button>
-        <button class="nav-item" id="nav-mensagens" onclick="showPage('mensagens')">💬 &nbsp;Mensagens</button>
         <div style="padding:6px 12px 4px;color:rgba(255,255,255,.25);font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;margin:10px 0 4px">CONTA</div>
         <button class="nav-item" id="nav-senha" onclick="showPage('senha')">🔑 &nbsp;Minha Senha</button>
         <button class="nav-item" id="nav-sala" onclick="showPage('sala')">📹 &nbsp;Sala de Espera</button>
@@ -250,7 +249,12 @@ input:focus,select:focus,textarea:focus{
         <div style="background:linear-gradient(135deg,#1a5fa8 0%,#0d2137 60%,#1a8c82 100%);border-radius:14px;padding:24px 28px;margin-bottom:20px;position:relative;overflow:hidden">
           <div style="position:absolute;top:-30px;right:-30px;width:130px;height:130px;border-radius:50%;background:rgba(255,255,255,.04)"></div>
           <div style="display:flex;align-items:center;gap:18px">
-            <div id="dados-avatar" style="width:64px;height:64px;border-radius:50%;background:rgba(255,255,255,.15);border:2px solid rgba(255,255,255,.3);display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;color:#fff;flex-shrink:0">?</div>
+            <div style="position:relative;flex-shrink:0">
+              <div id="dados-avatar" style="width:64px;height:64px;border-radius:50%;background:rgba(255,255,255,.15);border:2px solid rgba(255,255,255,.3);display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;color:#fff;overflow:hidden">?</div>
+              <label for="dados-foto-input" title="Alterar foto" style="position:absolute;bottom:-2px;right:-2px;background:var(--p);border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:11px;border:2px solid #fff">📷
+                <input id="dados-foto-input" type="file" accept="image/*" style="display:none" onchange="dadosAlterarFoto(this)">
+              </label>
+            </div>
             <div>
               <div id="dados-nome" style="font-size:20px;font-weight:800;color:#fff;margin-bottom:6px">—</div>
               <div style="display:flex;gap:14px;flex-wrap:wrap">
@@ -352,6 +356,7 @@ input:focus,select:focus,textarea:focus{
           <div>
             <div style="font-size:20px;font-weight:800;color:var(--tx);letter-spacing:-.02em">Sala de Espera Virtual</div>
             <div style="font-size:13px;color:var(--txS)">Teleconsulta com a equipe da Dra. Ilza Ezequiel</div>
+            <div id="sala-posicao-badge" style="display:none;margin-top:8px;background:var(--sur2);border:1px solid var(--br);border-radius:8px;padding:5px 14px;font-size:12px;color:var(--p);font-weight:600;display:inline-flex;align-items:center;gap:6px">📋 <span id="sala-posicao-txt">Aguardando...</span></div>
           </div>
         </div>
 
@@ -376,11 +381,19 @@ input:focus,select:focus,textarea:focus{
 
         <!-- Estado: botão entrar na fila -->
         <div id="sala-btn-area">
+          <!-- Aviso de horário -->
+          <div style="background:var(--amB);border:1px solid var(--amBr);border-radius:12px;padding:14px 18px;max-width:420px;margin-bottom:14px">
+            <div style="font-size:12px;font-weight:700;color:var(--am);margin-bottom:4px">🕐 Horário de Atendimento</div>
+            <div style="font-size:12px;color:var(--am);opacity:.85;line-height:1.6">
+              O chat de atendimento está disponível <strong>somente às Quartas-feiras</strong>, das <strong>08h às 18h</strong>.<br>
+              O atendimento é por <strong>ordem de chegada</strong>.
+            </div>
+          </div>
           <button onclick="svEntrarFila()" id="btn-entrar-fila" class="btn-p" style="max-width:380px;margin-bottom:12px">
-            &#x1F6AA; &nbsp;Entrar na fila de espera
+            🚪 &nbsp;Entrar na fila de espera
           </button>
           <div style="background:var(--sur2);border:1px solid var(--br);border-radius:12px;padding:16px 18px;max-width:380px">
-            <div style="font-size:11px;font-weight:700;color:var(--txM);margin-bottom:8px;text-transform:uppercase;letter-spacing:.07em">&#x2139;&#xFE0F; Como funciona</div>
+            <div style="font-size:11px;font-weight:700;color:var(--txM);margin-bottom:8px;text-transform:uppercase;letter-spacing:.07em">ℹ️ Como funciona</div>
             <div style="font-size:12px;color:var(--txS);line-height:1.7">
               1. Clique em <strong style="color:var(--tx)">Entrar na fila</strong><br>
               2. Aguarde a equipe te chamar<br>
@@ -393,33 +406,53 @@ input:focus,select:focus,textarea:focus{
         <!-- Estado: chat aberto (quando equipe libera) -->
         <div id="sala-chat-box" style="display:none;flex-direction:column;gap:0">
 
-          <!-- Banner sala pronta -->
-          <div style="background:var(--grB);border:1px solid var(--grBr);border-radius:12px;padding:14px 18px;margin-bottom:14px;display:flex;align-items:center;gap:12px">
-            <div style="font-size:28px">&#x1F7E2;</div>
-            <div>
-              <div style="font-size:14px;font-weight:700;color:var(--gr)">Sala pronta! A equipe est&#xE1; aguardando.</div>
-              <div style="font-size:12px;color:var(--txS);margin-top:2px">Chat em tempo real com a equipe da Dra. Ilza</div>
+          <!-- Header da sala = estilo CRM (imagem 2) -->
+          <div style="background:var(--grad);border-radius:14px;padding:12px 18px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between">
+            <div style="display:flex;align-items:center;gap:10px">
+              <div style="width:10px;height:10px;border-radius:50%;background:#1A7A52;box-shadow:0 0 0 3px rgba(26,122,82,.25)"></div>
+              <div>
+                <div style="font-size:13px;font-weight:700;color:#fff">Sala pronta! A equipe está aguardando.</div>
+                <div style="font-size:11px;color:rgba(255,255,255,.55);margin-top:1px">Chat em tempo real com a equipe da Dra. Ilza Ezequiel</div>
+              </div>
             </div>
-          </div>
-
-          <!-- Área de mensagens -->
-          <div id="sala-msgs"
-            style="background:#fff;border:1.5px solid var(--br);border-radius:16px;min-height:300px;max-height:calc(100vh - 500px);overflow-y:auto;padding:18px;display:flex;flex-direction:column;gap:10px;margin-bottom:12px;scroll-behavior:smooth">
-            <div id="sala-msgs-empty" style="text-align:center;color:var(--txS);font-size:13px;padding:32px 0;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px">
-              <div style="font-size:36px">&#x1F4AC;</div>
-              <div>Chat aberto &#x2014; escreva sua mensagem abaixo</div>
-            </div>
-          </div>
-
-          <!-- Input de envio -->
-          <div style="display:flex;gap:8px;align-items:center;background:#fff;border:1.5px solid var(--br);border-radius:14px;padding:10px 12px;max-width:100%">
-            <input id="sala-chat-input" type="text" placeholder="Escrever para a equipe... (Enter para enviar)"
-              style="flex:1;border:none;outline:none;font-size:14px;font-family:inherit;color:var(--tx);background:transparent"
-              onkeydown="if(event.key==='Enter')salaEnviarMsg()">
-            <button onclick="salaEnviarMsg()"
-              style="background:linear-gradient(135deg,var(--p),var(--pL));color:#fff;border:none;border-radius:10px;padding:9px 18px;font-weight:700;cursor:pointer;font-family:inherit;font-size:13px;white-space:nowrap;flex-shrink:0">
-              Enviar &#x2197;
+            <button onclick="svEncerrarSala()" id="btn-encerrar-sala"
+              style="background:rgba(192,57,43,.18);border:1px solid rgba(192,57,43,.4);color:#ffaaaa;border-radius:8px;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap">
+              ✕ Encerrar
             </button>
+          </div>
+
+          <!-- Área de mensagens — bolhas estilo CRM -->
+          <div id="sala-msgs"
+            style="background:#fff;border:1.5px solid var(--br);border-radius:16px;min-height:300px;max-height:calc(100vh - 520px);overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:8px;margin-bottom:10px;scroll-behavior:smooth">
+            <div id="sala-msgs-empty" style="text-align:center;color:var(--txS);font-size:13px;padding:32px 0;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px">
+              <div style="font-size:36px">💬</div>
+              <div>Chat aberto — escreva sua mensagem abaixo</div>
+            </div>
+          </div>
+
+          <!-- Input de envio + anexo -->
+          <div style="background:#fff;border:1.5px solid var(--br);border-radius:14px;padding:10px 12px">
+            <!-- Input texto -->
+            <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+              <input id="sala-chat-input" type="text" placeholder="Escrever para a equipe... (Enter para enviar)"
+                style="flex:1;border:none;outline:none;font-size:14px;font-family:inherit;color:var(--tx);background:transparent"
+                onkeydown="if(event.key==='Enter')salaEnviarMsg()">
+              <button onclick="salaEnviarMsg()"
+                style="background:linear-gradient(135deg,var(--p),var(--pL));color:#fff;border:none;border-radius:10px;padding:9px 18px;font-weight:700;cursor:pointer;font-family:inherit;font-size:13px;white-space:nowrap;flex-shrink:0">
+                Enviar ↗
+              </button>
+            </div>
+            <!-- Anexo -->
+            <div style="display:flex;align-items:center;gap:8px;border-top:1px solid var(--br);padding-top:8px">
+              <label for="sala-file-input" style="display:flex;align-items:center;gap:6px;cursor:pointer;background:var(--sur2);border:1px solid var(--br);border-radius:8px;padding:6px 12px;font-size:11px;font-weight:600;color:var(--txM)">
+                📎 Anexar arquivo (até 5 MB)
+                <input id="sala-file-input" type="file" accept="image/*,.pdf,.doc,.docx,.txt" style="display:none" onchange="salaAnexarArquivo(this)">
+              </label>
+              <span id="sala-file-name" style="font-size:11px;color:var(--txS);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
+              <button id="sala-file-send-btn" onclick="salaEnviarAnexo()" style="display:none;background:var(--gr);color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">
+                Enviar arquivo
+              </button>
+            </div>
           </div>
         </div>
 
@@ -721,7 +754,12 @@ function preencherDadosPaciente() {
   // Avatar
   const nome = _user.nm || _user.nome || "?";
   const ini  = nome.split(" ").map(x=>x[0]).slice(0,2).join("").toUpperCase();
-  document.getElementById("dados-avatar").textContent = ini;
+  const avEl = document.getElementById("dados-avatar");
+  if (_user.fotoBase64) {
+    avEl.innerHTML = `<img src="${_user.fotoBase64}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
+  } else {
+    avEl.textContent = ini;
+  }
   document.getElementById("dados-nome").textContent   = nome;
   document.getElementById("dados-cpf-top").textContent   = `🪪 CPF: ${_user.cpf || "—"}`;
   document.getElementById("dados-email-top").textContent = `✉ ${_user.email || "—"}`;
@@ -885,13 +923,32 @@ async function svEntrarFila() {
   const dotEl = document.getElementById("sala-status-dot");
   if(dotEl) { dotEl.style.background = "#9A6A00"; dotEl.style.animation = "pulse 1.5s infinite"; }
 
-  // Polling para detectar quando a equipe liberou a sala
+  // Polling para detectar quando a equipe liberou a sala + posição na fila
   if (_pollingId) clearInterval(_pollingId);
   _pollingId = setInterval(async () => {
     const info = await fbGet(`salas_index/${_salaPacId}`);
-    if (info && info.status === "atendendo") {
+    if (!info) return;
+
+    // Atualizar posição na fila
+    const todasSalas = await fbGet("salas_index");
+    if (todasSalas) {
+      const filaAguardando = Object.entries(todasSalas)
+        .filter(([,v]) => v.status === "aguardando")
+        .sort(([,a],[,b]) => (a.tsNum||0) - (b.tsNum||0));
+      const posicao = filaAguardando.findIndex(([k]) => k === _salaPacId) + 1;
+      const badge = document.getElementById("sala-posicao-badge");
+      const txt = document.getElementById("sala-posicao-txt");
+      if (badge && txt && posicao > 0) {
+        badge.style.display = "inline-flex";
+        txt.textContent = `Você é o Paciente #${posicao} na fila`;
+      }
+    }
+
+    if (info.status === "atendendo") {
       clearInterval(_pollingId);
       _pollingId = null;
+      const badge = document.getElementById("sala-posicao-badge");
+      if (badge) badge.style.display = "none";
       document.getElementById("sala-fila-info").style.display = "none";
       document.getElementById("sala-btn-area").style.display  = "none";
       document.getElementById("sala-chat-box").style.display  = "flex";
@@ -938,7 +995,7 @@ async function salaEnviarMsg() {
 }
 
 // Renderiza bolha no chat da sala
-function _renderBolhaSala(txt, tsLabel, de, id) {
+function _renderBolhaSala(txt, tsLabel, de, id, isFile) {
   if (_salaIdsVistos[id]) return;
   _salaIdsVistos[id] = true;
 
@@ -947,26 +1004,130 @@ function _renderBolhaSala(txt, tsLabel, de, id) {
 
   const lista = document.getElementById("sala-msgs");
   const div = document.createElement("div");
+  const isPac = de === "pac" || de === "paciente";
 
-  if (de === "paciente") {
+  const conteudo = isFile
+    ? `<div style="display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.15);border-radius:8px;padding:8px 10px">
+        <span style="font-size:18px">📎</span>
+        <div>
+          <div style="font-size:12px;font-weight:600">${txt}</div>
+          <a href="${isFile}" download="${txt}" style="font-size:10px;opacity:.75;text-decoration:underline;color:inherit">Download</a>
+        </div>
+       </div>`
+    : txt;
+
+  if (isPac) {
     div.style.cssText = "display:flex;justify-content:flex-end";
     div.innerHTML = `
-      <div style="background:linear-gradient(135deg,var(--p),var(--pL));color:#fff;border-radius:14px 14px 4px 14px;padding:9px 13px;max-width:80%;font-size:13px;line-height:1.5">
-        ${txt}
+      <div style="background:linear-gradient(135deg,#A8722A,#7A5018);color:#fff;border-radius:14px 14px 4px 14px;padding:9px 14px;max-width:78%;font-size:13px;line-height:1.5">
+        ${conteudo}
         <div style="font-size:10px;opacity:.65;margin-top:4px;text-align:right">${tsLabel} ✓✓</div>
       </div>`;
   } else {
     div.style.cssText = "display:flex;justify-content:flex-start;gap:6px;align-items:flex-end";
     div.innerHTML = `
       <div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#0d2137,#1A5FA8);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:10px;font-weight:700;color:#fff">IL</div>
-      <div style="background:var(--sur2);border:1px solid var(--br);border-radius:14px 14px 14px 4px;padding:9px 13px;max-width:80%;font-size:13px;line-height:1.5">
-        ${txt}
+      <div style="background:var(--sur2);border:1px solid var(--br);border-radius:14px 14px 14px 4px;padding:9px 14px;max-width:78%;font-size:13px;line-height:1.5">
+        ${conteudo}
         <div style="font-size:10px;color:var(--txS);margin-top:4px">${tsLabel} · Equipe</div>
       </div>`;
   }
 
   lista.appendChild(div);
   lista.scrollTop = lista.scrollHeight;
+}
+
+// ── Encerrar sala com confirmação ─────────────────────────────
+function svEncerrarSala() {
+  if (!confirm("Deseja encerrar a consulta?\n\nSim → encerrar agora\nNão → continuar")) return;
+  if (!confirm("Tem certeza? Esta ação encerrará o atendimento.")) return;
+
+  if (_salaPacId) {
+    fbPut(`salas_index/${_salaPacId}/status`, "encerrado").catch(()=>{});
+    fbPut(`salas_index/${_salaPacId}`, {
+      ...({}),
+      status: "encerrado",
+      encerradoEm: new Date().toISOString()
+    }).catch(()=>{});
+  }
+  if (_pollingId)        { clearInterval(_pollingId);        _pollingId        = null; }
+  if (_salaPollingMsgId) { clearInterval(_salaPollingMsgId); _salaPollingMsgId = null; }
+
+  // Resetar UI
+  document.getElementById("sala-chat-box").style.display  = "none";
+  document.getElementById("sala-fila-info").style.display = "none";
+  document.getElementById("sala-btn-area").style.display  = "block";
+  const msgsList = document.getElementById("sala-msgs");
+  if (msgsList) msgsList.innerHTML = '<div id="sala-msgs-empty" style="text-align:center;color:var(--txS);font-size:13px;padding:32px 0">💬 Chat aberto — escreva sua mensagem abaixo</div>';
+  document.getElementById("sala-status-txt").textContent = "Sala de Espera Virtual";
+  document.getElementById("sala-status-sub").textContent = "Clique para entrar na fila de atendimento.";
+  const d = document.getElementById("sala-status-dot");
+  if(d) { d.style.background="var(--txS)"; d.style.animation=""; d.style.boxShadow=""; }
+  const badge = document.getElementById("sala-posicao-badge");
+  if(badge) badge.style.display = "none";
+  _salaIdsVistos = {}; _salaPacId = null;
+}
+
+// ── Foto do paciente (Meus Dados) ─────────────────────────────
+function dadosAlterarFoto(input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (file.size > 2 * 1024 * 1024) { alert("Imagem muito grande. Use até 2 MB."); return; }
+  const reader = new FileReader();
+  reader.onload = async function(ev) {
+    const base64 = ev.target.result;
+    const avatarEl = document.getElementById("dados-avatar");
+    avatarEl.innerHTML = `<img src="${base64}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
+    // Salva no Firebase
+    if (_portalKey) {
+      await fbPut(`sv_portal/users/${_portalKey}/fotoBase64`, base64);
+      // Sincroniza com CRM se possível
+      const crmId = _user?.crmPacId || _user?.id;
+      if (crmId) await fbPut(`crm_data/crm_pats_v26/${crmId}/fotoBase64`, base64);
+    }
+  };
+  reader.readAsDataURL(file);
+}
+
+// ── Anexar arquivo no chat da sala ───────────────────────────
+let _salaFileData = null;
+function salaAnexarArquivo(input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (file.size > 5 * 1024 * 1024) { alert("Arquivo muito grande. O limite é 5 MB."); input.value=""; return; }
+  document.getElementById("sala-file-name").textContent = file.name;
+  document.getElementById("sala-file-send-btn").style.display = "inline-flex";
+  const reader = new FileReader();
+  reader.onload = ev => { _salaFileData = { name: file.name, data: ev.target.result, type: file.type }; };
+  reader.readAsDataURL(file);
+}
+
+async function salaEnviarAnexo() {
+  if (!_salaFileData || !_salaPacId || !_user) return;
+  const { name, data, type } = _salaFileData;
+  const ts = new Date().toLocaleTimeString("pt-BR", { hour:"2-digit", minute:"2-digit" });
+  const tsNum = Date.now();
+  const msgKey = "f" + tsNum;
+
+  _renderBolhaSala(name, ts, "pac", msgKey, data);
+
+  try {
+    await fbPut(`salas/${_salaPacId}/msgs/${msgKey}`, {
+      txt: name,
+      fileUrl: data.substring(0, 6999990), // respeita regra 7MB Firebase
+      fileType: type,
+      de: "pac",
+      nome: _user.nm || _user.email,
+      ts, tsNum, lida: false, isFile: true
+    });
+    await fbPut(`salas_index/${_salaPacId}/ultimaTxt`, `📎 ${name}`);
+    await fbPut(`salas_index/${_salaPacId}/ultimaTs`, ts);
+  } catch(e) { console.error("Erro ao enviar arquivo:", e); }
+
+  _salaFileData = null;
+  document.getElementById("sala-file-name").textContent = "";
+  document.getElementById("sala-file-send-btn").style.display = "none";
+  document.getElementById("sala-file-input").value = "";
 }
 
 // Polling de mensagens da sala — lê salas/{pacId}/msgs (mesmo caminho do CRM)
@@ -985,9 +1146,9 @@ function iniciarPollingMsgsSala() {
         .sort((a, b) => (a.tsNum || 0) - (b.tsNum || 0));
 
       msgs.forEach(m => {
-        // Renderiza quem enviou: "dra" = equipe, "pac" = paciente
         const de = m.de === "dra" ? "equipe" : "pac";
-        _renderBolhaSala(m.txt || m.msg || "", m.ts || "", de, m.id);
+        const fileUrl = m.isFile ? (m.fileUrl || null) : null;
+        _renderBolhaSala(m.txt || m.msg || "", m.ts || "", de, m.id, fileUrl);
       });
     } catch(e) {
       console.warn("[Sala] poll msgs:", e);
@@ -1000,7 +1161,7 @@ function iniciarPollingMsgsSala() {
 
 // ── Navegação entre páginas ───────────────────────────────────
 function showPage(name) {
-  const pages = ["inicio","dados","consultas","exames","mensagens","senha","sala"];
+  const pages = ["inicio","dados","consultas","exames","senha","sala"];
   pages.forEach(p => {
     const el = document.getElementById(`page-${p}`);
     if (el) el.style.display = p === name ? "block" : "none";
