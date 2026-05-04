@@ -539,7 +539,96 @@ let _crmPac = null;    // registro do CRM
 let _portalKey = null; // chave Firebase do usuário no sv_portal/users
 let _pollingId = null;
 
-// ── Mobile Drawer ─────────────────────────────────────────────
+// ── Realtime Sync Engine (2s polling — sem refresh de tela) ───
+let _rtId        = null;   // intervalo principal 2s
+let _rtHashes    = {};     // hash por coleção para evitar re-render desnecessário
+let _rtRunning   = false;
+
+function _hash(obj) {
+  return JSON.stringify(obj);
+}
+
+// Inicia o sync geral após login
+function iniciarRealtimeSync() {
+  if (_rtId) clearInterval(_rtId);
+  _rtRunning = true;
+  _rtPoll(); // imediato
+  _rtId = setInterval(_rtPoll, 2000);
+}
+
+// Para o sync (logout)
+function pararRealtimeSync() {
+  _rtRunning = false;
+  if (_rtId) { clearInterval(_rtId); _rtId = null; }
+  _rtHashes = {};
+}
+
+// Um ciclo de polling — busca tudo em paralelo
+async function _rtPoll() {
+  if (!_rtRunning || !_user) return;
+  try {
+    const [patsData, consultasData, examesData, pacPortalData] = await Promise.all([
+      fbGet("crm_data/crm_pats_v26"),
+      fbGet("crm_data/crm_consultas_v26"),
+      fbGet("crm_data/crm_exames_v26"),
+      _portalKey ? fbGet("sv_portal/users/" + _portalKey) : Promise.resolve(null),
+    ]);
+
+    // ── Atualizar dados do paciente se mudou no CRM ──
+    if (patsData) {
+      const arr = Array.isArray(patsData) ? patsData : Object.values(patsData);
+      const email = (_user.email||"").toLowerCase().trim();
+      const crmPac = arr.find(p => (p.email||"").toLowerCase().trim() === email);
+      if (crmPac) {
+        const h = _hash(crmPac);
+        if (h !== _rtHashes.pac) {
+          _rtHashes.pac = h;
+          _user = { ..._user, ...crmPac };
+          preencherDadosPaciente();
+          _atualizarBadgeSync("pac");
+        }
+      }
+    }
+
+    // ── Sincronizar foto do portal (se o CRM atualizou) ──
+    if (pacPortalData && pacPortalData.fotoBase64 && pacPortalData.fotoBase64 !== _user.fotoBase64) {
+      _user.fotoBase64 = pacPortalData.fotoBase64;
+      preencherDadosPaciente();
+    }
+
+    // ── Atualizar consultas ──
+    if (consultasData) {
+      const h = _hash(consultasData);
+      if (h !== _rtHashes.consultas) {
+        _rtHashes.consultas = h;
+        _renderConsultas(consultasData);
+        _atualizarBadgeSync("consultas");
+      }
+    }
+
+    // ── Atualizar exames ──
+    if (examesData) {
+      const h = _hash(examesData);
+      if (h !== _rtHashes.exames) {
+        _rtHashes.exames = h;
+        _renderExames(examesData);
+        _atualizarBadgeSync("exames");
+      }
+    }
+  } catch(e) {
+    console.warn("[RT Sync] erro:", e);
+  }
+}
+
+// Flash visual discreto no badge de sync quando dados atualizam
+function _atualizarBadgeSync(tipo) {
+  const dot = document.getElementById("sync-dot");
+  const mob = document.querySelector("#mob-sync-badge span:first-child");
+  if (dot) { dot.style.background = "#3B9DE8"; setTimeout(()=>{ dot.style.background="#1A7A52"; }, 800); }
+  if (mob)  { mob.style.background = "#3B9DE8"; setTimeout(()=>{ mob.style.background="#1A7A52"; }, 800); }
+}
+
+
 function drawerOpen() {
   document.getElementById("mob-drawer").classList.add("open");
   document.getElementById("drawer-overlay").classList.add("open");
@@ -794,6 +883,9 @@ function iniciarApp() {
   carregarConsultas();
   carregarExames();
 
+  // ── Inicia sync em tempo real (2s) — CRM ↔ Portal ──
+  iniciarRealtimeSync();
+
   showPage("inicio");
 }
 
@@ -829,36 +921,27 @@ function preencherDadosPaciente() {
   });
 }
 
-// ── Carregar consultas ────────────────────────────────────────
-async function carregarConsultas() {
-  const lista = await fbGet("crm_data/crm_consultas_v26");
-  const nomePac = (_user.nm || "").toLowerCase();
+// ── Render Consultas (puro — chamado pelo RT engine a cada 2s) ────────────────
+function _renderConsultas(lista) {
+  const nomePac  = (_user.nm  || "").toLowerCase();
   const emailPac = (_user.email || "").toLowerCase();
+  const primNome = nomePac.split(" ")[0];
 
   let consultas = [];
   if (lista) {
     const arr = Array.isArray(lista) ? lista : Object.values(lista);
     consultas = arr.filter(c => {
       const pacC = (c.pac || "").toLowerCase();
-      return pacC === nomePac || pacC.includes(nomePac.split(" ")[0]) || (emailPac && (c.email||"").toLowerCase() === emailPac);
+      return pacC === nomePac || pacC.includes(primNome)
+        || (emailPac && (c.email||"").toLowerCase() === emailPac);
     }).sort((a,b)=> (a.dt||"") > (b.dt||"") ? 1 : -1);
   }
 
-  document.getElementById("card-consultas").textContent = consultas.length || "0";
+  const cardEl = document.getElementById("card-consultas");
+  if (cardEl) cardEl.textContent = consultas.length || "0";
 
-  const html = consultas.length === 0
-    ? `<div style="text-align:center;padding:32px;color:var(--txS)"><div style="font-size:32px;margin-bottom:8px">📅</div>Nenhuma consulta agendada</div>`
-    : consultas.map(c => `
-        <div style="display:flex;align-items:center;gap:14px;padding:12px 0;border-bottom:1px solid var(--br)">
-          <div style="width:42px;height:42px;border-radius:10px;background:var(--sur2);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:20px">📅</div>
-          <div style="flex:1">
-            <div style="font-size:13px;font-weight:600;color:var(--tx)">${c.proc || "Consulta"}</div>
-            <div style="font-size:11px;color:var(--txS)">${c.dt||"—"} às ${c.hr||"—"} · ${c.tipo||c.mod||"Presencial"}</div>
-          </div>
-          <span style="background:${c.st==="Confirmado"?"var(--grB)":c.st==="Cancelado"?"var(--reB)":"var(--amB)"};color:${c.st==="Confirmado"?"var(--gr)":c.st==="Cancelado"?"var(--re)":"var(--am)"};border-radius:99px;padding:3px 10px;font-size:10px;font-weight:700">${c.st||"Agendado"}</span>
-        </div>`).join("");
-
-  document.getElementById("lista-consultas-inicio").innerHTML = consultas.length === 0
+  const ini = document.getElementById("lista-consultas-inicio");
+  if (ini) ini.innerHTML = consultas.length === 0
     ? `<div style="text-align:center;padding:24px;color:var(--txS)"><div style="font-size:28px;margin-bottom:8px">📅</div>Nenhuma consulta agendada</div>`
     : consultas.slice(0,3).map(c => `
         <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--br)">
@@ -869,23 +952,38 @@ async function carregarConsultas() {
           </div>
         </div>`).join("");
 
-  document.getElementById("consultas-list").innerHTML = html;
+  const lst = document.getElementById("consultas-list");
+  if (lst) lst.innerHTML = consultas.length === 0
+    ? `<div style="text-align:center;padding:32px;color:var(--txS)"><div style="font-size:32px;margin-bottom:8px">📅</div>Nenhuma consulta agendada</div>`
+    : consultas.map(c => `
+        <div style="display:flex;align-items:center;gap:14px;padding:12px 0;border-bottom:1px solid var(--br)">
+          <div style="width:42px;height:42px;border-radius:10px;background:var(--sur2);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:20px">📅</div>
+          <div style="flex:1">
+            <div style="font-size:13px;font-weight:600;color:var(--tx)">${c.proc||"Consulta"}</div>
+            <div style="font-size:11px;color:var(--txS)">${c.dt||"—"} às ${c.hr||"—"} · ${c.tipo||c.mod||"Presencial"}</div>
+          </div>
+          <span style="background:${c.st==="Confirmado"?"var(--grB)":c.st==="Cancelado"?"var(--reB)":"var(--amB)"};color:${c.st==="Confirmado"?"var(--gr)":c.st==="Cancelado"?"var(--re)":"var(--am)"};border-radius:99px;padding:3px 10px;font-size:10px;font-weight:700">${c.st||"Agendado"}</span>
+        </div>`).join("");
+}
+async function carregarConsultas() {
+  const d = await fbGet("crm_data/crm_consultas_v26"); if(d) _renderConsultas(d);
 }
 
-// ── Carregar exames ───────────────────────────────────────────
-async function carregarExames() {
-  const lista = await fbGet("crm_data/crm_exames_v26");
-  const nomePac = (_user.nm || "").toLowerCase();
+// ── Render Exames (puro — chamado pelo RT engine a cada 2s) ──────────────────
+function _renderExames(lista) {
+  const primNome = (_user.nm || "").toLowerCase().split(" ")[0];
 
   let exames = [];
   if (lista) {
     const arr = Array.isArray(lista) ? lista : Object.values(lista);
-    exames = arr.filter(e => (e.pac||"").toLowerCase().includes(nomePac.split(" ")[0]));
+    exames = arr.filter(e => (e.pac||"").toLowerCase().includes(primNome));
   }
 
-  document.getElementById("card-exames").textContent = exames.length || "0";
+  const cardEl = document.getElementById("card-exames");
+  if (cardEl) cardEl.textContent = exames.length || "0";
 
-  document.getElementById("exames-list").innerHTML = exames.length === 0
+  const lst = document.getElementById("exames-list");
+  if (lst) lst.innerHTML = exames.length === 0
     ? `<div style="text-align:center;padding:32px;color:var(--txS)"><div style="font-size:32px;margin-bottom:8px">🔬</div>Nenhum exame registrado</div>`
     : exames.map(e => `
         <div style="display:flex;align-items:center;gap:14px;padding:12px 0;border-bottom:1px solid var(--br)">
@@ -896,6 +994,9 @@ async function carregarExames() {
           </div>
           <span style="background:${e.st==="Realizado"?"var(--grB)":e.st==="Cancelado"?"var(--reB)":"var(--amB)"};color:${e.st==="Realizado"?"var(--gr)":e.st==="Cancelado"?"var(--re)":"var(--am)"};border-radius:99px;padding:3px 10px;font-size:10px;font-weight:700">${e.st||"Agendado"}</span>
         </div>`).join("");
+}
+async function carregarExames() {
+  const d = await fbGet("crm_data/crm_exames_v26"); if(d) _renderExames(d);
 }
 
 // ── Mensagens ─────────────────────────────────────────────────
@@ -1234,6 +1335,7 @@ function closeModal(id) {
 function svLogout() {
   _user = null; _crmPac = null; _portalKey = null;
   _salaIdsVistos = {}; _salaPacId = null;
+  pararRealtimeSync(); // para o sync 2s
   if (_pollingId)        { clearInterval(_pollingId);        _pollingId        = null; }
   if (_salaPollingMsgId) { clearInterval(_salaPollingMsgId); _salaPollingMsgId = null; }
   // Reseta estado visual da sala
